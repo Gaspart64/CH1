@@ -1060,7 +1060,7 @@ function loadPGNFileFromServer() {
     let PGNFile;
 
     // Fetch the PGN file from the server (adjust URL accordingly)
-    const fileUrl = 'path_to_your_file.pgn';
+    const fileUrl = 'https://raw.githubusercontent.com/Gaspart64/CH1/refs/heads/PGNLoader/KQvK.pgn';
 
     // Fetch the PGN file
     fetch(fileUrl)
