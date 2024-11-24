@@ -1055,47 +1055,46 @@ function onDialogClose() {
 /**
  * Feed the PGN file provided by the user here to the PGN Parser and update/enable the controls
  */
-function loadPGNFile() { // eslint-disable-line no-unused-vars
+function loadPGNFileFromServer() {
+    resetGame();
+    let PGNFile;
 
-	resetGame();
-	let PGNFile;
+    // Fetch the PGN file from the server (adjust URL accordingly)
+    const fileUrl = 'path_to_your_file.pgn';
 
-	const [file] = document.getElementById('openPGN').files;
-	const reader = new FileReader();
+    // Fetch the PGN file
+    fetch(fileUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load PGN file from the server.');
+            }
+            return response.text(); // Read the response as text
+        })
+        .then(fileContent => {
+            PGNFile = fileContent.trim(); // Clean up the file content
+            try {
+                // Parse the PGN content
+                parsePGN(PGNFile);
 
-	reader.addEventListener(
-		'load',
-		() => {
-			PGNFile = reader.result;
-			try {
-				parsePGN(PGNFile.trim());  // Clean up the file prior to processing
+                // Successfully parsed the PGN file
+                $('#puzzleNumber_landscape').text('1');
+                $('#puzzleNumber_portrait').text('1');
+                $('#puzzleNumbertotal_landscape').text(puzzleset.length);
+                $('#puzzleNumbertotal_portrait').text(puzzleset.length);
 
-				// File is now loaded
-				// Update the range of the puzzle counters to the size of the puzzleset
-				$('#puzzleNumber_landscape').text('1');
-				$('#puzzleNumber_portrait').text('1');
+                // Enable the start button
+                setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'block', false);
+            } catch (err) {
+                alert(`There was an issue parsing the PGN file. Error message: ${err.message}\n\nPuzzles loaded successfully before error: ${puzzleset.length}`);
+                resetGame();
+            }
+        })
+        .catch(error => {
+            alert(`Failed to load PGN file. Error: ${error.message}`);
+            resetGame();
+        });
+}
 
-				$('#puzzleNumbertotal_landscape').text(puzzleset.length);
-				$('#puzzleNumbertotal_portrait').text(puzzleset.length);
-
-				// Enable the start button
-				setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'block', false);
-			}
-			catch (err) {
-				alert('There is an issue with the PGN file.  Error message is as follows:\n\n' + err
-					+ '\n\nPuzzles loaded successfully before error: ' + puzzleset.length);
-				resetGame();
-			}
-			finally {
-				// Do nothing else
-			}
-		},
-		false,
-	);
-
-	if (file) {
-		reader.readAsText(file);
-	}
 
 	// Now that file is loaded, enable the ability to select options
 	setCheckboxSelectability(true);
