@@ -1073,6 +1073,13 @@ function loadPGNFile() { // eslint-disable-line no-unused-vars
             })
             .then(PGNFile => {
                 try {
+                    console.log('Fetched PGN File:', PGNFile); // Debug log
+                    
+                    // Ensure PGNFile is a string
+                    if (typeof PGNFile !== 'string') {
+                        throw new Error('PGN file content is not a string');
+                    }
+
                     parsePGN(PGNFile.trim());  // Clean up the file prior to processing
 
                     // File is now loaded
@@ -1087,12 +1094,14 @@ function loadPGNFile() { // eslint-disable-line no-unused-vars
                     setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'block', false);
                 }
                 catch (err) {
+                    console.error('Error processing PGN:', err); // Debug log
                     alert('There is an issue with the PGN file. Error message is as follows:\n\n' + err
-                        + '\n\nPuzzles loaded successfully before error: ' + puzzleset.length);
+                        + '\n\nPuzzles loaded successfully before error: ' + (puzzleset ? puzzleset.length : 'N/A'));
                     resetGame();
                 }
             })
             .catch(error => {
+                console.error('Error loading PGN file:', error); // Debug log
                 alert('Error loading PGN file: ' + error);
                 resetGame();
             });
