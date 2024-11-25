@@ -187,6 +187,7 @@ function changePieces() {
 
 	// Update the board with the new pieces
 	Chessboard('myBoard', config);
+	setTimeout(initializeTapToMove, 100);
 
 	// Set the colors after the piece change
 	changecolor();
@@ -1015,7 +1016,9 @@ function snapEnd() {
 let selectedSquare = null;
 
 function initializeTapToMove() {
+    console.log("Initializing tap to move...");
     const squares = document.querySelectorAll('.square-55d63'); // chessboard.js square class
+	console.log("Found squares:", squares.length);
     squares.forEach(square => {
         square.addEventListener('click', handleSquareClick);
         square.addEventListener('touchend', function(e) {
@@ -1026,17 +1029,21 @@ function initializeTapToMove() {
 }
 
 function handleSquareClick(event) {
+	console.log("Square clicked!");
     const square = event.currentTarget;
     const squareId = square.getAttribute('data-square');
+	console.log("Clicked square:", squareId);
     
     // If no square is selected
     if (!selectedSquare) {
         // Check if this is a valid piece to move (using your existing logic)
         const piece = game.get(squareId);
+	    console.log("Piece on square:", piece); 
         if (piece) {
             if (isValidPieceToMove(squareId, piece.color + piece.type)) {
                 selectedSquare = squareId;
                 square.classList.add('highlight-square');
+		     console.log("Square selected:", squareId);
             }
         }
     } 
