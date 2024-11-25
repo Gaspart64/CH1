@@ -1057,7 +1057,7 @@ function onDialogClose() {
  */
 document.getElementById('openPGN_button').addEventListener('click', function() {
     // Define the URL of the PGN file on the server
-    const pgnUrl = '/path/to/your/pgn/file.pgn'; // Replace with the actual path to the PGN file on your server
+    const pgnUrl = 'https://raw.githubusercontent.com/Gaspart64/CH1/refs/heads/PGNLoader/KQvK.pgn'; // Replace with the actual path to the PGN file on your server
 
     // Fetch the PGN file from the server
     fetch(pgnUrl)
