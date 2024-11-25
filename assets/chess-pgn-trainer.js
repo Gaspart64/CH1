@@ -1012,7 +1012,89 @@ function snapEnd() {
 	}
 }
 
+let selectedSquare = null;
 
+function initializeTapToMove() {
+    const squares = document.querySelectorAll('.square-55d63'); // chessboard.js square class
+    squares.forEach(square => {
+        square.addEventListener('click', handleSquareClick);
+        square.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            handleSquareClick.call(this, e);
+        });
+    });
+}
+
+function handleSquareClick(event) {
+    const square = event.currentTarget;
+    const squareId = square.getAttribute('data-square');
+    
+    // If no square is selected
+    if (!selectedSquare) {
+        // Check if this is a valid piece to move (using your existing logic)
+        const piece = game.get(squareId);
+        if (piece) {
+            if (isValidPieceToMove(squareId, piece.color + piece.type)) {
+                selectedSquare = squareId;
+                square.classList.add('highlight-square');
+            }
+        }
+    } 
+    // If a square is already selected
+    else {
+        const sourceSquare = selectedSquare;
+        const targetSquare = squareId;
+        
+        // Clear the highlight
+        document.querySelector(`[data-square="${sourceSquare}"]`).classList.remove('highlight-square');
+        
+        // If clicking the same square, deselect
+        if (sourceSquare === targetSquare) {
+            selectedSquare = null;
+            return;
+        }
+        
+        // Try to make the move using your existing drop logic
+        dropPiece(sourceSquare, targetSquare);
+        selectedSquare = null;
+    }
+}
+
+// Helper function using your existing validation logic
+function isValidPieceToMove(square, piece) {
+    // Copy of your dragStart logic
+    if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+        (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+        return false;
+    }
+    if (pauseflag) {
+        return false;
+    }
+    if (!$('#playbothsides').is(':checked')) {
+        if (!$('#playoppositeside').is(':checked') && game.history().length % 2 !== 0) {
+            return false;
+        }
+        if ($('#playoppositeside').is(':checked') && (game.history().length % 2 === 0 || game.history().length === 0)) {
+            return false;
+        }
+    }
+    if (game.history().length === moveHistory.length) {
+        return false;
+    }
+    return true;
+}
+
+// Add some CSS for visual feedback
+const style = document.createElement('style');
+style.textContent = `
+    .highlight-square {
+        box-shadow: inset 0 0 3px 3px yellow;
+    }
+`;
+document.head.appendChild(style);
+
+// Initialize tap-to-move when the board is ready
+initializeTapToMove();
 
 // ------------------------
 // Pawn Promotion functions
