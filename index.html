@@ -66,8 +66,10 @@
 			<h3>Chess PGN Trainer</h3>
 		</div>
 		<p>
-			<button type="button" id="load_from_server_button" class="w3-button w3-round-large w3-indigo w3-hover-blue" onclick="loadPGNFileFromServer()">Load PGN File from Server</button>
-			<button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue" onclick="resetGame()">Reset</button>
+			<button type="button" id="openPGN_button" class="w3-button w3-round-large w3-indigo w3-hover-blue">Open PGN
+				File</button>
+			<input type="file" id="openPGN" accept=".pgn" onchange="loadPGNFile()" style="display: none;" />
+			<button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue">Reset</button>
 		</p>
 
 		<input class="w3-check" type="checkbox" id="playbothsides" onchange="confirmOnlyOneOption();"><label
