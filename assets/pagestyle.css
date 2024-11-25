@@ -85,6 +85,16 @@ table {
 
 .chessboard {
 	width: 660px
+	touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+.piece {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grab;
 }
 
 .center {
