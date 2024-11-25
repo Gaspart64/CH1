@@ -1055,54 +1055,83 @@ function onDialogClose() {
 /**
  * Feed the PGN file provided by the user here to the PGN Parser and update/enable the controls
  */
-function loadPGNFile() { // eslint-disable-line no-unused-vars
+document.getElementById('openPGN_button').addEventListener('click', function() {
+    // Define the URL of the PGN file on the server
+    const pgnUrl = '/path/to/your/pgn/file.pgn'; // Replace with the actual path to the PGN file on your server
 
-	resetGame();
-	let PGNFile;
+    // Fetch the PGN file from the server
+    fetch(pgnUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load PGN file');
+            }
+            return response.text();
+        })
+        .then(pgnData => {
+            // Call your existing PGN file processing function with the fetched PGN data
+            loadPGNFileFromServer(pgnData);
+        })
+        .catch(error => {
+            console.error('Error loading PGN file:', error);
+            alert('There was an error loading the PGN file.');
+        });
+});
 
-	const [file] = document.getElementById('openPGN').files;
-	const reader = new FileReader();
+function loadPGNFileFromServer(PGNFile) {
+    resetGame(); // Assuming resetGame is a function that resets the game state
 
-	reader.addEventListener(
-		'load',
-		() => {
-			PGNFile = reader.result;
-			try {
-				parsePGN(PGNFile.trim());  // Clean up the file prior to processing
+    try {
+        // Process and parse the PGN data
+        parsePGN(PGNFile.trim());  // Clean up the file prior to processing
 
-				// File is now loaded
-				// Update the range of the puzzle counters to the size of the puzzleset
-				$('#puzzleNumber_landscape').text('1');
-				$('#puzzleNumber_portrait').text('1');
+        // Update the puzzle counters to reflect the loaded puzzleset
+        $('#puzzleNumber_landscape').text('1');
+        $('#puzzleNumber_portrait').text('1');
+        $('#puzzleNumbertotal_landscape').text(puzzleset.length);
+        $('#puzzleNumbertotal_portrait').text(puzzleset.length);
 
-				$('#puzzleNumbertotal_landscape').text(puzzleset.length);
-				$('#puzzleNumbertotal_portrait').text(puzzleset.length);
+        // Enable the start button
+        setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'block', false);
+    }
+    catch (err) {
+        alert('There is an issue with the PGN file. Error message: ' + err + '\n\nPuzzles loaded successfully before error: ' + puzzleset.length);
+        resetGame();
+    }
 
-				// Enable the start button
-				setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'block', false);
-			}
-			catch (err) {
-				alert('There is an issue with the PGN file.  Error message is as follows:\n\n' + err
-					+ '\n\nPuzzles loaded successfully before error: ' + puzzleset.length);
-				resetGame();
-			}
-			finally {
-				// Do nothing else
-			}
-		},
-		false,
-	);
-
-	if (file) {
-		reader.readAsText(file);
-	}
-
-	// Now that file is loaded, enable the ability to select options
-	setCheckboxSelectability(true);
-
-	// Clear the file value in the Open PGN control (to clear for the next file)
-	document.getElementById('openPGN').value = ''
+    // Now that the file is loaded, enable the ability to select options
+    setCheckboxSelectability(true);
 }
+
+// This function is kept for compatibility with the existing code and can be removed
+// once the file is no longer being loaded from an input element.
+function resetGame() {
+    // Your logic to reset the game
+    console.log('Game has been reset');
+}
+
+// Example of the parsePGN function (you might have a different one in your code)
+function parsePGN(pgnData) {
+    // Implement your PGN parsing logic here
+    console.log('Parsing PGN data:', pgnData);
+}
+
+// Helper functions to control UI elements (example stubs, modify as needed)
+function setDisplayAndDisabled(elements, displayStyle, disabled) {
+    elements.forEach(element => {
+        const el = document.querySelector(element);
+        el.style.display = displayStyle;
+        el.disabled = disabled;
+    });
+}
+
+function setCheckboxSelectability(isSelectable) {
+    // Assuming there are checkboxes that you want to enable/disable based on file load
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.disabled = !isSelectable;
+    });
+}
+
 
 /**
  * PGN file parser
