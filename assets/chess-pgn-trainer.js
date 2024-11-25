@@ -1058,12 +1058,9 @@ function onDialogClose() {
 function loadPGNFile() { // eslint-disable-line no-unused-vars
     resetGame();
     
-    // Get the selected file path from the dropdown
     const selectedFile = document.getElementById('openPGN').value;
     
-    // Only proceed if a file is actually selected
     if (selectedFile) {
-        // Fetch the file contents
         fetch(selectedFile)
             .then(response => {
                 if (!response.ok) {
@@ -1073,40 +1070,27 @@ function loadPGNFile() { // eslint-disable-line no-unused-vars
             })
             .then(PGNFile => {
                 try {
-                    console.log('Fetched PGN File:', PGNFile); // Debug log
-                    
-                    // Ensure PGNFile is a string
-                    if (typeof PGNFile !== 'string') {
-                        throw new Error('PGN file content is not a string');
-                    }
+                    parsePGN(PGNFile.trim());
 
-                    parsePGN(PGNFile.trim());  // Clean up the file prior to processing
-
-                    // File is now loaded
-                    // Update the range of the puzzle counters to the size of the puzzleset
                     $('#puzzleNumber_landscape').text('1');
                     $('#puzzleNumber_portrait').text('1');
 
                     $('#puzzleNumbertotal_landscape').text(puzzleset.length);
                     $('#puzzleNumbertotal_portrait').text(puzzleset.length);
 
-                    // Enable the start button
                     setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'block', false);
                 }
                 catch (err) {
-                    console.error('Error processing PGN:', err); // Debug log
                     alert('There is an issue with the PGN file. Error message is as follows:\n\n' + err
-                        + '\n\nPuzzles loaded successfully before error: ' + (puzzleset ? puzzleset.length : 'N/A'));
+                        + '\n\nPuzzles loaded successfully before error: ' + puzzleset.length);
                     resetGame();
                 }
             })
             .catch(error => {
-                console.error('Error loading PGN file:', error); // Debug log
                 alert('Error loading PGN file: ' + error);
                 resetGame();
             });
 
-        // Now that file is loaded, enable the ability to select options
         setCheckboxSelectability(true);
     }
 }
