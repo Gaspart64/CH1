@@ -1057,7 +1057,7 @@ function onDialogClose() {
  */
 document.getElementById('openPGN_button').addEventListener('click', function() {
     // Define the URL of the PGN file on the server
-    const pgnUrl = 'https://raw.githubusercontent.com/Gaspart64/CH1/refs/heads/PGNLoader/assets/KQvK.pgn'; // Replace with the actual path to the PGN file on your server
+    const pgnUrl = 'https://gaspart64.github.io/CH1/assets/KQvK.pgn'; // Replace with the actual path to the PGN file on your server
 
     // Fetch the PGN file from the server
     fetch(pgnUrl)
@@ -1073,9 +1073,9 @@ document.getElementById('openPGN_button').addEventListener('click', function() {
         })
         .catch(error => {
             console.error('Error loading PGN file:', error);
-            alert('There was an error loading the PGN file.');
         });
 });
+
 
 function loadPGNFileFromServer(PGNFile) {
     resetGame(); // Assuming resetGame is a function that resets the game state
