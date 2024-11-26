@@ -9,13 +9,13 @@
 	<!-- Needed external libraries -->
 
 	<!-- CSS Scheme for application overall (everything except the chessboard itself) -->
-	<link rel="stylesheet" href="./PGN/pagestyle.css">
+	<link rel="stylesheet" href="./assets/pagestyle.css">
 
 	<!-- W3 Responsive Web Design -->
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
 
 	<!-- Support functions for the w3 template -->
-	<script src="./PGN/w3.js"></script>
+	<script src="./assets/w3.js"></script>
 
 	<!-- JQuery (required for chessboard.js) -->
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.0/jquery.min.js"
@@ -51,8 +51,8 @@
 		crossorigin="anonymous"></script>
 
 	<!-- Color Picker library -->
-	<script type="text/javascript" src="./PGN/jquery.wheelcolorpicker.js"></script>
-	<link type="text/css" rel="stylesheet" href="./PGN/wheelcolorpicker.css" />
+	<script type="text/javascript" src="./assets/jquery.wheelcolorpicker.js"></script>
+	<link type="text/css" rel="stylesheet" href="./assets/wheelcolorpicker.css" />
 
 </head>
 
@@ -66,19 +66,11 @@
 			<h3>Chess PGN Trainer</h3>
 		</div>
 		<p>
-    <button type="button" id="openPGN_button" class="w3-button w3-round-large w3-indigo w3-hover-blue">Open PGN File</button>
-    
-    <!-- Dropdown to select a PGN file -->
-    <select id="openPGN" onchange="loadPGNFile()">
-        <option value="">Select a PGN file...</option>
-        <option value="./PGN/KQvK.pgn">KQvK</option>
-	<option value="./PGN/Polgar_200 Mate Combinations.pgn">Polgar_200 Mate Combinations</option>
-        <!-- Options will be dynamically added here, either statically or via API -->
-    </select>
-    
-    <button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue">Reset</button>
-</p>
-
+			<button type="button" id="openPGN_button" class="w3-button w3-round-large w3-indigo w3-hover-blue">Open PGN
+				File</button>
+			<input type="file" id="openPGN" accept=".pgn" onchange="loadPGNFile()" style="display: none;" />
+			<button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue">Reset</button>
+		</p>
 
 		<input class="w3-check" type="checkbox" id="playbothsides" onchange="confirmOnlyOneOption();"><label
 			for="playbothsides"> Play both
@@ -321,8 +313,8 @@
 	</div>
 
 	<!-- Custom code for this project (needs to be here AFTER elements are built & labelled)-->
-	<script src="./PGN/chess-pgn-trainer.js"></script>
-	<script src="./PGN/piece-list.js"></script>
+	<script src="./assets/chess-pgn-trainer.js"></script>
+	<script src="./assets/piece-list.js"></script>
 </body>
 
 </html>
