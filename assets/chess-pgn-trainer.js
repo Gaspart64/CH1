@@ -186,7 +186,7 @@ function changePieces() {
 	};
 
 	// Update the board with the new pieces
-	chessboard2('myBoard', config);
+	const chessboard2('myBoard', config);
 
 	// Set the colors after the piece change
 	changecolor();
