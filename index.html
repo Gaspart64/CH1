@@ -66,11 +66,18 @@
 			<h3>Chess PGN Trainer</h3>
 		</div>
 		<p>
-			<button type="button" id="openPGN_button" class="w3-button w3-round-large w3-indigo w3-hover-blue">Open PGN
-				File</button>
-			<input type="file" id="openPGN" accept=".pgn" onchange="loadPGNFile()" style="display: none;" />
-			<button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue">Reset</button>
-		</p>
+    <button type="button" id="openPGN_button" class="w3-button w3-round-large w3-indigo w3-hover-blue">Open PGN File</button>
+    
+    <!-- Dropdown to select a PGN file -->
+    <select id="openPGN" onchange="loadPGNFile()">
+        <option value="">Select a PGN file...</option>
+        <option value="./PGN/KQvK.pgn">KQvK</option>
+	<option value="./PGN/Polgar_200 Mate Combinations.pgn">Polgar_200 Mate Combinations</option>
+        <!-- Options will be dynamically added here, either statically or via API -->
+    </select>
+    
+    <button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue">Reset</button>
+</p>
 
 		<input class="w3-check" type="checkbox" id="playbothsides" onchange="confirmOnlyOneOption();"><label
 			for="playbothsides"> Play both
