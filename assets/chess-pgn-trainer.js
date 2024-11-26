@@ -88,7 +88,7 @@ pieceThemePath = 'img/chesspieces/staunty/{piece}.svg';
 promotionDialog = $('#promotion-dialog');
 
 // Initial Board Configuration
-const config = {
+config = {
 	draggable: true,
 	pieceTheme: pieceThemePath,
 	onDragStart: dragStart,
