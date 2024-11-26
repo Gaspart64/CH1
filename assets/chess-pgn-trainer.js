@@ -8,7 +8,7 @@
 /* eslint semi: ["error"] */
 
 /* eslint no-undef: "error"*/
-/* global Chess, Chessboard22, PgnParser, FileReader */
+/* global Chess, Chessboard2, PgnParser, FileReader */
 /* global $, document, localStorage, alert, navigator, window */
 /* global w3_close, showresults */
 
@@ -186,7 +186,7 @@ function changePieces() {
 	};
 
 	// Update the board with the new pieces
-	Chessboard22('myBoard', config);
+	Chessboard2('myBoard', config);
 
 	// Set the colors after the piece change
 	changecolor();
@@ -628,8 +628,8 @@ function resetGame() {
 
 
 	// Create the boards
-	const board = new Chessboard22('myBoard', config);
-	const blankBoard = new Chessboard22('blankBoard', { showNotation: false });
+	const board = new Chessboard2('myBoard', config);
+	const blankBoard = new Chessboard2('blankBoard', { showNotation: false });
 
 	// Resize the board to the current available space
 	$(window).trigger('resize');
@@ -879,7 +879,7 @@ function loadPuzzle(PGNPuzzle) {
 
 
 // -----------------------
-// Chessboard22 JS functions
+// Chessboard2 JS functions
 // -----------------------
 
 /**
