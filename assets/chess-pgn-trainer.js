@@ -88,7 +88,7 @@ pieceThemePath = 'img/chesspieces/staunty/{piece}.svg';
 promotionDialog = $('#promotion-dialog');
 
 // Initial Board Configuration
-config = {
+const config = {
 	draggable: true,
 	pieceTheme: pieceThemePath,
 	onDragStart: dragStart,
@@ -176,7 +176,7 @@ function changePieces() {
 	// Build the path to the piece theme using the object properties
 	pieceThemePath = 'img/chesspieces/' + pieceObject.DirectoryName + '/{piece}.' + pieceObject.Type;
 
-	config = {
+	const config = {
 		draggable: true,
 		pieceTheme: pieceThemePath,
 		onDragStart: dragStart,
@@ -628,8 +628,8 @@ function resetGame() {
 
 
 	// Create the boards
-	board = new chessboard2('myBoard', config);
-	blankBoard = new chessboard2('blankBoard', { showNotation: false });
+	const board = new chessboard2('myBoard', config);
+	const blankBoard = new chessboard2('blankBoard', { showNotation: false });
 
 	// Resize the board to the current available space
 	$(window).trigger('resize');
