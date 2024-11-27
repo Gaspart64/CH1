@@ -955,7 +955,9 @@ function dropPiece(source, target, piece, newPos, oldPos, orientation) {
     // is it a promotion?
     const source_rank = source.substring(1, 2);
     const target_rank = target.substring(1, 2);
-    const sourcePiece = game.get(source).type;
+    
+    // Safely get the piece type
+    const sourcePiece = game.get(source) ? game.get(source).type : piece.charAt(1).toLowerCase();
 
     // First attempt at move
     // see if the move is legal
