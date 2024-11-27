@@ -932,28 +932,42 @@ function dragStart(source, piece, position, orientation) {
  * @returns {string}
  */
 function dropPiece(source, target, piece, newPos, oldPos, orientation) {
-    // Ensure source and target are strings
+    console.log('===== dropPiece CALLED =====');
     console.log('Source:', source);
     console.log('Target:', target);
     console.log('Piece:', piece);
     console.log('New Position:', newPos);
     console.log('Old Position:', oldPos);
     console.log('Orientation:', orientation);
-    source = String(source);
-    target = String(target);
 
+    // If source is undefined, it means the drop was invalid
+    if (!source) {
+        console.log('ERROR: No source square');
+        return 'snapback';
+    }
+
+    // If target is undefined, the piece wasn't dropped on a valid square
+    if (!target) {
+        console.log('ERROR: No target square');
+        return 'snapback';
+    }
+
+    let move;
+    // is it a promotion?
+    const source_rank = source.substring(1, 2);
+    const target_rank = target.substring(1, 2);
+    
+    console.log('Source Rank:', source_rank);
+    console.log('Target Rank:', target_rank);
+
+    // Fallback to get piece type
     let sourcePiece;
     try {
-        // First, try to get piece from game state
-        sourcePiece = game.get(source) ? game.get(source).type : null;
-        
-        // If that fails, try to extract from piece parameter
-        if (!sourcePiece && piece) {
-            sourcePiece = piece.toLowerCase().replace(/[wb]/, '');
-        }
+        sourcePiece = game.get(source) ? game.get(source).type : 'p';
+        console.log('Source Piece from game.get():', sourcePiece);
     } catch (error) {
-        console.error('Error getting piece type:', error);
-        sourcePiece = null;
+        console.error('Error getting piece from game.get():', error);
+        sourcePiece = 'p';
     }
 
     // First attempt at move
@@ -963,12 +977,21 @@ function dropPiece(source, target, piece, newPos, oldPos, orientation) {
         promotion: 'q',
         to: target,
     };
+    
+    console.log('Move Configuration:', moveCfg);
+    
     move = game.move(moveCfg);
+    console.log('Move Result:', move);
+    
     if (move === null) {
+        console.log('Illegal move - snapback');
         return 'snapback';
     }
+    
     game.undo(); // move is ok, now we can go ahead and check for promotion
+    console.log('Checking for Promotion');
     if (sourcePiece === 'p' && ((source_rank === '7' && target_rank === '8') || (source_rank === '2' && target_rank === '1'))) {
+        console.log('Promotion Detected');
         //promoting = true;
         // Get the correct color pieces for the promotion popup
         getPieces();
@@ -984,27 +1007,32 @@ function dropPiece(source, target, piece, newPos, oldPos, orientation) {
             width: 184,
         }).dialog('widget').position({
             of: $('#myBoard'),
-            // my: 'center center',
-            // at: 'center center',   //Maybe add code to position near the pawn being promoted?
         });
         // the actual move is made after the piece to promote to
         // has been selected, in the stop event of the promotion piece selectable
         return;
     }
+    
     // No promotion, go ahead and move
+    console.log('Making Move');
     makeMove(game, moveCfg);
     // Check if the move played is the expected one and play the next one if it was
+    console.log('Checking and Playing Next Move');
     checkAndPlayNext();
     // Indicate the player to move
+    console.log('Indicating Move');
     indicateMove();
     // Clear the move indicator if everything is done
     if (setcomplete && puzzlecomplete) {
+        console.log('Clearing Move Turn');
         $('#moveturn').text('');
     }
     // Clear the hint if used
+    console.log('Clearing Hint');
     $('#btn_hint_landscape').text('Hint');
     $('#btn_hint_portrait').text('Hint');
 
+    console.log('===== dropPiece COMPLETED =====');
     return true;
 }
 /**
