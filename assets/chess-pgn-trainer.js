@@ -1039,6 +1039,7 @@ function dropPiece(draggedPieceDetails, target, piece, newPos, oldPos, orientati
     console.log('===== dropPiece COMPLETED =====');
     return true;
 }
+
 /**
  * Update the board position after the piece snap for castling, en passant, pawn promotion
  */
