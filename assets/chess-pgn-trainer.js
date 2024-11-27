@@ -194,7 +194,7 @@ function changePieces() {
 
 	// Reset the game
 	resetGame();
-}
+
 
 /**
  * Applies the specified color values (RGB) to the board
