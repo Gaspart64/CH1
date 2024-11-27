@@ -91,7 +91,6 @@ promotionDialog = $('#promotion-dialog');
 config = {
 	draggable: true,
 	pieceTheme: pieceThemePath,
-	onDragStart: logDragStart,
 	onDrop: dropPiece,
 	onSnapEnd: snapEnd,
 	position: 'start',
