@@ -948,16 +948,28 @@ function dragStart(source, piece, position, orientation) {
  */
 function dropPiece(source, target, piece, newPos, oldPos, orientation) {
     // Ensure source and target are strings
+    console.log('Source:', source);
+    console.log('Target:', target);
+    console.log('Piece:', piece);
+    console.log('New Position:', newPos);
+    console.log('Old Position:', oldPos);
+    console.log('Orientation:', orientation);
     source = String(source);
     target = String(target);
 
-    let move;
-    // is it a promotion?
-    const source_rank = source.substring(1, 2);
-    const target_rank = target.substring(1, 2);
-    
-    // Safely get the piece type
-    const sourcePiece = game.get(source) ? game.get(source).type : piece.charAt(1).toLowerCase();
+    let sourcePiece;
+    try {
+        // First, try to get piece from game state
+        sourcePiece = game.get(source) ? game.get(source).type : null;
+        
+        // If that fails, try to extract from piece parameter
+        if (!sourcePiece && piece) {
+            sourcePiece = piece.toLowerCase().replace(/[wb]/, '');
+        }
+    } catch (error) {
+        console.error('Error getting piece type:', error);
+        sourcePiece = null;
+    }
 
     // First attempt at move
     // see if the move is legal
