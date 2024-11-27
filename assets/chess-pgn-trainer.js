@@ -164,25 +164,27 @@ function addPieceSetNames() {
  * Sets the piece theme.  Warming: This will reset the board. Don't use while doing a set.
  */
 function changePieces() {
+    // Save the selected piece theme index
+    saveItem('pieceIndex', document.getElementById("piece-select").selectedIndex);
+    
+    // Load the selected piece theme into a temp object
+    var pieceObject = PieceList.find(x => x.DirectoryName === document.getElementById('piece-select').value);
+    
+    // Build the path to the piece theme using the object properties
+    pieceThemePath = 'img/chesspieces/' + pieceObject.DirectoryName + '/{piece}.' + pieceObject.Type;
+    
+    // Updated configuration
+    config = {
+        draggable: true,
+        pieceTheme: pieceThemePath,
+        onDrop: dropPiece,
+        onSnapEnd: snapEnd,
+        position: 'start',
+    };
 
-	// TODO: Revisit this to see if I can use the text value instead of the index...
-	saveItem('pieceIndex', document.getElementById("piece-select").selectedIndex);
-
-	// Load the selected piece theme into a temp object
-	var pieceObject;
-	pieceObject = PieceList.find(x => x.DirectoryName === document.getElementById('piece-select').value);
-
-	// Build the path to the piece theme using the object properties
-	pieceThemePath = 'img/chesspieces/' + pieceObject.DirectoryName + '/{piece}.' + pieceObject.Type;
-
-	config = {
-		draggable: true,
-		pieceTheme: pieceThemePath,
-		onDragStart: dragStart,
-		onDrop: dropPiece,
-		onSnapEnd: snapEnd,
-		position: 'start',
-	};
+    // Reinitialize the board with new configuration
+    board = Chessboard2('myBoard', config);
+}
 
 	// Update the board with the new pieces
 	Chessboard2('myBoard', config);
