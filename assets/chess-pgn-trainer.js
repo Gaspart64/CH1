@@ -946,76 +946,68 @@ function dragStart(source, piece, position, orientation) {
  * @param {*} target - The target square to where the piece ended
  * @returns {string}
  */
-function dropPiece(source, target) {
-	let move;
+function dropPiece(source, target, piece, newPos, oldPos, orientation) {
+    // Ensure source and target are strings
+    source = String(source);
+    target = String(target);
 
-	// is it a promotion?
-	const source_rank = source.substring(2, 1);
-	const target_rank = target.substring(2, 1);
-	const piece = game.get(source).type;
+    let move;
+    // is it a promotion?
+    const source_rank = source.substring(1, 2);
+    const target_rank = target.substring(1, 2);
+    const sourcePiece = game.get(source).type;
 
-	// First attempt at move
-	// see if the move is legal
-	moveCfg = {
-		from: source,
-		promotion: 'q',
-		to: target,
-	};
+    // First attempt at move
+    // see if the move is legal
+    const moveCfg = {
+        from: source,
+        promotion: 'q',
+        to: target,
+    };
+    move = game.move(moveCfg);
+    if (move === null) {
+        return 'snapback';
+    }
+    game.undo(); // move is ok, now we can go ahead and check for promotion
+    if (sourcePiece === 'p' && ((source_rank === '7' && target_rank === '8') || (source_rank === '2' && target_rank === '1'))) {
+        //promoting = true;
+        // Get the correct color pieces for the promotion popup
+        getPieces();
+        // Show the select piece promotion dialog screen
+        promotionDialog.dialog({
+            close: onDialogClose,
+            closeOnEscape: false,
+            dialogClass: 'noTitleStuff',
+            draggable: false,
+            height: 50,
+            modal: true,
+            resizable: true,
+            width: 184,
+        }).dialog('widget').position({
+            of: $('#myBoard'),
+            // my: 'center center',
+            // at: 'center center',   //Maybe add code to position near the pawn being promoted?
+        });
+        // the actual move is made after the piece to promote to
+        // has been selected, in the stop event of the promotion piece selectable
+        return;
+    }
+    // No promotion, go ahead and move
+    makeMove(game, moveCfg);
+    // Check if the move played is the expected one and play the next one if it was
+    checkAndPlayNext();
+    // Indicate the player to move
+    indicateMove();
+    // Clear the move indicator if everything is done
+    if (setcomplete && puzzlecomplete) {
+        $('#moveturn').text('');
+    }
+    // Clear the hint if used
+    $('#btn_hint_landscape').text('Hint');
+    $('#btn_hint_portrait').text('Hint');
 
-	move = game.move(moveCfg);
-
-	if (move === null) {
-		return 'snapback';
-	}
-
-	game.undo(); // move is ok, now we can go ahead and check for promotion
-
-	if (piece === 'p' && ((source_rank === '7' && target_rank === '8') || (source_rank === '2' && target_rank === '1'))) {
-		//promoting = true;
-
-		// Get the correct color pieces for the promotion popup
-		getPieces();
-
-		// Show the select piece promotion dialog screen
-		promotionDialog.dialog({
-			close: onDialogClose,
-			closeOnEscape: false,
-			dialogClass: 'noTitleStuff',
-			draggable: false,
-			height: 50,
-			modal: true,
-			resizable: true,
-			width: 184,
-		}).dialog('widget').position({
-			of: $('#myBoard'),
-			// my: 'center center',
-			// at: 'center center',   //Maybe add code to position near the pawn being promoted?
-		});
-		// the actual move is made after the piece to promote to
-		// has been selected, in the stop event of the promotion piece selectable
-
-		return;
-	}
-
-	// No promotion, go ahead and move
-	makeMove(game, moveCfg);
-
-	// Check if the move played is the expected one and play the next one if it was
-	checkAndPlayNext();
-
-	// Indicate the player to move
-	indicateMove();
-
-	// Clear the move indicator if everything is done
-	if (setcomplete && puzzlecomplete) {
-		$('#moveturn').text('');
-	}
-
-	// Clear the hint if used
-	$('#btn_hint_landscape').text('Hint');
-	$('#btn_hint_portrait').text('Hint');
+    return true;
 }
-
 /**
  * Update the board position after the piece snap for castling, en passant, pawn promotion
  */
