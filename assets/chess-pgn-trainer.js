@@ -931,14 +931,18 @@ function dragStart(source, piece, position, orientation) {
  * @param {*} target - The target square to where the piece ended
  * @returns {string}
  */
-function dropPiece(source, target, piece, newPos, oldPos, orientation) {
+function dropPiece(draggedPieceDetails, target, piece, newPos, oldPos, orientation) {
     console.log('===== dropPiece CALLED =====');
-    console.log('Source:', source);
+    console.log('Dragged Piece Details:', draggedPieceDetails);
     console.log('Target:', target);
     console.log('Piece:', piece);
     console.log('New Position:', newPos);
     console.log('Old Position:', oldPos);
     console.log('Orientation:', orientation);
+
+    // Extract source and target from the details object
+    const source = draggedPieceDetails.source;
+    const draggedPiece = draggedPieceDetails.piece;
 
     // If source is undefined, it means the drop was invalid
     if (!source) {
@@ -947,7 +951,7 @@ function dropPiece(source, target, piece, newPos, oldPos, orientation) {
     }
 
     // If target is undefined, the piece wasn't dropped on a valid square
-    if (!target) {
+    if (!draggedPieceDetails.target) {
         console.log('ERROR: No target square');
         return 'snapback';
     }
@@ -955,7 +959,7 @@ function dropPiece(source, target, piece, newPos, oldPos, orientation) {
     let move;
     // is it a promotion?
     const source_rank = source.substring(1, 2);
-    const target_rank = target.substring(1, 2);
+    const target_rank = draggedPieceDetails.target.substring(1, 2);
     
     console.log('Source Rank:', source_rank);
     console.log('Target Rank:', target_rank);
@@ -963,11 +967,11 @@ function dropPiece(source, target, piece, newPos, oldPos, orientation) {
     // Fallback to get piece type
     let sourcePiece;
     try {
-        sourcePiece = game.get(source) ? game.get(source).type : 'p';
-        console.log('Source Piece from game.get():', sourcePiece);
+        sourcePiece = game.get(source) ? game.get(source).type : draggedPiece.charAt(1).toLowerCase();
+        console.log('Source Piece:', sourcePiece);
     } catch (error) {
         console.error('Error getting piece from game.get():', error);
-        sourcePiece = 'p';
+        sourcePiece = draggedPiece.charAt(1).toLowerCase();
     }
 
     // First attempt at move
@@ -975,7 +979,7 @@ function dropPiece(source, target, piece, newPos, oldPos, orientation) {
     const moveCfg = {
         from: source,
         promotion: 'q',
-        to: target,
+        to: draggedPieceDetails.target,
     };
     
     console.log('Move Configuration:', moveCfg);
