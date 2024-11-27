@@ -545,6 +545,7 @@ function makeMove(game, cfg) {
 	// illegal move
 	if (move === null) {
 		return 'snapback';
+		console.log('Move:', move);
 	}
 }
 
