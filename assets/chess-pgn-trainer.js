@@ -90,10 +90,10 @@ promotionDialog = $('#promotion-dialog');
 // Initial Board Configuration
 config = {
 	draggable: true,
-	pieceTheme: pieceThemePath,
-	onDrop: dropPiece,
-	onSnapEnd: snapEnd,
-	position: 'start',
+    pieceTheme: pieceThemePath,
+    onDrop: dropPiece,
+    onSnapEnd: snapEnd,
+    position: 'start',
 };
 
 
