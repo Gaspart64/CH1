@@ -195,7 +195,22 @@ function changePieces() {
 	// Reset the game
 	resetGame();
 
+function dropPiece(source, target, piece, newPos, oldPos, orientation) {
+    // Attempt to make the move using chess.js
+    let move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q' // default to queen promotion
+    });
 
+    // If the move is illegal, return 'snapback'
+    if (move === null) return 'snapback';
+
+    // Update board position
+    board.position(game.fen());
+
+    return true;
+}
 /**
  * Applies the specified color values (RGB) to the board
  * 
