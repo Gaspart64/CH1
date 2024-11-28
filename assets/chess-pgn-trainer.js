@@ -64,7 +64,6 @@ let PauseendDateTime;
 let startDateTime = new Date();
 let pauseDateTimeTotal = 0;
 
-const { enableScroll, disableScroll } = require("./toggle-scrollbar.js");
 
 
 // -------------
@@ -91,38 +90,11 @@ promotionDialog = $('#promotion-dialog');
 // Initial Board Configuration
 config = {
 	draggable: true,
-  pieceTheme: pieceThemePath, // Define the piece theme path
-  
-  // Disable scroll on drag start
-  onDragStart: (source, piece, position, orientation) => {
-    disableScroll();  // Disable scroll during drag
-    if (typeof dragStart === "function") {
-      dragStart(source, piece, position, orientation); // Call your custom dragStart if exists
-    }
-  },
-  
-  // Handle the drop of pieces
-  onDrop: (source, target) => {
-    if (typeof dropPiece === "function") {
-      dropPiece(source, target); // Call your custom dropPiece if exists
-    }
-  },
-  
-  // After snap, update position and re-enable scrolling
-  onSnapEnd: () => {
-    // Update the board's position and game state (if necessary)
-    board.position(game.fen()); // Assuming you have access to 'board' and 'game'
-
-    // Re-enable scroll
-    enableScroll(); // Re-enable scrolling after drag ends
-    
-    // Call your original snapEnd function
-    if (typeof snapEnd === "function") {
-      snapEnd(); // Call your custom snapEnd function if exists
-    }
-  },
-  
-  position: 'start' // Set the initial position of the chessboard
+	pieceTheme: pieceThemePath,
+	onDragStart: dragStart,
+	onDrop: dropPiece,
+	onSnapEnd: snapEnd,
+	position: 'start',
 };
 
 
@@ -205,39 +177,12 @@ function changePieces() {
 	pieceThemePath = 'img/chesspieces/' + pieceObject.DirectoryName + '/{piece}.' + pieceObject.Type;
 
 	config = {
-draggable: true,
-  pieceTheme: pieceThemePath, // Define the piece theme path
-  
-  // Disable scroll on drag start
-  onDragStart: (source, piece, position, orientation) => {
-    disableScroll();  // Disable scroll during drag
-    if (typeof dragStart === "function") {
-      dragStart(source, piece, position, orientation); // Call your custom dragStart if exists
-    }
-  },
-  
-  // Handle the drop of pieces
-  onDrop: (source, target) => {
-    if (typeof dropPiece === "function") {
-      dropPiece(source, target); // Call your custom dropPiece if exists
-    }
-  },
-  
-  // After snap, update position and re-enable scrolling
-  onSnapEnd: () => {
-    // Update the board's position and game state (if necessary)
-    board.position(game.fen()); // Assuming you have access to 'board' and 'game'
-
-    // Re-enable scroll
-    enableScroll(); // Re-enable scrolling after drag ends
-    
-    // Call your original snapEnd function
-    if (typeof snapEnd === "function") {
-      snapEnd(); // Call your custom snapEnd function if exists
-    }
-  },
-  
-  position: 'start' // Set the initial position of the chessboard
+		draggable: true,
+		pieceTheme: pieceThemePath,
+		onDragStart: dragStart,
+		onDrop: dropPiece,
+		onSnapEnd: snapEnd,
+		position: 'start',
 	};
 
 	// Update the board with the new pieces
