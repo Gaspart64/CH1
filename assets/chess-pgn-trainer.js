@@ -64,7 +64,8 @@ let PauseendDateTime;
 let startDateTime = new Date();
 let pauseDateTimeTotal = 0;
 
-const { enableScroll, disableScroll } = require("./toggle-scrollbar.js");
+import { enableScroll, disableScroll } from "./assets/toggle-scrollbar.js";
+
 
 // -------------
 // Initial Setup
