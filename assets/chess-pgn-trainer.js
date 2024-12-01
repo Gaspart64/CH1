@@ -64,7 +64,6 @@ let PauseendDateTime;
 let startDateTime = new Date();
 let pauseDateTimeTotal = 0;
 
-//chessimo
 
 
 // -------------
