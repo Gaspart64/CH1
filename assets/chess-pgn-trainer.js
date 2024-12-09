@@ -97,17 +97,6 @@ config = {
 	position: 'start',
 };
 
-//claude
-touchAction: 'none',
-preventDragging: function(piece, event) {
-        // Check if it's a touch device
-        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-            // Only allow dragging of chess pieces, not the board
-            return piece.search(/^[wp]/) === -1;
-        }
-        return false;
-    }
-};	
 
 
 // -----------------------
@@ -911,8 +900,7 @@ function dragStart(source, piece, position, orientation) {
         return false;
     }
 
-    // Additional mobile-specific touch handling
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    
         // Prevent piece dragging if it's not the correct side's turn or move
         if (!$('#playbothsides').is(':checked')) {
             if (!$('#playoppositeside').is(':checked') && game.history().length % 2 !== 0) {
@@ -927,21 +915,11 @@ function dragStart(source, piece, position, orientation) {
         if (game.history().length === moveHistory.length) {
             return false;
         }
-    }
+    
 
     return true;
 }
-$(() => {
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-        $('#myBoard').css({
-            '-webkit-user-select': 'none',
-            '-webkit-touch-callout': 'none',
-            'touch-action': 'none'
-        });
-    }
-});
 
-$('#versionnumber').text(`version ${version}`);
 
 /**
  * Handle the end of moving a piece on the board
