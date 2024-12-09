@@ -97,8 +97,17 @@ config = {
 	position: 'start',
 };
 
-
-
+//claude
+touchAction: 'none',
+preventDragging: function(piece, event) {
+        // Check if it's a touch device
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            // Only allow dragging of chess pieces, not the board
+            return piece.search(/^[wp]/) === -1;
+        }
+        return false;
+    }
+};	
 
 
 // -----------------------
@@ -892,36 +901,47 @@ function loadPuzzle(PGNPuzzle) {
  * @returns {boolean}
  */
 function dragStart(source, piece, position, orientation) {
-	// Only pick up pieces for the side to move
-	if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-		(game.turn() === 'b' && piece.search(/^w/) !== -1)) {
-		return false;
-	}
+    // Existing checks
+    if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+        (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+        return false;
+    }
 
-	// Don't allow moves if game is paused
-	if (pauseflag) {
-		return false;
-	}
+    if (pauseflag) {
+        return false;
+    }
 
-	// Only pick up pieces if the move number is odd if the player goes first or even if player is going second
-	// AND the user is not playing both sides
-	if (!$('#playbothsides').is(':checked')) {
-		// Player is playing first
-		if (!$('#playoppositeside').is(':checked') && game.history().length % 2 !== 0) {
-			return false;
-		}
+    // Additional mobile-specific touch handling
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        // Prevent piece dragging if it's not the correct side's turn or move
+        if (!$('#playbothsides').is(':checked')) {
+            if (!$('#playoppositeside').is(':checked') && game.history().length % 2 !== 0) {
+                return false;
+            }
 
-		// Player is playing second
-		if ($('#playoppositeside').is(':checked') && (game.history().length % 2 === 0 || game.history().length === 0)) {
-			return false;
-		}
-	}
+            if ($('#playoppositeside').is(':checked') && (game.history().length % 2 === 0 || game.history().length === 0)) {
+                return false;
+            }
+        }
 
-	// Do not pick up pieces if the puzzle is complete (ie: all the moves of the PGN have been played)
-	if (game.history().length === moveHistory.length) {
-		return false;
-	}
+        if (game.history().length === moveHistory.length) {
+            return false;
+        }
+    }
+
+    return true;
 }
+$(() => {
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        $('#myBoard').css({
+            '-webkit-user-select': 'none',
+            '-webkit-touch-callout': 'none',
+            'touch-action': 'none'
+        });
+    }
+});
+
+$('#versionnumber').text(`version ${version}`);
 
 /**
  * Handle the end of moving a piece on the board
