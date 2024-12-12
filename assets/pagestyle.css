@@ -62,6 +62,8 @@ td {
 
 body {
 	font-family: Arial;
+	overscroll-behavior: none;
+        touch-action: none;
 }
 
 .puzzlenumbers {
