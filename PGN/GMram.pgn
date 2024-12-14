@@ -1,0 +1,17 @@
+[Event "Casual Game"]
+[Site "Berlin GER (Prussian Empire)"]
+[Date "1851.??.??"]
+[EventDate "?"]
+[Round "?"]
+[Result "0-1"]
+[White "Karl Mayet"]
+[Black "Adolf Anderssen"]
+[ECO "C64"]
+[WhiteElo "?"]
+[BlackElo "?"]
+[PlyCount "30"]
+[Source "Schachzeitung, v6 n2, February 1851, p51"]
+
+1.e4 e5 2.Nf3 Nc6 3.Bb5 Bc5 4.c3 Nf6 5.Bxc6 dxc6 6.O-O Bg4
+7.h3 h5 8.hxg4 hxg4 9.Nxe5 g3 10.d4 Nxe4 11.Qg4 Bxd4 12.Qxe4
+{Black announces a forced mate in 5 moves.} 0-1
