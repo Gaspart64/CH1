@@ -315,7 +315,7 @@ function loadSettings() {
 	// Set defaults if running for the first time
 
 	// Default keys and values
-	var defaults = { light: 'DEE3E6', dark: '8CA2AD', pieceIndex: '0', darkmode: '0', copy2clipboard: '1', csvheaders: '1' };
+	var defaults = { light: 'DEE3E6', dark: '769457', pieceIndex: '0', darkmode: '0', copy2clipboard: '1', csvheaders: '1' };
 
 	// Load defaults if any keys are missing
 	for (const [key, value] of Object.entries(defaults)) {
