@@ -292,8 +292,6 @@ function initalize() {
 	addPieceSetNames();
 	changePieces();
 	resetGame();
-
-
 }
 
 /**
@@ -752,8 +750,6 @@ function startTest() {
 
 	// Now just need to send the desired puzzle to the board.
 	loadPuzzle(puzzleset[PuzzleOrder[increment]]);
-
-
 }
 
 /**
