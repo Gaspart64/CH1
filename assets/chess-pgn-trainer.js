@@ -292,6 +292,19 @@ function initalize() {
 	addPieceSetNames();
 	changePieces();
 	resetGame();
+//2025
+const savedOrder = dataTools.getItem('puzzleOrder');
+const savedIndex = dataTools.getItem('puzzleIndex');
+
+if (savedOrder && savedIndex != null) {
+  if (confirm('Resume last session?')) {
+    puzzleOrder = savedOrder;
+    increment = savedIndex;
+    loadPuzzle(puzzleset[puzzleOrder[increment]]);
+    return;  // skip the fresh start path
+  }
+}
+
 }
 
 /**
@@ -750,6 +763,13 @@ function startTest() {
 
 	// Now just need to send the desired puzzle to the board.
 	loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+
+	//2025
+	dataTools.saveItem('puzzleOrder', puzzleOrder);
+
+	// Now just need to send the desired puzzle to the board.
+	loadPuzzle(puzzleset[puzzleOrder[increment]]);
+	dataTools.saveItem('puzzleIndex', increment);
 }
 
 /**
