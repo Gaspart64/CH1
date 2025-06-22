@@ -8,7 +8,7 @@
 /* eslint semi: ["error"] */
 
 /* eslint no-undef: "error"*/
-/* global Chess, Chessboard2, PgnParser, FileReader */
+/* global Chess, Chessboard, PgnParser, FileReader */
 /* global $, document, localStorage, alert, navigator, window */
 /* global w3_close, showresults */
 
@@ -90,13 +90,12 @@ promotionDialog = $('#promotion-dialog');
 // Initial Board Configuration
 config = {
 	draggable: true,
-    pieceTheme: pieceThemePath,
-    onDrop: dropPiece,
-    onSnapEnd: snapEnd,
-    position: 'start',
+	pieceTheme: pieceThemePath,
+	onDragStart: dragStart,
+	onDrop: dropPiece,
+	onSnapEnd: snapEnd,
+	position: 'start',
 };
-
-
 
 
 
@@ -164,37 +163,35 @@ function addPieceSetNames() {
  * Sets the piece theme.  Warming: This will reset the board. Don't use while doing a set.
  */
 function changePieces() {
-    // Save the selected piece theme index
-    saveItem('pieceIndex', document.getElementById("piece-select").selectedIndex);
-    
-    // Load the selected piece theme into a temp object
-    var pieceObject = PieceList.find(x => x.DirectoryName === document.getElementById('piece-select').value);
-    
-    // Build the path to the piece theme using the object properties
-    pieceThemePath = 'img/chesspieces/' + pieceObject.DirectoryName + '/{piece}.' + pieceObject.Type;
-    
-    // Updated configuration
-    config = {
-        draggable: true,
-        pieceTheme: pieceThemePath,
-        onDrop: dropPiece,
-        onSnapEnd: snapEnd,
-        position: 'start',
-    };
 
-    // Reinitialize the board with new configuration
-    board = Chessboard2('myBoard', config);
-}
+	// TODO: Revisit this to see if I can use the text value instead of the index...
+	saveItem('pieceIndex', document.getElementById("piece-select").selectedIndex);
+
+	// Load the selected piece theme into a temp object
+	var pieceObject;
+	pieceObject = PieceList.find(x => x.DirectoryName === document.getElementById('piece-select').value);
+
+	// Build the path to the piece theme using the object properties
+	pieceThemePath = 'img/chesspieces/' + pieceObject.DirectoryName + '/{piece}.' + pieceObject.Type;
+
+	config = {
+		draggable: true,
+		pieceTheme: pieceThemePath,
+		onDragStart: dragStart,
+		onDrop: dropPiece,
+		onSnapEnd: snapEnd,
+		position: 'start',
+	};
 
 	// Update the board with the new pieces
-	Chessboard2('myBoard', config);
+	Chessboard('myBoard', config);
 
 	// Set the colors after the piece change
 	changecolor();
 
 	// Reset the game
 	resetGame();
-
+}
 
 /**
  * Applies the specified color values (RGB) to the board
@@ -318,7 +315,7 @@ function loadSettings() {
 	// Set defaults if running for the first time
 
 	// Default keys and values
-	var defaults = { light: 'DEE3E6', dark: '8CA2AD', pieceIndex: '0', darkmode: '0', copy2clipboard: '1', csvheaders: '1' };
+	var defaults = { light: 'DEE3E6', dark: '769457', pieceIndex: '0', darkmode: '0', copy2clipboard: '1', csvheaders: '1' };
 
 	// Load defaults if any keys are missing
 	for (const [key, value] of Object.entries(defaults)) {
@@ -545,7 +542,6 @@ function makeMove(game, cfg) {
 	// illegal move
 	if (move === null) {
 		return 'snapback';
-		console.log('Move:', move);
 	}
 }
 
@@ -630,8 +626,8 @@ function resetGame() {
 
 
 	// Create the boards
-	board = new Chessboard2('myBoard', config);
-	blankBoard = new Chessboard2('blankBoard', { showNotation: false });
+	board = new Chessboard('myBoard', config);
+	blankBoard = new Chessboard('blankBoard', { showNotation: false });
 
 	// Resize the board to the current available space
 	$(window).trigger('resize');
@@ -881,7 +877,7 @@ function loadPuzzle(PGNPuzzle) {
 
 
 // -----------------------
-// Chessboard2 JS functions
+// Chessboard JS functions
 // -----------------------
 
 /**
@@ -894,36 +890,36 @@ function loadPuzzle(PGNPuzzle) {
  * @returns {boolean}
  */
 function dragStart(source, piece, position, orientation) {
-	// Only pick up pieces for the side to move
-	if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-		(game.turn() === 'b' && piece.search(/^w/) !== -1)) {
-		return false;
-	}
+    // Existing checks
+    if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+        (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+        return false;
+    }
 
-	// Don't allow moves if game is paused
-	if (pauseflag) {
-		return false;
-	}
+    if (pauseflag) {
+        return false;
+    }
 
-	// Only pick up pieces if the move number is odd if the player goes first or even if player is going second
-	// AND the user is not playing both sides
-	if (!$('#playbothsides').is(':checked')) {
-		// Player is playing first
-		if (!$('#playoppositeside').is(':checked') && game.history().length % 2 !== 0) {
-			return false;
-		}
+    
+        // Prevent piece dragging if it's not the correct side's turn or move
+        if (!$('#playbothsides').is(':checked')) {
+            if (!$('#playoppositeside').is(':checked') && game.history().length % 2 !== 0) {
+                return false;
+            }
 
-		// Player is playing second
-		if ($('#playoppositeside').is(':checked') && (game.history().length % 2 === 0 || game.history().length === 0)) {
-			return false;
-		}
-	}
+            if ($('#playoppositeside').is(':checked') && (game.history().length % 2 === 0 || game.history().length === 0)) {
+                return false;
+            }
+        }
 
-	// Do not pick up pieces if the puzzle is complete (ie: all the moves of the PGN have been played)
-	if (game.history().length === moveHistory.length) {
-		return false;
-	}
+        if (game.history().length === moveHistory.length) {
+            return false;
+        }
+    
+
+    return true;
 }
+
 
 /**
  * Handle the end of moving a piece on the board
@@ -932,113 +928,74 @@ function dragStart(source, piece, position, orientation) {
  * @param {*} target - The target square to where the piece ended
  * @returns {string}
  */
-function dropPiece(draggedPieceDetails, target, piece, newPos, oldPos, orientation) {
-    console.log('===== dropPiece CALLED =====');
-    console.log('Dragged Piece Details:', draggedPieceDetails);
-    console.log('Target:', target);
-    console.log('Piece:', piece);
-    console.log('New Position:', newPos);
-    console.log('Old Position:', oldPos);
-    console.log('Orientation:', orientation);
+function dropPiece(source, target) {
+	let move;
 
-    // Extract source and target from the details object
-    const source = draggedPieceDetails.source;
-    const draggedPiece = draggedPieceDetails.piece;
+	// is it a promotion?
+	const source_rank = source.substring(2, 1);
+	const target_rank = target.substring(2, 1);
+	const piece = game.get(source).type;
 
-    // If source is undefined, it means the drop was invalid
-    if (!source) {
-        console.log('ERROR: No source square');
-        return 'snapback';
-    }
+	// First attempt at move
+	// see if the move is legal
+	moveCfg = {
+		from: source,
+		promotion: 'q',
+		to: target,
+	};
 
-    // If target is undefined, the piece wasn't dropped on a valid square
-    if (!draggedPieceDetails.target) {
-        console.log('ERROR: No target square');
-        return 'snapback';
-    }
+	move = game.move(moveCfg);
 
-    let move;
-    // is it a promotion?
-    const source_rank = source.substring(1, 2);
-    const target_rank = draggedPieceDetails.target.substring(1, 2);
-    
-    console.log('Source Rank:', source_rank);
-    console.log('Target Rank:', target_rank);
+	if (move === null) {
+		return 'snapback';
+	}
 
-    // Fallback to get piece type
-    let sourcePiece;
-    try {
-        sourcePiece = game.get(source) ? game.get(source).type : draggedPiece.charAt(1).toLowerCase();
-        console.log('Source Piece:', sourcePiece);
-    } catch (error) {
-        console.error('Error getting piece from game.get():', error);
-        sourcePiece = draggedPiece.charAt(1).toLowerCase();
-    }
+	game.undo(); // move is ok, now we can go ahead and check for promotion
 
-    // First attempt at move
-    // see if the move is legal
-    const moveCfg = {
-        from: source,
-        promotion: 'q',
-        to: draggedPieceDetails.target,
-    };
-    
-    console.log('Move Configuration:', moveCfg);
-    
-    move = game.move(moveCfg);
-    console.log('Move Result:', move);
-    
-    if (move === null) {
-        console.log('Illegal move - snapback');
-        return 'snapback';
-    }
-    
-    game.undo(); // move is ok, now we can go ahead and check for promotion
-    console.log('Checking for Promotion');
-    if (sourcePiece === 'p' && ((source_rank === '7' && target_rank === '8') || (source_rank === '2' && target_rank === '1'))) {
-        console.log('Promotion Detected');
-        //promoting = true;
-        // Get the correct color pieces for the promotion popup
-        getPieces();
-        // Show the select piece promotion dialog screen
-        promotionDialog.dialog({
-            close: onDialogClose,
-            closeOnEscape: false,
-            dialogClass: 'noTitleStuff',
-            draggable: false,
-            height: 50,
-            modal: true,
-            resizable: true,
-            width: 184,
-        }).dialog('widget').position({
-            of: $('#myBoard'),
-        });
-        // the actual move is made after the piece to promote to
-        // has been selected, in the stop event of the promotion piece selectable
-        return;
-    }
-    
-    // No promotion, go ahead and move
-    console.log('Making Move');
-    makeMove(game, moveCfg);
-    // Check if the move played is the expected one and play the next one if it was
-    console.log('Checking and Playing Next Move');
-    checkAndPlayNext();
-    // Indicate the player to move
-    console.log('Indicating Move');
-    indicateMove();
-    // Clear the move indicator if everything is done
-    if (setcomplete && puzzlecomplete) {
-        console.log('Clearing Move Turn');
-        $('#moveturn').text('');
-    }
-    // Clear the hint if used
-    console.log('Clearing Hint');
-    $('#btn_hint_landscape').text('Hint');
-    $('#btn_hint_portrait').text('Hint');
+	if (piece === 'p' && ((source_rank === '7' && target_rank === '8') || (source_rank === '2' && target_rank === '1'))) {
+		//promoting = true;
 
-    console.log('===== dropPiece COMPLETED =====');
-    return true;
+		// Get the correct color pieces for the promotion popup
+		getPieces();
+
+		// Show the select piece promotion dialog screen
+		promotionDialog.dialog({
+			close: onDialogClose,
+			closeOnEscape: false,
+			dialogClass: 'noTitleStuff',
+			draggable: false,
+			height: 50,
+			modal: true,
+			resizable: true,
+			width: 184,
+		}).dialog('widget').position({
+			of: $('#myBoard'),
+			// my: 'center center',
+			// at: 'center center',   //Maybe add code to position near the pawn being promoted?
+		});
+		// the actual move is made after the piece to promote to
+		// has been selected, in the stop event of the promotion piece selectable
+
+		return;
+	}
+
+	// No promotion, go ahead and move
+	makeMove(game, moveCfg);
+
+	// Check if the move played is the expected one and play the next one if it was
+	checkAndPlayNext();
+
+	// Indicate the player to move
+	indicateMove();
+
+	// Clear the move indicator if everything is done
+	if (setcomplete && puzzlecomplete) {
+		$('#moveturn').text('');
+	}
+
+	// Clear the hint if used
+	$('#btn_hint_landscape').text('Hint');
+	$('#btn_hint_portrait').text('Hint');
 }
 
 /**
