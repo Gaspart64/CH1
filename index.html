@@ -17,6 +17,8 @@
 	<!-- Support functions for the w3 template -->
 	<script src="./assets/w3.js"></script>
 
+	 
+
 	<!-- JQuery (required for chessboard.js) -->
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.0/jquery.min.js"
 		integrity="sha384-NXgwF8Kv9SSAr+jemKKcbvQsz+teULH/a5UNJvZc6kP47hZgl62M1vGnw6gHQhb1"
@@ -32,15 +34,13 @@
 		crossorigin="anonymous"></script>
 
 	<!-- Chessboard.css -->
-	<link rel="stylesheet"
-      href="https://unpkg.com/@chrisoakman/chessboard2@0.5.0/dist/chessboard2.min.css"
-      integrity="sha384-47VeTDpmy4yT21gKPXQcLQYQZwlmz27gEH5NTrOmTk3G/SGvMyltclOW/Q8uE+sL"
-      crossorigin="anonymous">
+	<link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css"
+		integrity="sha384-q94+BZtLrkL1/ohfjR8c6L+A6qzNH9R2hBLwyoAfu3i/WCvQjzL2RQJ3uNHDISdU" crossorigin="anonymous">
 
 	<!-- Chessboard.js -->
-	<script src="https://unpkg.com/@chrisoakman/chessboard2@0.5.0/dist/chessboard2.min.js"
-        integrity="sha384-/KwQCjA1GWovZNV3QDVtvSMDzO4reGgarF/RqHipr7hIUElH3r5zNl9WEPPOBRIF"
-        crossorigin="anonymous"></script>
+	<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"
+		integrity="sha384-8Vi8VHwn3vjQ9eUHUxex3JSN/NFqUg3QbPyX8kWyb93+8AC/pPWTzj+nHtbC5bxD"
+		crossorigin="anonymous"></script>
 
 	<!-- chess.js -->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js"
@@ -49,7 +49,7 @@
 
 	<!-- PGN Parser library -->
 	<script src="https://cdn.jsdelivr.net/npm/@mliebelt/pgn-parser"
-		integrity="sha384-7iGTh2nf8NwqiRFpm+Ubqueq44r1co6Bz1VfhIorLB+ndjkkEOBWV2f8DMZEj7M0"
+		
 		crossorigin="anonymous"></script>
 
 	<!-- Color Picker library -->
@@ -73,8 +73,12 @@
     <!-- Dropdown to select a PGN file -->
     <select id="openPGN" onchange="loadPGNFile()">
         <option value="">Select a PGN file...</option>
-        <option value="./PGN/KQvK.pgn">KQvK</option>
-	<option value="./PGN/Polgar_200 Mate Combinations.pgn">Polgar_200 Mate Combinations</option>
+        <option value="./PGN/1.pgn">Chessimo 1</option>
+	<option value="./PGN/2.pgn">Chessimo 2</option>
+	<option value="./PGN/3.pgn">Chessimo 3</option>
+	<option value="./PGN/4.pgn">Chessimo 4</option>
+	<option value="./PGN/5.pgn">Chessimo 5</option>
+	<option value="./PGN/MorphyWhite15.pgn">Morphy as white</option>
         <!-- Options will be dynamically added here, either statically or via API -->
     </select>
     
