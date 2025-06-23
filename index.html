@@ -84,27 +84,7 @@
 <!-- Puzzle Rush start button -->
 <button id="btn_puzzleRush" onclick="startPuzzleRush()">Start Puzzle Rush</button>
 
-<script>
-  function updateTimerDisplay() {
-    const mode = document.getElementById('puzzleRushModeSelect').value;
-    const timerDisplay = document.getElementById('puzzleRushTimerDisplay');
 
-    if (mode === "survival") {
-      timerDisplay.textContent = "∞";
-    } else {
-      const minutes = parseInt(mode);
-      timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:00`;
-    }
-  }
-
-  function startPuzzleRush() {
-    // Placeholder for actual start logic
-    alert('Puzzle Rush started!');
-  }
-
-  // Initialize display on page load
-  window.onload = updateTimerDisplay;
-</script>
 
 <!-- Puzzle Rush code ends here -->
 		
