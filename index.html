@@ -70,6 +70,19 @@
 		<p>
     <button type="button" id="openPGN_button" class="w3-button w3-round-large w3-indigo w3-hover-blue">Open PGN File</button>
     
+<!-- Timer display -->
+<div id="puzzleRushTimerDisplay" style="font-size: 1.5em; margin: 10px;">00:00</div>
+
+<!-- Mode selector -->
+<select id="puzzleRushModeSelect">
+  <option value="5">5 Minutes</option>
+  <option value="3">3 Minutes</option>
+  <option value="survival">Survival Mode</option>
+</select>
+
+<!-- Puzzle Rush start button -->
+<button id="btn_puzzleRush" onclick="startPuzzleRush()">Start Puzzle Rush</button>
+
     <!-- Dropdown to select a PGN file -->
     <select id="openPGN" onchange="loadPGNFile()">
         <option value="">Select a PGN file...</option>
