@@ -1308,32 +1308,23 @@ $(() => {
 		},
 	});
 
-	// After loading all puzzles from PGN, initialize repetition mode (if selected)
-	let allPuzzles = [];
-	RepetitionMode.init(allPuzzles, 20, function(levelIndex, stats) {
-	    alert(`Level ${levelIndex + 1} complete! Errors: ${stats.errors}, Time: ${stats.totaltime}`);
-	});
+	// Do NOT call RepetitionMode.init here with an empty array!
+    // Only call it after PGN is loaded, as in loadPGNFile()
 
-	// Mode selector logic
-	$('#modeSelector').on('change', function() {
-	    const mode = $(this).val();
-	    $('#repetitionLevelSelectorContainer').hide();
-	    switch (mode) {
-	        case 'repetition':
-	            $('#repetitionLevelSelectorContainer').show();
-	            // Optionally re-init repetition mode if needed
-	            break;
-	        // ...other modes...
-	        case 'custom':
-	        default:
-	            resetGame();
-	            break;
-	    }
-	});
-
-	// In your puzzle completion logic (when the user solves the puzzle correctly):
-	// RepetitionMode.onPuzzleSolved();
-
-	// On error (wrong move):
-	// RepetitionMode.incrementError();
+    // Mode selector logic
+    $('#modeSelector').on('change', function() {
+        const mode = $(this).val();
+        $('#repetitionLevelSelectorContainer').hide();
+        switch (mode) {
+            case 'repetition':
+                $('#repetitionLevelSelectorContainer').show();
+                // Do NOT call RepetitionMode.init here unless puzzleset is loaded!
+                break;
+            // ...other modes...
+            case 'custom':
+            default:
+                resetGame();
+                break;
+        }
+    });
 });
