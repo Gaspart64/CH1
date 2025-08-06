@@ -1140,7 +1140,6 @@ function parsePGN(PGNData) {
 }
 
 
-
 // -------------------------
 // Results related functions
 // -------------------------
@@ -1311,36 +1310,32 @@ $(() => {
 		},
 	});
 
-	$('#modeSelector').on('change', function() {
-	  const mode = $(this).val();
-	  // Hide all mode-specific selectors
-	  $('#repetitionLevelSelectorContainer').hide();
-	  // Initialize the selected mode
-	  switch (mode) {
-	    case 'repetition':
-	      $('#repetitionLevelSelectorContainer').show();
-	      // You may want to call RepetitionMode.init(...) here
-	      break;
-	    case 'haste':
-	      // HasteMode.init(...)
-	      break;
-	    case 'countdown':
-	      // CountdownMode.init(...)
-	      break;
-	    case 'three':
-	      // ThreeMode.init(...)
-	      break;
-	    case 'speedrun':
-	      // SpeedrunMode.init(...)
-	      break;
-	    case 'infinity':
-	      // InfinityMode.init(...)
-	      break;
-	    case 'custom':
-	    default:
-	      // Custom mode: behave as if no mode is selected, i.e., run the original/default logic
-	      resetGame();
-	      break;
-	  }
+	// After loading all puzzles from PGN, initialize repetition mode (if selected)
+	let allPuzzles = [];
+	RepetitionMode.init(allPuzzles, 20, function(levelIndex, stats) {
+	    alert(`Level ${levelIndex + 1} complete! Errors: ${stats.errors}, Time: ${stats.totaltime}`);
 	});
+
+	// Mode selector logic
+	$('#modeSelector').on('change', function() {
+	    const mode = $(this).val();
+	    $('#repetitionLevelSelectorContainer').hide();
+	    switch (mode) {
+	        case 'repetition':
+	            $('#repetitionLevelSelectorContainer').show();
+	            // Optionally re-init repetition mode if needed
+	            break;
+	        // ...other modes...
+	        case 'custom':
+	        default:
+	            resetGame();
+	            break;
+	    }
+	});
+
+	// In your puzzle completion logic (when the user solves the puzzle correctly):
+	// RepetitionMode.onPuzzleSolved();
+
+	// On error (wrong move):
+	// RepetitionMode.incrementError();
 });
