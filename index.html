@@ -85,26 +85,6 @@
     <button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue">Reset</button>
 </p>
 
-<p>
-  <label for="modeSelector"><b>Mode:</b></label>
-  <select id="modeSelector" class="w3-select">
-    <option value="" selected disabled>Select a mode...</option>
-    <option value="repetition">Repetition</option>
-    <option value="haste">Haste</option>
-    <option value="countdown">Countdown</option>
-    <option value="three">Three</option>
-    <option value="speedrun">Speedrun</option>
-    <option value="infinity">Infinity</option>
-    <option value="custom">Custom</option>
-  </select>
-</p>
-
-<!-- Add this near your mode selector or puzzle controls -->
-<div id="repetitionLevelSelectorContainer" style="display:none;">
-  <label for="repetitionLevelSelector"><b>Level:</b></label>
-  <select id="repetitionLevelSelector"></select>
-</div>
-
 		<input class="w3-check" type="checkbox" id="playbothsides" onchange="confirmOnlyOneOption();"><label
 			for="playbothsides"> Play both
 			sides</label><br>
@@ -348,13 +328,6 @@
 	<!-- Custom code for this project (needs to be here AFTER elements are built & labelled)-->
 	<script src="./assets/chess-pgn-trainer.js"></script>
 	<script src="./assets/piece-list.js"></script>
-	<script src="./assets/modes/repetition.js"></script>
-	<script src="./assets/modes/haste.js"></script>
-	<script src="./assets/modes/countdown.js"></script>
-	<script src="./assets/modes/three.js"></script>
-	<script src="./assets/modes/speedrun.js"></script>
-	<script src="./assets/modes/infinity.js"></script>
-	<script src="./assets/modes/custom.js"></script>
 </body>
 
 </html>
