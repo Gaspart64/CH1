@@ -129,12 +129,3 @@ $('#repetitionLevelSelector').off('change').on('change', function() {
     RepetitionMode.startLevel(parseInt($(this).val()));
 });
 
-// After PGN file is loaded and parsed:
-allPuzzles = parsePGN(pgnText); // or however you load your puzzles
-if (allPuzzles && allPuzzles.length > 0) {
-    RepetitionMode.init(allPuzzles, 20, function(levelIndex, stats) {
-        alert(`Level ${levelIndex + 1} complete! Errors: ${stats.errors}, Time: ${stats.totaltime}`);
-    });
-} else {
-    alert("No puzzles loaded. Please load a valid PGN file.");
-}
