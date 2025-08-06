@@ -1310,16 +1310,9 @@ $(() => {
     $('#modeSelector').on('change', function() {
         const mode = $(this).val();
         $('#repetitionLevelSelectorContainer').hide();
-        switch (mode) {
-            case 'repetition':
-                $('#repetitionLevelSelectorContainer').show();
-                // Do NOT call RepetitionMode.init here unless puzzleset is loaded!
-                break;
-            // ...other modes...
-            case 'custom':
-            default:
-                resetGame();
-                break;
+        if (mode === 'repetition') {
+            $('#repetitionLevelSelectorContainer').show();
         }
+        // ...other mode logic...
     });
 });
