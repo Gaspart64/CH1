@@ -1053,42 +1053,37 @@ function onDialogClose() {
 /**
  * Feed the PGN file provided by the user here to the PGN Parser and update/enable the controls
  */
-function loadPGNFile() { // eslint-disable-line no-unused-vars
+function loadPGNFile() {
     resetGame();
     const selectedFile = document.getElementById('openPGN').value;
-    if (selectedFile) {
-        fetch(selectedFile)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.text();
-            })
-            .then(PGNFile => {
-                try {
-                    parsePGN(PGNFile.trim());
-                    // Now puzzleset is filled with puzzles
-                    // If repetition mode is selected, initialize it here:
-                    if ($('#modeSelector').val() === 'repetition') {
-                        RepetitionMode.init(puzzleset, 20, function(levelIndex, stats) {
-                            alert(`Level ${levelIndex + 1} complete! Errors: ${stats.errors}, Time: ${stats.totaltime}`);
-                        });
-                    }
-                    // ...rest of your code...
-                }
-                catch (err) {
-                    alert('There is an issue with the PGN file. Error message is as follows:\n\n' + err
-                        + '\n\nPuzzles loaded successfully before error: ' + puzzleset.length);
-                    resetGame();
-                }
-            })
-            .catch(error => {
-                alert('Error loading PGN file: ' + error);
-                resetGame();
-            });
-
-        setCheckboxSelectability(true);
+    if (!selectedFile) {
+        // No PGN selected, disable start buttons and show puzzle count as 0
+        $('#btn_starttest_landscape').prop('disabled', true);
+        $('#btn_starttest_portrait').prop('disabled', true);
+        $('#puzzleNumber_landscape').text('0');
+        $('#puzzleNumber_portrait').text('0');
+        $('#puzzleNumbertotal_landscape').text('0');
+        $('#puzzleNumbertotal_portrait').text('0');
+        return;
     }
+    fetch(selectedFile)
+        .then(response => response.text())
+        .then(PGNFile => {
+            parsePGN(PGNFile.trim());
+            if (puzzleset && puzzleset.length > 0) {
+                $('#btn_starttest_landscape').prop('disabled', false);
+                $('#btn_starttest_portrait').prop('disabled', false);
+                $('#puzzleNumbertotal_landscape').text(puzzleset.length);
+                $('#puzzleNumbertotal_portrait').text(puzzleset.length);
+                if ($('#modeSelector').val() === 'repetition') {
+                    RepetitionMode.init(puzzleset, 20, function(levelIndex, stats) {
+                        alert(`Level ${levelIndex + 1} complete! Errors: ${stats.errors}, Time: ${stats.totaltime}`);
+                    });
+                }
+            } else {
+                alert("No puzzles loaded. Please load a valid PGN file.");
+            }
+        });
 }
 
 /**
