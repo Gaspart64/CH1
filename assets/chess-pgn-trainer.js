@@ -1054,43 +1054,27 @@ function onDialogClose() {
  * Feed the PGN file provided by the user here to the PGN Parser and update/enable the controls
  */
 function loadPGNFile() { // eslint-disable-line no-unused-vars
-    resetGame();
-    
-    const selectedFile = document.getElementById('openPGN').value;
-    
-    if (selectedFile) {
-        fetch(selectedFile)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.text();
-            })
-            .then(PGNFile => {
-                try {
-                    parsePGN(PGNFile.trim());
+    const fileUrl = $('#openPGN').val();
+    if (!fileUrl) return;
 
-                    $('#puzzleNumber_landscape').text('1');
-                    $('#puzzleNumber_portrait').text('1');
+    fetch(fileUrl)
+        .then(response => response.text())
+        .then(pgnText => {
+            // Parse the PGN file into puzzles
+            allPuzzles = parsePGN(pgnText); // or your actual parsing function
 
-                    $('#puzzleNumbertotal_landscape').text(puzzleset.length);
-                    $('#puzzleNumbertotal_portrait').text(puzzleset.length);
-
-                    setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'block', false);
-                }
-                catch (err) {
-                    alert('There is an issue with the PGN file. Error message is as follows:\n\n' + err
-                        + '\n\nPuzzles loaded successfully before error: ' + puzzleset.length);
-                    resetGame();
-                }
-            })
-            .catch(error => {
-                alert('Error loading PGN file: ' + error);
-                resetGame();
-            });
-
-        setCheckboxSelectability(true);
-    }
+            // Now, initialize the selected mode
+            const mode = $('#modeSelector').val();
+            if (mode === 'repetition') {
+                RepetitionMode.init(allPuzzles, 20, function(levelIndex, stats) {
+                    alert(`Level ${levelIndex + 1} complete! Errors: ${stats.errors}, Time: ${stats.totaltime}`);
+                });
+            }
+            // ...handle other modes...
+        })
+        .catch(err => {
+            alert("Error loading PGN file: " + err);
+        });
 }
 
 /**
