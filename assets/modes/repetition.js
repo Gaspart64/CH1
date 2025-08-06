@@ -105,9 +105,9 @@ const RepetitionMode = (function () {
 //   // Show stats or move to next level
 //   alert(`Level ${levelIndex + 1} complete!\nErrors: ${stats.errors}\nTime: ${stats.totaltime}`);
 // });
-// $('#repetitionLevelSelector').on('change', function() {
-//   RepetitionMode.startLevel(parseInt($(this).val()));
-// });
+$('#repetitionLevelSelector').off('change').on('change', function() {
+  RepetitionMode.startLevel(parseInt($(this).val()));
+});
 
 // In your puzzle completion logic, call:
 // RepetitionMode.onPuzzleSolved();
@@ -115,3 +115,8 @@ const RepetitionMode = (function () {
 // RepetitionMode.incrementError();
 
 // In your checkAndPlayNext or similar, only call onPuzzleSolved when the user solves the puzzle correctly.
+
+RepetitionMode.init(allPuzzles, 20, function(levelIndex, stats) {
+  // Optionally handle level completion, e.g., by showing stats or advancing to the next level
+  alert(`Level ${levelIndex + 1} complete! Errors: ${stats.errors}, Time: ${stats.totaltime}`);
+});
