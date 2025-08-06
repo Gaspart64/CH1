@@ -128,4 +128,3 @@ const RepetitionMode = (function () {
 $('#repetitionLevelSelector').off('change').on('change', function() {
     RepetitionMode.startLevel(parseInt($(this).val()));
 });
-
