@@ -1054,27 +1054,41 @@ function onDialogClose() {
  * Feed the PGN file provided by the user here to the PGN Parser and update/enable the controls
  */
 function loadPGNFile() { // eslint-disable-line no-unused-vars
-    const fileUrl = $('#openPGN').val();
-    if (!fileUrl) return;
+    resetGame();
+    const selectedFile = document.getElementById('openPGN').value;
+    if (selectedFile) {
+        fetch(selectedFile)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(PGNFile => {
+                try {
+                    parsePGN(PGNFile.trim());
+                    // Now puzzleset is filled with puzzles
+                    // If repetition mode is selected, initialize it here:
+                    if ($('#modeSelector').val() === 'repetition') {
+                        RepetitionMode.init(puzzleset, 20, function(levelIndex, stats) {
+                            alert(`Level ${levelIndex + 1} complete! Errors: ${stats.errors}, Time: ${stats.totaltime}`);
+                        });
+                    }
+                    // ...rest of your code...
+                }
+                catch (err) {
+                    alert('There is an issue with the PGN file. Error message is as follows:\n\n' + err
+                        + '\n\nPuzzles loaded successfully before error: ' + puzzleset.length);
+                    resetGame();
+                }
+            })
+            .catch(error => {
+                alert('Error loading PGN file: ' + error);
+                resetGame();
+            });
 
-    fetch(fileUrl)
-        .then(response => response.text())
-        .then(pgnText => {
-            // Parse the PGN file into puzzles
-            allPuzzles = parsePGN(pgnText); // or your actual parsing function
-
-            // Now, initialize the selected mode
-            const mode = $('#modeSelector').val();
-            if (mode === 'repetition') {
-                RepetitionMode.init(allPuzzles, 20, function(levelIndex, stats) {
-                    alert(`Level ${levelIndex + 1} complete! Errors: ${stats.errors}, Time: ${stats.totaltime}`);
-                });
-            }
-            // ...handle other modes...
-        })
-        .catch(err => {
-            alert("Error loading PGN file: " + err);
-        });
+        setCheckboxSelectability(true);
+    }
 }
 
 /**
