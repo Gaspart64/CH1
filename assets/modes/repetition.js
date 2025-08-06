@@ -11,6 +11,10 @@ const RepetitionMode = (function () {
     let stats = {};
     let onLevelCompleteCallback = null;
 
+    const REPETITION_MAX_TIME_PER_PUZZLE = 30; // seconds
+    let puzzleTimer = null;
+    let puzzleStartTime = null;
+
     // Partition puzzles into levels
     function partitionPuzzles(puzzles, levelSize) {
         let out = [];
@@ -46,12 +50,19 @@ const RepetitionMode = (function () {
         if (typeof window.loadPuzzle === 'function') {
             window.loadPuzzle(currentLevelPuzzles[increment]);
         }
-        // Reset error flag for this puzzle
         window.error = false;
+        // Start per-puzzle timer
+        if (puzzleTimer) clearTimeout(puzzleTimer);
+        puzzleStartTime = Date.now();
+        puzzleTimer = setTimeout(function() {
+            alert(`Too slow! You must solve each puzzle in under ${REPETITION_MAX_TIME_PER_PUZZLE} seconds. Restarting level.`);
+            startLevel(currentLevelIndex); // Reset the level
+        }, REPETITION_MAX_TIME_PER_PUZZLE * 1000);
     }
 
     // Call this after each puzzle is solved correctly
     function onPuzzleSolved() {
+        if (puzzleTimer) clearTimeout(puzzleTimer);
         increment++;
         updateProgressBar(increment, currentLevelPuzzles.length);
         if (increment < currentLevelPuzzles.length) {
@@ -79,6 +90,18 @@ const RepetitionMode = (function () {
         }
     }
 
+    // Increment error and (optionally) reset timer for current puzzle
+    function incrementError() {
+        errorcount++;
+        // Optionally reset timer for current puzzle
+        if (puzzleTimer) clearTimeout(puzzleTimer);
+        puzzleStartTime = Date.now();
+        puzzleTimer = setTimeout(function() {
+            alert(`Too slow! You must solve each puzzle in under ${REPETITION_MAX_TIME_PER_PUZZLE} seconds. Restarting level.`);
+            startLevel(currentLevelIndex);
+        }, REPETITION_MAX_TIME_PER_PUZZLE * 1000);
+    }
+
     // Public API
     return {
         init: function (puzzles, levelSize, callback) {
@@ -89,7 +112,7 @@ const RepetitionMode = (function () {
         },
         startLevel: startLevel,
         onPuzzleSolved: onPuzzleSolved,
-        incrementError: function () { errorcount++; },
+        incrementError: incrementError,
         getCurrentLevel: function () { return currentLevelIndex; },
         getLevelsCount: function () { return levels.length; },
         getStats: function () { return stats; },
@@ -97,26 +120,7 @@ const RepetitionMode = (function () {
     };
 })();
 
-// Example HTML to add to your page:
-// <select id="repetitionLevelSelector"></select>
-
-// Example integration in your main JS (after loading puzzleset):
-// RepetitionMode.init(puzzleset, 20, function(levelIndex, stats) {
-//   // Show stats or move to next level
-//   alert(`Level ${levelIndex + 1} complete!\nErrors: ${stats.errors}\nTime: ${stats.totaltime}`);
-// });
+// Level selector event
 $('#repetitionLevelSelector').off('change').on('change', function() {
-  RepetitionMode.startLevel(parseInt($(this).val()));
-});
-
-// In your puzzle completion logic, call:
-// RepetitionMode.onPuzzleSolved();
-// On error, call:
-// RepetitionMode.incrementError();
-
-// In your checkAndPlayNext or similar, only call onPuzzleSolved when the user solves the puzzle correctly.
-
-RepetitionMode.init(allPuzzles, 20, function(levelIndex, stats) {
-  // Optionally handle level completion, e.g., by showing stats or advancing to the next level
-  alert(`Level ${levelIndex + 1} complete! Errors: ${stats.errors}, Time: ${stats.totaltime}`);
+    RepetitionMode.startLevel(parseInt($(this).val()));
 });
