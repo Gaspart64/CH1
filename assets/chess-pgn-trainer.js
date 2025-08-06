@@ -1310,4 +1310,37 @@ $(() => {
 			});
 		},
 	});
+
+	$('#modeSelector').on('change', function() {
+	  const mode = $(this).val();
+	  // Hide all mode-specific selectors
+	  $('#repetitionLevelSelectorContainer').hide();
+	  // Initialize the selected mode
+	  switch (mode) {
+	    case 'repetition':
+	      $('#repetitionLevelSelectorContainer').show();
+	      // You may want to call RepetitionMode.init(...) here
+	      break;
+	    case 'haste':
+	      // HasteMode.init(...)
+	      break;
+	    case 'countdown':
+	      // CountdownMode.init(...)
+	      break;
+	    case 'three':
+	      // ThreeMode.init(...)
+	      break;
+	    case 'speedrun':
+	      // SpeedrunMode.init(...)
+	      break;
+	    case 'infinity':
+	      // InfinityMode.init(...)
+	      break;
+	    case 'custom':
+	    default:
+	      // Custom mode: behave as if no mode is selected, i.e., run the original/default logic
+	      resetGame();
+	      break;
+	  }
+	});
 });
