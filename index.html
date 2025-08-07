@@ -338,7 +338,16 @@
 	<!-- Custom code for this project (needs to be here AFTER elements are built & labelled)-->
 	<script src="./assets/chess-pgn-trainer.js"></script>
 	<script src="./assets/piece-list.js"></script>
+	<!-- Add this script at the end, before </body> -->
+	<script>
+function enableModeSelector() {
+    var pgnSelect = document.getElementById('openPGN');
+    var modeSelector = document.getElementById('modeSelector');
+    modeSelector.disabled = (pgnSelect.value === "");
+}
+</script>
 </body>
 
 </html>
+
 
