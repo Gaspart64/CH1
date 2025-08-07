@@ -1093,11 +1093,10 @@ function loadPGNFile() { // eslint-disable-line no-unused-vars
     }
 }
 
-/**
- * PGN file parser
- *
- * @param {string} PGNData - The PGN text data to parse. Can comprise of one or more games
- */
+// ------------------
+// Training Set Extension
+// ------------------
+
 function promptForSetSize(totalPuzzles) {
 	let size;
 	do {
@@ -1110,6 +1109,7 @@ const originalCheckAndPlayNext = checkAndPlayNext;
 checkAndPlayNext = function () {
 	const result = originalCheckAndPlayNext();
 
+	// If set complete and more sets are available, move to next set
 	if (setcomplete && puzzlecomplete && window.trainingSets && window.currentSetIndex < window.trainingSets.length - 1) {
 		alert('Set complete! Starting next set...');
 		window.currentSetIndex++;
@@ -1119,6 +1119,17 @@ checkAndPlayNext = function () {
 		loadPuzzle(puzzleset[increment]);
 		$('#puzzleNumbertotal_landscape').text(puzzleset.length);
 		$('#puzzleNumbertotal_portrait').text(puzzleset.length);
+	}
+
+	// If mistake was made in puzzle, reset entire current set
+	if (!puzzlecomplete && !correct) {
+		alert('Incorrect! Restarting current set...');
+		puzzleset = window.trainingSets[window.currentSetIndex];
+		increment = 0;
+		setcomplete = false;
+		loadPuzzle(puzzleset[increment]);
+		$('#puzzleNumber_landscape').text('1');
+		$('#puzzleNumber_portrait').text('1');
 	}
 
 	return result;
@@ -1178,7 +1189,6 @@ function parsePGN(PGNData) {
 	setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'block', false);
 	setCheckboxSelectability(true);
 }
-
 
 
 // -------------------------
