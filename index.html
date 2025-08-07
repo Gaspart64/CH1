@@ -342,26 +342,8 @@
 	<script src="./assets/piece-list.js"></script>
 
 	<!-- Add this script at the end, before </body> -->
-	<script>
-function enableModeSelector() {
-    var pgnSelect = document.getElementById('openPGN');
-    var modeSelector = document.getElementById('modeSelector');
-    modeSelector.disabled = (pgnSelect.value === "");
-    if (modeSelector.disabled) {
-        modeSelector.value = "";
-    }
-}
-
-function enableStartButton() {
-    var pgnSelect = document.getElementById('openPGN');
-    var modeSelector = document.getElementById('modeSelector');
-    var startBtnPortrait = document.getElementById('btn_starttest_portrait');
-    var startBtnLandscape = document.getElementById('btn_starttest_landscape');
-    var enabled = (pgnSelect.value !== "" && modeSelector.value !== "");
-    startBtnPortrait.disabled = !enabled;
-    startBtnLandscape.disabled = !enabled;
-}
-</script>
+	
 </body>
 
 </html>
+
