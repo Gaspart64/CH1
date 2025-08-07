@@ -71,7 +71,7 @@
     <button type="button" id="openPGN_button" class="w3-button w3-round-large w3-indigo w3-hover-blue">Open PGN File</button>
     
     <!-- Dropdown to select a PGN file -->
-    <select id="openPGN" onchange="loadPGNFile(); enableModeSelector(); enableStartButton();">
+    <select id="openPGN" onchange="loadPGNFile()">
         <option value="">Select a PGN file...</option>
         <option value="./PGN/1.pgn">Chessimo 1</option>
 	<option value="./PGN/2.pgn">Chessimo 2</option>
@@ -79,20 +79,8 @@
 	<option value="./PGN/4.pgn">Chessimo 4</option>
 	<option value="./PGN/5.pgn">Chessimo 5</option>
 	<option value="./PGN/MorphyWhite15.pgn">Morphy as white</option>
+        <!-- Options will be dynamically added here, either statically or via API -->
     </select>
-
-    <!-- Mode selector dropdown (disabled by default) -->
-    <select id="modeSelector" disabled onchange="enableStartButton();">
-        <option value="">Select mode...</option>
-        <option value="three">1-Three</option>
-        <option value="haste">2-Haste</option>
-        <option value="countdown">Countdown - solve puzzles before time runs out</option>
-        <option value="speedrun">Speedrun - solve puzzles as quickly as you can</option>
-        <option value="repetition">Repetition - solve every puzzle quickly and precisely to unlock the next level</option>
-        <option value="infinity">Infinity - play through endless puzzles and set your own difficulty</option>
-    </select>
-    <span style="font-size: 0.9em; color: #555;">For more ways to play:</span>
-	
     
     <button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue">Reset</button>
 </p>
@@ -340,29 +328,6 @@
 	<!-- Custom code for this project (needs to be here AFTER elements are built & labelled)-->
 	<script src="./assets/chess-pgn-trainer.js"></script>
 	<script src="./assets/piece-list.js"></script>
-
-	<!-- Add this script at the end, before </body> -->
-	<script>
-        function handleFirstDropdownChange() {
-            const pgDropdown = document.getElementById('openPGN');
-            const modeDropdown = document.getElementById('modeSelector');
-
-            // Enable the mode selector if a PGN file is selected
-            modeDropdown.disabled = !pgDropdown.value;
-        }
-
-        function handleSecondDropdownChange() {
-            const pgDropdown = document.getElementById('openPGN');
-            const modeDropdown = document.getElementById('modeSelector');
-            const startButton = document.getElementById('btn_start');
-
-            // Enable the start button if both dropdowns have selections
-            startButton.disabled = !pgDropdown.value || !modeDropdown.value;
-        }
-    </script>
-	
 </body>
 
 </html>
-
-
