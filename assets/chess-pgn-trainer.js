@@ -1098,45 +1098,85 @@ function loadPGNFile() { // eslint-disable-line no-unused-vars
  *
  * @param {string} PGNData - The PGN text data to parse. Can comprise of one or more games
  */
+function promptForSetSize(totalPuzzles) {
+	let size;
+	do {
+		size = parseInt(prompt(`Enter the number of puzzles per training set (1 to ${totalPuzzles}):`), 10);
+	} while (isNaN(size) || size < 1 || size > totalPuzzles);
+	return size;
+}
+
+const originalCheckAndPlayNext = checkAndPlayNext;
+checkAndPlayNext = function () {
+	const result = originalCheckAndPlayNext();
+
+	if (setcomplete && puzzlecomplete && window.trainingSets && window.currentSetIndex < window.trainingSets.length - 1) {
+		alert('Set complete! Starting next set...');
+		window.currentSetIndex++;
+		puzzleset = window.trainingSets[window.currentSetIndex];
+		increment = 0;
+		setcomplete = false;
+		loadPuzzle(puzzleset[increment]);
+		$('#puzzleNumbertotal_landscape').text(puzzleset.length);
+		$('#puzzleNumbertotal_portrait').text(puzzleset.length);
+	}
+
+	return result;
+};
+
+
+// Modified PGN parser to support puzzle batch training
 function parsePGN(PGNData) {
 	const splitGames = (string) => PgnParser.split(string, { startRule: 'games' });
 	const games = splitGames(PGNData);
+	let fullPuzzleSet = [];
 
-	puzzleset = [];
+	games.forEach((game) => {
+		const { tags } = PgnParser.parse(game.tags, { startRule: 'tags' });
+		const { moves } = PgnParser.parse(game.pgn, { startRule: 'game' });
 
-	games.forEach(
-		(game) => {
-			const { tags } = PgnParser.parse(game.tags, { startRule: 'tags' });
-			const { moves } = PgnParser.parse(game.pgn, { startRule: 'game' });
+		if (tags.PGNTrainerBothSides === '1') { $("#playbothsides").prop("checked", true); }
+		if (tags.PGNTrainerOppositeSide === '1') { $("#playoppositeside").prop("checked", true); }
+		if (tags.PGNTrainerRandomize === '1') { $("#randomizeSet").prop("checked", true); }
+		if (tags.PGNTrainerFlipped === '1') { $("#flipped").prop("checked", true); }
+		if (tags.PGNTrainerAnalysisLink === '1') { $("#analysisboard").prop("checked", true); }
+		confirmOnlyOneOption();
 
-			// Set the options checkboxes if any of the special tags have a value of 1
-			if (tags.PGNTrainerBothSides === '1') { $("#playbothsides").prop("checked", true); }
-			if (tags.PGNTrainerOppositeSide === '1') { $("#playoppositeside").prop("checked", true); }
-			if (tags.PGNTrainerRandomize === '1') { $("#randomizeSet").prop("checked", true); }
-			if (tags.PGNTrainerFlipped === '1') { $("#flipped").prop("checked", true); }
-			if (tags.PGNTrainerAnalysisLink === '1') { $("#analysisboard").prop("checked", true); }
+		const puzzle = {
+			Event: tags.Event || '',
+			Series: tags.Event || '',
+			White: tags.White,
+			Black: tags.Black,
+			FEN: tags.FEN,
+			PGN: game.pgn,
+			Moves: moves
+		};
 
-			// Make sure that both "Play both sides" and "Play opposite side" are not selected (if yes, clear both)
-			confirmOnlyOneOption();
+		if ((puzzle.White && puzzle.Black) && (puzzle.White !== '?' && puzzle.Black !== '?')) {
+			puzzle.Event += `<br><br>White: ${puzzle.White}<br>Black: ${puzzle.Black}`;
+		}
 
-			const puzzle = {};
-			puzzle.Event = (tags.Event);
-			puzzle.Series = (tags.Event);
+		fullPuzzleSet.push(puzzle);
+	});
 
-			puzzle.White = (tags.White);
-			puzzle.Black = (tags.Black);
+	const setSize = promptForSetSize(fullPuzzleSet.length);
+	window.trainingSetSize = setSize;
+	window.trainingSets = [];
 
-			if ((puzzle.White && puzzle.Black) && (puzzle.White !== '?' && puzzle.Black !== '?')) {
-				puzzle.Event = puzzle.Event + '<br><br>White: ' + puzzle.White + '<br>Black: ' + puzzle.Black;
-			}
+	for (let i = 0; i < fullPuzzleSet.length; i += setSize) {
+		window.trainingSets.push(fullPuzzleSet.slice(i, i + setSize));
+	}
 
-			puzzle.FEN = (tags.FEN);
-			puzzle.PGN = (game.pgn);
-			puzzle.Moves = moves;
+	puzzleset = window.trainingSets[0];
+	window.currentSetIndex = 0;
 
-			puzzleset.push(puzzle);
-		},
-	);
+	$('#puzzleNumber_landscape').text('1');
+	$('#puzzleNumber_portrait').text('1');
+	$('#puzzleNumbertotal_landscape').text(puzzleset.length);
+	$('#puzzleNumbertotal_portrait').text(puzzleset.length);
+
+	setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'block', false);
+	setCheckboxSelectability(true);
 }
 
 
