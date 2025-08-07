@@ -1,183 +1,157 @@
-// chess-pgn-trainer.js
+// Chess PGN Trainer with Repetition Mode, Progress Bar, and Timer
 
 let board = null;
 let game = new Chess();
-let pgnMoves = [];
-let currentMoveIndex = 0;
-let currentPGNIndex = 0;
-let currentMode = "standard";
-let currentSetStartIndex = 0;
-let setSize = 20;
-let timer = null;
-let timeLimitSeconds = 10;
-let correctInSet = 0;
-let totalInSet = 0;
 let puzzles = [];
+let currentIndex = 0;
+let mode = 'standard';
+let repetitionSet = [];
+let repetitionSize = 5;
+let timePerPuzzle = 30; // seconds
+let timerInterval = null;
+let timeLeft = timePerPuzzle;
 
-function resetBoard() {
-  game.reset();
-  board.position(game.fen());
-}
-
-function updateProgressBar() {
-  const progress = (correctInSet / setSize) * 100;
-  document.getElementById("progressBar").style.width = progress + "%";
-}
-
-function startRepetitionMode() {
-  currentMode = "repetition";
-  currentSetStartIndex = 0;
-  correctInSet = 0;
-  totalInSet = 0;
-  updateProgressBar();
-  loadNextSet();
-}
-
-function startStandardMode() {
-  currentMode = "standard";
-  currentPGNIndex = 0;
-  loadPuzzle(0);
+function resetGame() {
+	game.reset();
+	board.position(game.fen());
 }
 
 function loadPGNFile() {
-  resetBoard();
-  const selectedFile = document.getElementById("openPGN").value;
-
-  if (selectedFile) {
-    fetch(selectedFile)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to load PGN file");
-        }
-        return response.text();
-      })
-      .then((pgnText) => {
-        puzzles = pgnText.split(/\r?\n\r?\n/).filter((p) => p.trim() !== "");
-        shuffleArray(puzzles);
-        if (currentMode === "repetition") {
-          startRepetitionMode();
-        } else {
-          startStandardMode();
-        }
-      })
-      .catch((error) => console.error("Error loading PGN:", error));
-  }
+	resetGame();
+	const selectedFile = document.getElementById('openPGN').value;
+	if (selectedFile) {
+		fetch(selectedFile)
+			.then(response => {
+				if (!response.ok) {
+					throw new Error('Network response was not ok');
+				}
+				return response.text();
+			})
+			.then(text => {
+				puzzles = text.trim().split(/\r?\n/).filter(line => line);
+				if (mode === 'repetition') {
+					generateRepetitionSet();
+					currentIndex = 0;
+				} else {
+					currentIndex = 0;
+				}
+				loadPuzzle();
+			})
+			.catch(error => console.error('Error loading PGN file:', error));
+	}
 }
 
-function loadNextSet() {
-  correctInSet = 0;
-  totalInSet = 0;
-  updateProgressBar();
-  loadPuzzle(currentSetStartIndex);
+function generateRepetitionSet() {
+	repetitionSet = [];
+	const shuffled = [...puzzles].sort(() => 0.5 - Math.random());
+	repetitionSet = shuffled.slice(0, repetitionSize);
 }
 
-function loadPuzzle(index) {
-  if (index >= puzzles.length) {
-    alert("You've completed all puzzles!");
-    return;
-  }
+function getCurrentSet() {
+	return mode === 'repetition' ? repetitionSet : puzzles;
+}
 
-  game.load_pgn(puzzles[index]);
-  board.position(game.fen());
-  pgnMoves = game.history();
-  currentMoveIndex = 0;
-  game.reset();
-  board.position(game.fen());
-  startTimer();
+function loadPuzzle() {
+	clearInterval(timerInterval);
+	timeLeft = timePerPuzzle;
+	updateCountdown();
+	startTimer();
+
+	const pgn = getCurrentSet()[currentIndex];
+	game.load_pgn(pgn);
+	board.position(game.fen());
+	updateProgress();
+}
+
+function onDrop(source, target) {
+	const move = game.move({ from: source, to: target, promotion: 'q' });
+	if (move === null) return 'snapback';
+
+	const expectedGame = new Chess();
+	expectedGame.load_pgn(getCurrentSet()[currentIndex]);
+
+	const expectedMoves = expectedGame.history();
+	const actualMoves = game.history();
+
+	if (expectedMoves.length > actualMoves.length) {
+		const expectedNext = expectedMoves[actualMoves.length - 1];
+		if (expectedNext !== move.san) {
+			if (mode === 'repetition') {
+				generateRepetitionSet();
+				currentIndex = 0;
+			} else {
+				currentIndex = 0;
+			}
+			loadPuzzle();
+			return;
+		}
+	} else {
+		currentIndex++;
+		if (currentIndex >= getCurrentSet().length) {
+			alert("You've completed the set!");
+			currentIndex = 0;
+			if (mode === 'repetition') {
+				generateRepetitionSet();
+			}
+		}
+		loadPuzzle();
+	}
+}
+
+function updateProgress() {
+	const percent = ((currentIndex) / getCurrentSet().length) * 100;
+	document.getElementById('visualProgress').style.width = percent + '%';
 }
 
 function startTimer() {
-  clearTimer();
-  timer = setTimeout(() => {
-    if (currentMode === "repetition") {
-      onMistakeInRepetition();
-    }
-  }, timeLimitSeconds * 1000);
+	timerInterval = setInterval(() => {
+		timeLeft--;
+		updateCountdown();
+		if (timeLeft <= 0) {
+			clearInterval(timerInterval);
+			if (mode === 'repetition') {
+				generateRepetitionSet();
+				currentIndex = 0;
+			} else {
+				currentIndex = 0;
+			}
+			loadPuzzle();
+		}
+	}, 1000);
 }
 
-function clearTimer() {
-  if (timer) {
-    clearTimeout(timer);
-    timer = null;
-  }
+function updateCountdown() {
+	document.getElementById('countdown').innerText = `Time left: ${timeLeft}s`;
 }
 
-function onCorrectMoveInRepetition() {
-  correctInSet++;
-  totalInSet++;
-  updateProgressBar();
-
-  if (correctInSet >= setSize) {
-    currentSetStartIndex += setSize;
-    if (currentSetStartIndex >= puzzles.length) {
-      alert("🎉 You've completed all sets!");
-    } else {
-      alert("✅ Set complete. Moving to next set.");
-      loadNextSet();
-    }
-  } else {
-    currentSetStartIndex++;
-    loadPuzzle(currentSetStartIndex);
-  }
+function toggleDarkMode() {
+	document.body.classList.toggle('darkmode');
+	document.getElementById('controls').classList.toggle('darkmode-control');
 }
 
-function onMistakeInRepetition() {
-  alert("❌ Incorrect or timed out. Restarting set.");
-  loadNextSet();
+function setMode(selectedMode) {
+	mode = selectedMode;
+	document.getElementById('standardButton').classList.remove('active');
+	document.getElementById('repetitionButton').classList.remove('active');
+	document.getElementById(selectedMode + 'Button').classList.add('active');
+
+	if (mode === 'repetition') {
+		generateRepetitionSet();
+		currentIndex = 0;
+	} else {
+		currentIndex = 0;
+	}
+	loadPuzzle();
 }
 
-function handleMove(source, target) {
-  clearTimer();
+document.addEventListener('DOMContentLoaded', () => {
+	board = Chessboard('board', {
+		draggable: true,
+		position: 'start',
+		onDrop: onDrop
+	});
 
-  const move = game.move({ from: source, to: target, promotion: "q" });
-  if (!move) return "snapback";
-
-  const expectedMove = pgnMoves[currentMoveIndex];
-  if (!expectedMove) return;
-
-  const lastMove = game.history().slice(-1)[0];
-  if (lastMove === expectedMove) {
-    currentMoveIndex++;
-    board.position(game.fen());
-
-    if (currentMoveIndex >= pgnMoves.length) {
-      if (currentMode === "repetition") {
-        onCorrectMoveInRepetition();
-      } else {
-        currentPGNIndex++;
-        loadPuzzle(currentPGNIndex);
-      }
-    } else {
-      startTimer();
-    }
-  } else {
-    if (currentMode === "repetition") {
-      onMistakeInRepetition();
-    } else {
-      alert("❌ Incorrect move. Try again.");
-      game.undo();
-      board.position(game.fen());
-      startTimer();
-    }
-  }
-}
-
-function onSnapEnd() {
-  board.position(game.fen());
-}
-
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-}
-
-const config = {
-  draggable: true,
-  position: "start",
-  onDrop: handleMove,
-  onSnapEnd: onSnapEnd,
-};
-
-board = Chessboard("board", config);
+	document.getElementById('darkModeToggle').addEventListener('change', toggleDarkMode);
+	document.getElementById('standardButton').addEventListener('click', () => setMode('standard'));
+	document.getElementById('repetitionButton').addEventListener('click', () => setMode('repetition'));
+});
