@@ -2,6 +2,25 @@
 <html style="overscroll-behavior: contain;"> <!-- Prevent swiping on mobile forcing a refresh of the page -->
 
 <head>
+	<body>
+  <!-- all other UI elements -->
+  <div id="board" style="width: 400px;"></div>
+  <!-- Load chess libraries -->
+  <script src="https://unpkg.com/chess.js"></script>
+  <script src="https://unpkg.com/chessboardjs"></script>
+  <!-- Initialize once DOM is ready -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      window.board = Chessboard(document.getElementById('board'), {
+        draggable: true,
+        position: 'start'
+      });
+    });
+  </script>
+  <!-- Your main PGN trainer script -->
+  <script src="chess-pgn-trainer.js"></script>
+</body>
+
 	<title>Chess PGN Trainer</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-16">
 	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
@@ -363,6 +382,7 @@
 </body>
 
 </html>
+
 
 
 
