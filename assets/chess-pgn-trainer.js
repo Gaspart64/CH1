@@ -13,7 +13,7 @@ let timeLeft = timePerPuzzle;
 
 function resetGame() {
 	game.reset();
-	board.position(game.fen());
+	if (board) board.position(game.fen());
 }
 
 function loadPGNFile() {
@@ -59,7 +59,7 @@ function loadPuzzle() {
 
 	const pgn = getCurrentSet()[currentIndex];
 	game.load_pgn(pgn);
-	board.position(game.fen());
+	if (board) board.position(game.fen());
 	updateProgress();
 }
 
@@ -121,7 +121,10 @@ function startTimer() {
 }
 
 function updateCountdown() {
-	document.getElementById('countdown').innerText = `Time left: ${timeLeft}s`;
+	const countdownElement = document.getElementById('countdown');
+	if (countdownElement) {
+		countdownElement.innerText = `Time left: ${timeLeft}s`;
+	}
 }
 
 function toggleDarkMode() {
@@ -145,13 +148,24 @@ function setMode(selectedMode) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-	board = Chessboard('board', {
+	const boardElement = document.getElementById('board');
+	if (!boardElement) {
+		console.error("Element with id 'board' not found. Chessboard cannot be initialized.");
+		return;
+	}
+
+	board = Chessboard(boardElement, {
 		draggable: true,
 		position: 'start',
 		onDrop: onDrop
 	});
 
-	document.getElementById('darkModeToggle').addEventListener('change', toggleDarkMode);
-	document.getElementById('standardButton').addEventListener('click', () => setMode('standard'));
-	document.getElementById('repetitionButton').addEventListener('click', () => setMode('repetition'));
+	const darkToggle = document.getElementById('darkModeToggle');
+	if (darkToggle) darkToggle.addEventListener('change', toggleDarkMode);
+
+	const standardBtn = document.getElementById('standardButton');
+	if (standardBtn) standardBtn.addEventListener('click', () => setMode('standard'));
+
+	const repetitionBtn = document.getElementById('repetitionButton');
+	if (repetitionBtn) repetitionBtn.addEventListener('click', () => setMode('repetition'));
 });
