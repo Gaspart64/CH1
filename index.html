@@ -350,8 +350,19 @@
 	<!-- Custom code for this project (needs to be here AFTER elements are built & labelled)-->
 	<script src="./assets/chess-pgn-trainer.js"></script>
 	<script src="./assets/piece-list.js"></script>
+	<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        window.board = Chessboard('board', {
+            draggable: true,
+            dropOffBoard: 'snapback',
+            position: 'start'
+        });
+    });
+</script>
+
 </body>
 
 </html>
+
 
 
