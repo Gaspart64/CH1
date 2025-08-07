@@ -342,8 +342,27 @@
 	<script src="./assets/piece-list.js"></script>
 
 	<!-- Add this script at the end, before </body> -->
+	<script>
+        function handleFirstDropdownChange() {
+            const pgDropdown = document.getElementById('openPGN');
+            const modeDropdown = document.getElementById('modeSelector');
+
+            // Enable the mode selector if a PGN file is selected
+            modeDropdown.disabled = !pgDropdown.value;
+        }
+
+        function handleSecondDropdownChange() {
+            const pgDropdown = document.getElementById('openPGN');
+            const modeDropdown = document.getElementById('modeSelector');
+            const startButton = document.getElementById('btn_start');
+
+            // Enable the start button if both dropdowns have selections
+            startButton.disabled = !pgDropdown.value || !modeDropdown.value;
+        }
+    </script>
 	
 </body>
 
 </html>
+
 
