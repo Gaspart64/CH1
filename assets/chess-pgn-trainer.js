@@ -292,6 +292,11 @@ function initalize() {
 	addPieceSetNames();
 	changePieces();
 	resetGame();
+	
+	// Initialize game modes system
+	if (typeof initializeGameModes === 'function') {
+		initializeGameModes();
+	}
 }
 
 /**
@@ -449,6 +454,11 @@ function checkAndPlayNext() {
 	// Need to go this way since .moveNumber isn't working...
 	if (game.history()[game.history().length - 1] === moveHistory[game.history().length - 1]) { // correct move
 
+		// Handle correct move in current game mode
+		if (typeof handleCorrectMove === 'function') {
+			handleCorrectMove();
+		}
+
 		// play next move if the "Play both sides" box is unchecked
 		if (!$('#playbothsides').is(':checked')) {
 			// Play the opponent's next move from the PGN
@@ -460,6 +470,11 @@ function checkAndPlayNext() {
 			errorcount += 1;
 		}
 		error = true;
+
+		// Handle incorrect move in current game mode
+		if (typeof handleIncorrectMove === 'function') {
+			handleIncorrectMove();
+		}
 
 		// Undo that move from the game
 		game.undo();
@@ -480,15 +495,30 @@ function checkAndPlayNext() {
 			setcomplete = true;
 		}
 
+		// Check if we should continue to next puzzle based on current game mode
+		const shouldContinue = typeof shouldContinueToNextPuzzle === 'function' ? 
+			shouldContinueToNextPuzzle() : (increment < puzzleset.length - 1);
+
 		// Are there more puzzles to go?  If yes, load the next one in the sequence
-		if (increment < puzzleset.length - 1) {
+		if (shouldContinue) {
 			increment += 1;
+			
+			// Handle infinity mode - cycle back to beginning if needed
+			if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'infinity' && increment >= puzzleset.length) {
+				increment = 0;
+			}
+			
 			loadPuzzle(puzzleset[PuzzleOrder[increment]]);
 		}
 	}
 
 	// Stop once all the puzzles in the set are done
 	if (setcomplete && puzzlecomplete) {
+		// Stop any mode-specific timers
+		if (typeof stopModeTimer === 'function') {
+			stopModeTimer();
+		}
+
 		// Show the stats
 		generateStats();
 		showStats();
@@ -605,6 +635,11 @@ function pauseGame() {
  * Reset everything in order to start a new testing session
  */
 function resetGame() {
+	// Stop any mode-specific timers
+	if (typeof stopModeTimer === 'function') {
+		stopModeTimer();
+	}
+
 	// Reset the current game in memory
 	board = null;
 	blankBoard = null;
@@ -676,6 +711,11 @@ function resetGame() {
 	// Clear the move indicator
 	$('#moveturn').text('');
 
+	// Reset mode state
+	if (typeof resetModeState === 'function') {
+		resetModeState();
+	}
+
 	// Close hover
 	w3_close();
 
@@ -686,6 +726,11 @@ function resetGame() {
  */
 function showHint() {
 
+	// Check if hint is available in current game mode
+	if (typeof isHintAvailable === 'function' && !isHintAvailable()) {
+		return;
+	}
+
 	// Change the text of the button to the correct move
 	$('#btn_hint_landscape').text(moveHistory[game.history().length]);
 	$('#btn_hint_portrait').text(moveHistory[game.history().length]);
@@ -695,6 +740,11 @@ function showHint() {
 		errorcount += 1;
 	}
 	error = true;
+
+	// Handle hint usage in current game mode
+	if (typeof handleHintUsed === 'function') {
+		handleHintUsed();
+	}
 }
 
 /**
@@ -707,6 +757,11 @@ function startTest() {
 	// Check to make sure that a PGN File was loaded
 	if (puzzleset.length === 0) {
 		return;
+	}
+
+	// Reset mode state when starting
+	if (typeof resetModeState === 'function') {
+		resetModeState();
 	}
 
 	// Hide "Start", "Restart" & "Show Results" buttons
@@ -746,6 +801,16 @@ function startTest() {
 	} else {
 		// Generate numbers between 1 and the number of puzzles in the PGN in order
 		PuzzleOrder = arrayRange(0, puzzleset.length - 1, 1);
+	}
+
+	// Start mode-specific timer if applicable
+	if (typeof startModeTimer === 'function') {
+		startModeTimer();
+	}
+
+	// Update mode UI
+	if (typeof updateModeUI === 'function') {
+		updateModeUI();
 	}
 
 	// Now just need to send the desired puzzle to the board.
