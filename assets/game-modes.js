@@ -698,7 +698,7 @@ if (typeof module !== 'undefined' && module.exports) {
         getCurrentGameMode,
         getModeState,
         startModeTimer,
-        stopModeTimer,-
+        stopModeTimer,
         handleCorrectMove,
         handleIncorrectMove,
         handleHintUsed,
