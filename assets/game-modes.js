@@ -501,7 +501,7 @@ function handleCorrectMove() {
         modeState.timeRemaining += config.timeGain;
         updateTimerDisplay();
     } else if (currentGameMode === GAME_MODES.REPETITION) {
-        //modeState.levelProgress++;
+        modeState.levelProgress++;
         updateLevelDisplay();
         
         // Check if level is complete
