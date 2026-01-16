@@ -78,9 +78,20 @@
 	<option value="./PGN/3.pgn">Chessimo 3</option>
 	<option value="./PGN/4.pgn">Chessimo 4</option>
 	<option value="./PGN/5.pgn">Chessimo 5</option>
-	<option value="./PGN/MorphyWhite15.pgn">Morphy as white</option>
-        <!-- Options will be dynamically added here, either statically or via API -->
-    </select>
+		<option value="./PGN/MorphyWhite15.pgn">Morphy as white</option>
+	        <!-- Options will be dynamically added here, either statically or via API -->
+	    </select>
+	    
+	    <select id="game-mode-select-manual" onchange="if(typeof setGameMode === 'function') setGameMode(this.value)">
+	        <option value="standard">Standard Mode</option>
+	        <option value="reverse">Reverse Mode</option>
+	        <option value="repetition">Repetition Mode</option>
+	        <option value="three">Three Mode</option>
+	        <option value="haste">Haste Mode</option>
+	        <option value="countdown">Countdown Mode</option>
+	        <option value="speedrun">Speedrun Mode</option>
+	        <option value="infinity">Infinity Mode</option>
+	    </select>
     
     <button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue">Reset</button>
 </p>
@@ -111,9 +122,10 @@
 					<div id="progressbar_landscape" class="w3-indigo" style="height:24px;width:0%"></div>
 				</div>
 
-				<div class="w3-container w3-center">
-					Name: <br> <span id="puzzlename_landscape" style="font-weight: bold;"></span>
-				</div>
+					<div class="w3-container w3-center">
+						Name: <br> <span id="puzzlename_landscape" style="font-weight: bold;"></span>
+						<div id="reverse-step-landscape" style="display: none; color: #3f51b5; font-weight: bold;"></div>
+					</div>
 				<p></p>
 
 				<div class="w3-bar">
@@ -302,9 +314,10 @@
 					<div id="progressbar_portrait" class="w3-indigo" style="height:24px;width:0%"></div>
 				</div>
 
-				<div class="w3-container w3-center">
-					Name: <br> <span id="puzzlename_portrait" style="font-weight: bold;"></span>
-				</div>
+					<div class="w3-container w3-center">
+						Name: <br> <span id="puzzlename_portrait" style="font-weight: bold;"></span>
+						<div id="reverse-step-portrait" style="display: none; color: #3f51b5; font-weight: bold;"></div>
+					</div>
 				<p></p>
 
 				<div class="w3-bar">

@@ -461,8 +461,17 @@ function checkAndPlayNext() {
 
 		// play next move if the "Play both sides" box is unchecked
 		if (!$('#playbothsides').is(':checked')) {
-			// Play the opponent's next move from the PGN
-			game.move(moveHistory[game.history().length]);
+			// In reverse mode, we don't automatically play the next move if it's the end of the current step
+			const isReverse = typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'reverse';
+			if (isReverse) {
+				// Only play next move if we haven't reached the end of the full moveHistory
+				if (game.history().length < moveHistory.length) {
+					game.move(moveHistory[game.history().length]);
+				}
+			} else {
+				// Play the opponent's next move from the PGN
+				game.move(moveHistory[game.history().length]);
+			}
 		}
 	} else { // wrong move
 
@@ -508,6 +517,9 @@ function checkAndPlayNext() {
 				increment = 0;
 			}
 			
+			loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+		} else if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'reverse' && !setcomplete) {
+			// In reverse mode, if we're not moving to the next puzzle, reload the current one with the next step
 			loadPuzzle(puzzleset[PuzzleOrder[increment]]);
 		}
 	}
@@ -732,6 +744,7 @@ function showHint() {
 	}
 
 	// Change the text of the button to the correct move
+	// In reverse mode, the next move is still at moveHistory[game.history().length]
 	$('#btn_hint_landscape').text(moveHistory[game.history().length]);
 	$('#btn_hint_portrait').text(moveHistory[game.history().length]);
 
@@ -893,6 +906,25 @@ function loadPuzzle(PGNPuzzle) {
 	// Set the board position to the opening in the puzzle (ie: undo all steps in the PGN)
 	while (game.undo() !== null) { game.undo(); }
 
+	// Handle Reverse Mode position loading
+	if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'reverse') {
+		const step = getModeState().reverseStep;
+		const totalMoves = moveHistory.length;
+		
+		// We want to load the position where the player has 'step' moves to solve.
+		// If step = 1, we play totalMoves - 1 moves.
+		// If step = 2, we play totalMoves - 2 moves.
+		// However, we must ensure that it's the player's turn at the starting position.
+		// In standard puzzles, the first move in moveHistory is the player's move.
+		// If totalMoves - step is even, the turn is the same as the original start.
+		// If totalMoves - step is odd, the turn is flipped.
+		
+		const movesToPlay = totalMoves - step;
+		for (let i = 0; i < movesToPlay; i++) {
+			game.move(moveHistory[i]);
+		}
+	}
+
 	// Set the board to the beginning position of the puzzle
 	updateBoard(false);
 
@@ -900,9 +932,18 @@ function loadPuzzle(PGNPuzzle) {
 	// Default is white
 	board.orientation('white');
 
-	// Flip the board if Black to play
-	if (game.turn() === 'b') {
-		board.orientation('black');
+	// In reverse mode, we should orient based on the side that makes the FIRST move of the puzzle
+	if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'reverse') {
+		// We need to know the turn at the very beginning of the puzzle
+		const tempGame = new Chess(PGNPuzzle.FEN);
+		if (tempGame.turn() === 'b') {
+			board.orientation('black');
+		}
+	} else {
+		// Flip the board if Black to play (standard behavior)
+		if (game.turn() === 'b') {
+			board.orientation('black');
+		}
 	}
 
 	// Flip board if "Flipped" checkbox is checked
@@ -925,6 +966,18 @@ function loadPuzzle(PGNPuzzle) {
 	// Update the screen with the value of the PGN Event tag (if any)
 	$('#puzzlename_landscape').html(PGNPuzzle.Event);
 	$('#puzzlename_portrait').html(PGNPuzzle.Event);
+
+	// Update reverse mode step indicator
+	if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'reverse') {
+		const step = getModeState().reverseStep;
+		const total = moveHistory.length;
+		const text = `Reverse Step: ${step} of ${total} moves`;
+		$('#reverse-step-landscape').text(text).show();
+		$('#reverse-step-portrait').text(text).show();
+	} else {
+		$('#reverse-step-landscape').hide();
+		$('#reverse-step-portrait').hide();
+	}
 
 
 	// Play the first move if player is playing second and not both sides
@@ -968,12 +1021,18 @@ function dragStart(source, piece, position, orientation) {
     
         // Prevent piece dragging if it's not the correct side's turn or move
         if (!$('#playbothsides').is(':checked')) {
-            if (!$('#playoppositeside').is(':checked') && game.history().length % 2 !== 0) {
-                return false;
-            }
+            // In reverse mode, we always allow the player to move if it's their turn
+            if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'reverse') {
+                // No additional restriction for reverse mode here, 
+                // as the player is always solving from the current position.
+            } else {
+                if (!$('#playoppositeside').is(':checked') && game.history().length % 2 !== 0) {
+                    return false;
+                }
 
-            if ($('#playoppositeside').is(':checked') && (game.history().length % 2 === 0 || game.history().length === 0)) {
-                return false;
+                if ($('#playoppositeside').is(':checked') && (game.history().length % 2 === 0 || game.history().length === 0)) {
+                    return false;
+                }
             }
         }
 

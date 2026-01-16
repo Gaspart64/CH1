@@ -82,11 +82,21 @@ const MODE_CONFIGS = {
         hasHints: false,
         hasLevels: false,
         isInfinite: true
+    },
+    [GAME_MODES.REVERSE]: {
+        name: 'Reverse Mode',
+        description: 'Solve puzzles backward: last move first, then last two, and so on',
+        hasTimer: false,
+        hasLives: false,
+        hasHints: true,
+        hasLevels: false,
+        isReverse: true
     }
 };
 
 // Current game mode state
 let currentGameMode = GAME_MODES.STANDARD;
+let isResettingMode = false;
 let modeState = {
     timeRemaining: 0,
     livesRemaining: 0,
@@ -96,7 +106,8 @@ let modeState = {
     levelErrors: 0,
     totalSolved: 0,
     modeTimer: null,
-    isActive: false
+    isActive: false,
+    reverseStep: 1 // Current number of moves to solve in reverse mode
 };
 
 /**
@@ -111,37 +122,12 @@ function initializeGameModes() {
  * Create the mode selector UI
  */
 function createModeSelector() {
-    const modeSelector = document.createElement('div');
-    modeSelector.id = 'mode-selector';
-    modeSelector.className = 'w3-container w3-margin-bottom';
-    
-    const label = document.createElement('label');
-    label.textContent = 'Game Mode: ';
-    label.className = 'w3-text-indigo';
-    
-    const select = document.createElement('select');
-    select.id = 'game-mode-select';
-    select.className = 'w3-select w3-border w3-round';
-    select.style.width = '200px';
-    select.style.display = 'inline-block';
-    select.style.marginLeft = '8px';
-    
-    // Add options for each game mode
-    Object.entries(MODE_CONFIGS).forEach(([key, config]) => {
-        const option = document.createElement('option');
-        option.value = key;
-        option.textContent = config.name;
-        select.appendChild(option);
-    });
-    
-    select.addEventListener('change', handleModeChange);
-    
-    modeSelector.appendChild(label);
-    modeSelector.appendChild(select);
-    
-    // Insert after the PGN file selector
-    const pgnContainer = document.querySelector('p');
-    pgnContainer.parentNode.insertBefore(modeSelector, pgnContainer.nextSibling);
+    // Use the existing selector in the HTML
+    const select = document.getElementById('game-mode-select-manual');
+    if (select) {
+        select.id = 'game-mode-select';
+        select.addEventListener('change', handleModeChange);
+    }
     
     // Create mode info display
     createModeInfoDisplay();
@@ -155,8 +141,14 @@ function createModeInfoDisplay() {
     infoDiv.id = 'mode-info';
     infoDiv.className = 'w3-container w3-margin-bottom w3-small w3-text-grey';
     
-    const modeSelector = document.getElementById('mode-selector');
-    modeSelector.parentNode.insertBefore(infoDiv, modeSelector.nextSibling);
+    const modeSelector = document.getElementById('game-mode-select');
+    if (modeSelector) {
+        modeSelector.parentNode.insertBefore(infoDiv, modeSelector.nextSibling);
+    } else {
+        // Fallback
+        const pgnContainer = document.querySelector('p');
+        if (pgnContainer) pgnContainer.parentNode.insertBefore(infoDiv, pgnContainer.nextSibling);
+    }
     
     updateModeInfo();
 }
@@ -187,14 +179,19 @@ function handleModeChange(event) {
 function setGameMode(mode) {
     if (modeState.isActive) {
         if (!confirm('Changing game mode will reset the current session. Continue?')) {
-            document.getElementById('game-mode-select').value = currentGameMode;
+            const select = document.getElementById('game-mode-select');
+            if (select) select.value = currentGameMode;
             return;
         }
         stopModeTimer();
+        // resetGame calls resetModeState, which we want to avoid infinite loop
+        // but resetGame is needed to clear the board and state
         resetGame();
     }
     
     currentGameMode = mode;
+    const select = document.getElementById('game-mode-select');
+    if (select) select.value = mode;
     resetModeState();
     updateModeInfo();
     updateModeUI();
@@ -204,6 +201,8 @@ function setGameMode(mode) {
  * Reset mode state
  */
 function resetModeState() {
+    if (isResettingMode) return;
+    isResettingMode = true;
     const config = MODE_CONFIGS[currentGameMode];
     
     modeState = {
@@ -215,10 +214,12 @@ function resetModeState() {
         levelErrors: 0,
         totalSolved: 0,
         modeTimer: null,
-        isActive: false
+        isActive: false,
+        reverseStep: 1
     };
     
     updateModeUI();
+    isResettingMode = false;
 }
 
 /**
@@ -675,6 +676,18 @@ function isHintAvailable() {
 function shouldContinueToNextPuzzle() {
     const config = MODE_CONFIGS[currentGameMode];
     
+    if (currentGameMode === GAME_MODES.REVERSE) {
+        // In reverse mode, we continue until we've solved the full length of the puzzle
+        // The number of steps is moveHistory.length
+        if (modeState.reverseStep < moveHistory.length) {
+            modeState.reverseStep++;
+            return false; // Don't move to next puzzle yet
+        } else {
+            modeState.reverseStep = 1; // Reset for next puzzle
+            return increment + 1 < puzzleset.length;
+        }
+    }
+
     if (currentGameMode === GAME_MODES.INFINITY) {
         return true; // Always continue in infinity mode
     }
