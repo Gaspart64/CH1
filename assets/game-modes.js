@@ -11,7 +11,8 @@ const GAME_MODES = {
     HASTE: 'haste',
     COUNTDOWN: 'countdown',
     SPEEDRUN: 'speedrun',
-    INFINITY: 'infinity'
+    INFINITY: 'infinity',
+    REVERSE: 'reverse'
 };
 
 // Game mode configurations
@@ -708,4 +709,6 @@ if (typeof module !== 'undefined' && module.exports) {
         updateModeUI
     };
 }
+
+
 
