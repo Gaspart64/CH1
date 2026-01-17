@@ -503,27 +503,8 @@ function handleCorrectMove() {
         modeState.timeRemaining += config.timeGain;
         updateTimerDisplay();
     } else if (currentGameMode === GAME_MODES.REPETITION) {
-        modeState.levelProgress++;
-        updateLevelDisplay();
-        
-        // Check if level is complete
-        if (modeState.levelProgress >= config.puzzlesPerLevel) {
-            if (modeState.levelErrors === 0) {
-                // Level completed perfectly, advance to next level
-                modeState.currentLevel++;
-                modeState.levelProgress = 0;
-                modeState.levelErrors = 0;
-                updateLevelDisplay();
-                
-                // Show level completion message
-                setTimeout(() => {
-                    alert(`Level ${modeState.currentLevel - 1} completed! Moving to Level ${modeState.currentLevel}`);
-                }, 100);
-            } else {
-                // Restart current level due to errors
-                restartCurrentLevel();
-            }
-        }
+        // In repetition mode, we track progress in chess-pgn-trainer.js when a puzzle is fully solved.
+        // This function is called for every correct move.
     }
 }
 
@@ -555,7 +536,7 @@ function handleIncorrectMove() {
         }
     } else if (currentGameMode === GAME_MODES.REPETITION) {
         modeState.levelErrors++;
-        // Will restart level when puzzle set is complete
+        // We don't restart immediately; we allow the user to finish the set.
     }
 }
 

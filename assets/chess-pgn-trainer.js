@@ -495,34 +495,73 @@ function checkAndPlayNext() {
 		return 'snapback';
 	}
 
-	// Check if all the expected moves have been played
-	if (game.history().length === moveHistory.length) {
-		puzzlecomplete = true;
+		// Check if all the expected moves have been played
+		if (game.history().length === moveHistory.length) {
+			puzzlecomplete = true;
 
-		// Check to see if this is the last puzzle
-		if (increment + 1 === puzzleset.length) {
-			setcomplete = true;
-		}
+			// Handle repetition mode progression
+			if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'repetition') {
+				const modeState = getModeState();
+				const config = MODE_CONFIGS['repetition'];
+				
+				// If this puzzle was solved without errors, increment progress
+				if (error === false) {
+					modeState.levelProgress++;
+					updateLevelDisplay();
+				}
 
-		// Check if we should continue to next puzzle based on current game mode
-		const shouldContinue = typeof shouldContinueToNextPuzzle === 'function' ? 
-			shouldContinueToNextPuzzle() : (increment < puzzleset.length - 1);
+				// Check if we've reached the end of the set (20 puzzles)
+				const levelStartIndex = (modeState.currentLevel - 1) * config.puzzlesPerLevel;
+				const isEndOfSet = (increment + 1) >= Math.min(levelStartIndex + config.puzzlesPerLevel, puzzleset.length);
 
-		// Are there more puzzles to go?  If yes, load the next one in the sequence
-		if (shouldContinue) {
-			increment += 1;
-			
-			// Handle infinity mode - cycle back to beginning if needed
-			if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'infinity' && increment >= puzzleset.length) {
-				increment = 0;
+				if (isEndOfSet) {
+					if (modeState.levelErrors === 0 && modeState.levelProgress >= config.puzzlesPerLevel) {
+						// Level completed perfectly!
+						modeState.currentLevel++;
+						modeState.levelProgress = 0;
+						modeState.levelErrors = 0;
+						updateLevelDisplay();
+						setTimeout(() => {
+							alert(`Level ${modeState.currentLevel - 1} completed! Moving to Level ${modeState.currentLevel}`);
+						}, 100);
+						// Start the next level
+						resetToLevelStart();
+						return;
+					} else {
+						// Level failed due to errors or incomplete progress
+						setTimeout(() => {
+							alert(`Level ${modeState.currentLevel} failed! You must solve all ${config.puzzlesPerLevel} puzzles perfectly.`);
+							restartCurrentLevel();
+						}, 100);
+						return;
+					}
+				}
 			}
-			
-			loadPuzzle(puzzleset[PuzzleOrder[increment]]);
-		} else if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'reverse' && !setcomplete) {
-			// In reverse mode, if we're not moving to the next puzzle, reload the current one with the next step
-			loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+	
+			// Check to see if this is the last puzzle
+			if (increment + 1 === puzzleset.length) {
+				setcomplete = true;
+			}
+	
+			// Check if we should continue to next puzzle based on current game mode
+			const shouldContinue = typeof shouldContinueToNextPuzzle === 'function' ? 
+				shouldContinueToNextPuzzle() : (increment < puzzleset.length - 1);
+	
+			// Are there more puzzles to go?  If yes, load the next one in the sequence
+			if (shouldContinue) {
+				increment += 1;
+				
+				// Handle infinity mode - cycle back to beginning if needed
+				if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'infinity' && increment >= puzzleset.length) {
+					increment = 0;
+				}
+				
+				loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+			} else if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'reverse' && !setcomplete) {
+				// In reverse mode, if we're not moving to the next puzzle, reload the current one with the next step
+				loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+			}
 		}
-	}
 
 	// Stop once all the puzzles in the set are done
 	if (setcomplete && puzzlecomplete) {
