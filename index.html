@@ -2,6 +2,13 @@
 <html style="overscroll-behavior: contain;"> <!-- Prevent swiping on mobile forcing a refresh of the page -->
 
 <head>
+		<!-- PWA Metadata -->
+		<link rel="manifest" href="/manifest.json">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<meta name="apple-mobile-web-app-title" content="PGN Trainer">
+		<meta name="msapplication-TileImage" content="img/icon-192.png">
+		<meta name="msapplication-TileColor" content="#3f51b5">
 	<title>Chess PGN Trainer</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-16">
 	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
@@ -341,7 +348,22 @@
 	<!-- Custom code for this project (needs to be here AFTER elements are built & labelled)-->
 	<script src="./assets/game-modes.js"></script>
 	<script src="./assets/chess-pgn-trainer.js"></script>
-	<script src="./assets/piece-list.js"></script>
+		<script src="./assets/piece-list.js"></script>
+
+		<!-- PWA Service Worker Registration -->
+		<script>
+			if ('serviceWorker' in navigator) {
+				window.addEventListener('load', () => {
+					navigator.serviceWorker.register('/sw.js')
+						.then(registration => {
+							console.log('Service Worker registered: ', registration);
+						})
+						.catch(error => {
+							console.log('Service Worker registration failed: ', error);
+						});
+				});
+			}
+		</script>
 </body>
 
 </html>
