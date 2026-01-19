@@ -268,17 +268,24 @@ function updateTimerDisplay() {
             timerDiv.appendChild(label);
             timerDiv.appendChild(display);
             
-            // Insert in landscape mode
-            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-            if (landscapeDiv) {
-                landscapeDiv.appendChild(timerDiv);
-            }
+	            // Insert in both landscape and portrait containers for cross-device compatibility
+	            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
+	            const portraitDiv = document.querySelector('.portraitmode .w3-container.w3-center');
+	            if (landscapeDiv) landscapeDiv.appendChild(timerDiv);
+	            if (portraitDiv) {
+	                const clone = timerDiv.cloneNode(true);
+	                clone.id = 'mode-timer-portrait';
+	                portraitDiv.appendChild(clone);
+	            }
         }
         
-        const display = document.getElementById('timer-display');
-        if (display) {
-            display.textContent = formatTime(modeState.timeRemaining);
-        }
+	        const displays = document.querySelectorAll('[id$="timer-display"]');
+	        displays.forEach(display => {
+	            display.textContent = formatTime(modeState.timeRemaining);
+	        });
+	        // Also handle the case where the ID is exactly 'timer-display'
+	        const mainDisplay = document.getElementById('timer-display');
+	        if (mainDisplay) mainDisplay.textContent = formatTime(modeState.timeRemaining);
         
         timerDiv.style.display = 'block';
     } else if (timerDiv) {
@@ -310,17 +317,23 @@ function updateLivesDisplay() {
             livesDiv.appendChild(label);
             livesDiv.appendChild(display);
             
-            // Insert in landscape mode
-            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-            if (landscapeDiv) {
-                landscapeDiv.appendChild(livesDiv);
-            }
+	            // Insert in both landscape and portrait containers
+	            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
+	            const portraitDiv = document.querySelector('.portraitmode .w3-container.w3-center');
+	            if (landscapeDiv) landscapeDiv.appendChild(livesDiv);
+	            if (portraitDiv) {
+	                const clone = livesDiv.cloneNode(true);
+	                clone.id = 'mode-lives-portrait';
+	                portraitDiv.appendChild(clone);
+	            }
         }
         
-        const display = document.getElementById('lives-display');
-        if (display) {
-            display.textContent = '❤️'.repeat(modeState.livesRemaining);
-        }
+	        const displays = document.querySelectorAll('[id$="lives-display"]');
+	        displays.forEach(display => {
+	            display.textContent = '❤️'.repeat(modeState.livesRemaining);
+	        });
+	        const mainDisplay = document.getElementById('lives-display');
+	        if (mainDisplay) mainDisplay.textContent = '❤️'.repeat(modeState.livesRemaining);
         
         livesDiv.style.display = 'block';
     } else if (livesDiv) {
@@ -352,17 +365,23 @@ function updateHintsDisplay() {
             hintsDiv.appendChild(label);
             hintsDiv.appendChild(display);
             
-            // Insert in landscape mode
-            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-            if (landscapeDiv) {
-                landscapeDiv.appendChild(hintsDiv);
-            }
+	            // Insert in both landscape and portrait containers
+	            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
+	            const portraitDiv = document.querySelector('.portraitmode .w3-container.w3-center');
+	            if (landscapeDiv) landscapeDiv.appendChild(hintsDiv);
+	            if (portraitDiv) {
+	                const clone = hintsDiv.cloneNode(true);
+	                clone.id = 'mode-hints-portrait';
+	                portraitDiv.appendChild(clone);
+	            }
         }
         
-        const display = document.getElementById('hints-display');
-        if (display) {
-            display.textContent = '💡'.repeat(modeState.hintsRemaining);
-        }
+	        const displays = document.querySelectorAll('[id$="hints-display"]');
+	        displays.forEach(display => {
+	            display.textContent = '💡'.repeat(modeState.hintsRemaining);
+	        });
+	        const mainDisplay = document.getElementById('hints-display');
+	        if (mainDisplay) mainDisplay.textContent = '💡'.repeat(modeState.hintsRemaining);
         
         hintsDiv.style.display = 'block';
     } else if (hintsDiv) {
@@ -394,17 +413,23 @@ function updateLevelDisplay() {
             levelDiv.appendChild(label);
             levelDiv.appendChild(display);
             
-            // Insert in landscape mode
-            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-            if (landscapeDiv) {
-                landscapeDiv.appendChild(levelDiv);
-            }
+	            // Insert in both landscape and portrait containers
+	            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
+	            const portraitDiv = document.querySelector('.portraitmode .w3-container.w3-center');
+	            if (landscapeDiv) landscapeDiv.appendChild(levelDiv);
+	            if (portraitDiv) {
+	                const clone = levelDiv.cloneNode(true);
+	                clone.id = 'mode-level-portrait';
+	                portraitDiv.appendChild(clone);
+	            }
         }
         
-        const display = document.getElementById('level-display');
-        if (display) {
-            display.textContent = `${modeState.currentLevel} (${modeState.levelProgress}/${config.puzzlesPerLevel})`;
-        }
+	        const displays = document.querySelectorAll('[id$="level-display"]');
+	        displays.forEach(display => {
+	            display.textContent = `${modeState.currentLevel} (${modeState.levelProgress}/${config.puzzlesPerLevel})`;
+	        });
+	        const mainDisplay = document.getElementById('level-display');
+	        if (mainDisplay) mainDisplay.textContent = `${modeState.currentLevel} (${modeState.levelProgress}/${config.puzzlesPerLevel})`;
         
         levelDiv.style.display = 'block';
     } else if (levelDiv) {
@@ -427,6 +452,22 @@ function toggleModeElements(config) {
                 button.style.display = 'none';
             }
         }
+    });
+
+    // Toggle visibility for both main and portrait cloned elements
+    const elements = [
+        { id: 'mode-timer', has: config.hasTimer },
+        { id: 'mode-lives', has: config.hasLives },
+        { id: 'mode-hints', has: config.hasHints },
+        { id: 'mode-level', has: config.hasLevels }
+    ];
+
+    elements.forEach(el => {
+        const main = document.getElementById(el.id);
+        const portrait = document.getElementById(el.id + '-portrait');
+        const display = el.has ? 'block' : 'none';
+        if (main) main.style.display = display;
+        if (portrait) portrait.style.display = display;
     });
 }
 
