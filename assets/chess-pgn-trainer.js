@@ -344,6 +344,22 @@ function updateBoard(animate) {
 // ------------------------------------
 
 /**
+ * Handle user choice for resuming game
+ * @param {boolean} resume - True to resume, false to start new
+ */
+function handleResumeChoice(resume) {
+        document.getElementById('resume-modal').style.display = 'none';
+        if (resume) {
+                if (resumeSavedGame()) {
+                        console.log('Game resumed from saved state');
+                }
+        } else {
+                clearSavedGameState();
+                resetGame();
+        }
+}
+
+/**
  * Initializes the application upon load
  */
 function initalize() {
@@ -355,8 +371,8 @@ function initalize() {
 
         // Try to resume a saved game
         setTimeout(() => {
-                if (resumeSavedGame()) {
-                        console.log('Game resumed from saved state');
+                if (loadGameState()) {
+                        document.getElementById('resume-modal').style.display = 'block';
                 }
         }, 500);
 
