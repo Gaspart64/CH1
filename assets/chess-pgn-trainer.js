@@ -540,8 +540,6 @@ function toggleSetting(elementname, dataname) { // eslint-disable-line no-unused
  * @returns {string}
  */
 function checkAndPlayNext() {
-        // ... existing logic ...
-        
         // Save progress after every move
         saveCurrentGameProgress();
 
@@ -966,6 +964,9 @@ function updateProgressBar(partial_value, total_value) {
  * @param {object} PGNPuzzle - The object representing a specific position and move sequence
  */
 function loadPuzzle(PGNPuzzle) {
+        // Save progress when a new puzzle is loaded
+        saveCurrentGameProgress();
+
         // Display current puzzle number in the sequence
         $('#puzzleNumber_landscape').text(increment + 1);
         $('#puzzleNumber_portrait').text(increment + 1);
