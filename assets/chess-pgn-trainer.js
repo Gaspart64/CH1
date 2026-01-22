@@ -541,11 +541,39 @@ function toggleSetting(elementname, dataname) { // eslint-disable-line no-unused
 // Gameplay functions
 // ------------------
 
+function handleCorrectMove() {
+        // Add a subtle green flash to the board
+        $('#myBoard').css('box-shadow', '0 0 20px rgba(0, 255, 0, 0.5)');
+        setTimeout(() => {
+                $('#myBoard').css('box-shadow', 'none');
+        }, 300);
+}
+
+function handleIncorrectMove() {
+        // Add a subtle red flash to the board
+        $('#myBoard').css('box-shadow', '0 0 20px rgba(255, 0, 0, 0.5)');
+        setTimeout(() => {
+                $('#myBoard').css('box-shadow', 'none');
+        }, 300);
+}
+
 /**
  * Compare latest played move to the move in the same position as the PGN
  *
  * @returns {string}
  */
+function handleCorrectMove() {
+        // Visual feedback for correct move
+        $('#myBoard').css('box-shadow', '0 0 20px rgba(0, 255, 0, 0.5)');
+        setTimeout(() => $('#myBoard').css('box-shadow', 'none'), 300);
+}
+
+function handleIncorrectMove() {
+        // Visual feedback for incorrect move
+        $('#myBoard').css('box-shadow', '0 0 20px rgba(255, 0, 0, 0.5)');
+        setTimeout(() => $('#myBoard').css('box-shadow', 'none'), 300);
+}
+
 function checkAndPlayNext() {
         // Save progress after every move
         saveCurrentGameProgress();
@@ -553,10 +581,7 @@ function checkAndPlayNext() {
         // Need to go this way since .moveNumber isn't working...
         if (game.history()[game.history().length - 1] === moveHistory[game.history().length - 1]) { // correct move
 
-                // Handle correct move in current game mode
-                if (typeof handleCorrectMove === 'function') {
-                        handleCorrectMove();
-                }
+                handleCorrectMove();
 
                 // play next move if the "Play both sides" box is unchecked
                 if (!$('#playbothsides').is(':checked')) {
@@ -569,6 +594,8 @@ function checkAndPlayNext() {
                         errorcount += 1;
                 }
                 error = true;
+
+                handleIncorrectMove();
 
                 // Handle incorrect move in current game mode
                 if (typeof handleIncorrectMove === 'function') {
