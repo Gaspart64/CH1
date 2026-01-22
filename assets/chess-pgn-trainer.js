@@ -118,8 +118,7 @@ function saveCurrentGameProgress() {
                 errorcount: errorcount,
                 pauseDateTimeTotal: pauseDateTimeTotal,
                 startDateTime: startDateTime.getTime(),
-                // We can't easily save the exact move history of the current puzzle without more logic,
-                // but we can at least save which puzzle we were on.
+                lastSelectedPgnFile: $('#openPGN').val(),
                 timestamp: new Date().getTime()
         };
 
@@ -144,6 +143,10 @@ function resumeSavedGame() {
         pauseDateTimeTotal = savedState.pauseDateTimeTotal;
         startDateTime = new Date(savedState.startDateTime);
 
+        if (savedState.lastSelectedPgnFile) {
+                $('#openPGN').val(savedState.lastSelectedPgnFile);
+        }
+
         // Setup UI for the resumed game
         $('#puzzleNumbertotal_landscape').text(puzzleset.length);
         $('#puzzleNumbertotal_portrait').text(puzzleset.length);
@@ -151,10 +154,14 @@ function resumeSavedGame() {
         // Load the puzzle we were on
         loadPuzzle(puzzleset[PuzzleOrder[increment]]);
 
-        // UI adjustments
-        setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'none', true);
-        setDisplayAndDisabled(['#btn_pause_landscape', '#btn_pause_portrait'], 'block', false);
-        setDisplayAndDisabled(['#btn_hint_landscape', '#btn_hint_portrait'], 'block', false);
+        // UI adjustments - Match startTest UI state
+        setDisplayAndDisabled(
+                ['#btn_starttest_landscape', '#btn_starttest_portrait',
+                        '#btn_restart_landscape', '#btn_restart_portrait', '#btn_showresults'], 'none');
+        setDisplayAndDisabled(
+                ['#btn_pause_landscape', '#btn_pause_portrait',
+                        '#btn_hint_landscape', '#btn_hint_portrait'], 'block', false);
+        setCheckboxSelectability(false);
 
         return true;
 }
