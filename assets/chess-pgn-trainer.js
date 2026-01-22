@@ -163,6 +163,12 @@ window.addEventListener('beforeunload', () => {
         saveCurrentGameProgress();
 });
 
+document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+                saveCurrentGameProgress();
+        }
+});
+
 /**
  * Save a key/value pair to local storage
  * @param {string} key - The name of the key 
@@ -534,6 +540,11 @@ function toggleSetting(elementname, dataname) { // eslint-disable-line no-unused
  * @returns {string}
  */
 function checkAndPlayNext() {
+        // ... existing logic ...
+        
+        // Save progress after every move
+        saveCurrentGameProgress();
+
         // Need to go this way since .moveNumber isn't working...
         if (game.history()[game.history().length - 1] === moveHistory[game.history().length - 1]) { // correct move
 
