@@ -57,6 +57,7 @@ let PuzzleOrder = [];
 // Promotion variables
 let promoteTo;
 let promotionDialog;
+let sourceSquare = null;
 
 // Time-related variables
 let PauseStartDateTime;
@@ -393,6 +394,12 @@ function initalize() {
         if (typeof initializeGameModes === 'function') {
                 initializeGameModes();
         }
+
+        // Add click-to-move support
+        $('#myBoard').on('click', '.square-55d63', function() {
+                const square = $(this).data('square');
+                onSquareClick(square);
+        });
 }
 
 /**
@@ -555,6 +562,47 @@ function handleIncorrectMove() {
         setTimeout(() => {
                 $('#myBoard').css('box-shadow', 'none');
         }, 300);
+}
+
+/**
+ * Handle square clicks for click-to-move functionality
+ * @param {string} square - The square clicked (e.g., 'e2')
+ */
+function onSquareClick(square) {
+        // If the game is paused, don't allow moves
+        if (pauseflag) return;
+
+        // Clear highlights
+        $('#myBoard .square-55d63').css('box-shadow', 'none');
+
+        // If no source square is selected, select it if it has a piece of the correct color
+        if (sourceSquare === null) {
+                const piece = game.get(square);
+                if (piece && piece.color === game.turn()) {
+                        sourceSquare = square;
+                        // Highlight selected square
+                        $('#myBoard .square-' + square).css('box-shadow', 'inset 0 0 3px 3px yellow');
+                }
+        } else {
+                // Attempt to move from sourceSquare to square
+                const move = {
+                        from: sourceSquare,
+                        to: square,
+                        promotion: 'q' // Default to queen for simplicity
+                };
+
+                // Try making the move
+                const result = makeMove(game, move);
+
+                if (result !== 'snapback') {
+                        // Success! Handle the move as if it were a drop
+                        updateBoard(true);
+                        checkAndPlayNext();
+                }
+
+                // Reset sourceSquare regardless of success
+                sourceSquare = null;
+        }
 }
 
 /**
