@@ -395,8 +395,8 @@ function initalize() {
                 initializeGameModes();
         }
 
-        // Add click-to-move support
-        $('#myBoard').on('click', '.square-55d63', function() {
+        // Add click-to-move support - Moved to a global delegation to survive board resets
+        $(document).on('click', '#myBoard .square-55d63', function() {
                 const square = $(this).data('square');
                 onSquareClick(square);
         });
