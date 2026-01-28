@@ -396,9 +396,12 @@ function initalize() {
         }
 
         // Add click-to-move support - Moved to a global delegation to survive board resets
-        $(document).on('click', '#myBoard .square-55d63', function() {
-                const square = $(this).data('square');
-                onSquareClick(square);
+        // Use a more specific selector and prevent default to avoid interference
+        $(document).off('mousedown.clickToMove').on('mousedown.clickToMove', '#myBoard [class*="square-"]', function(e) {
+                const square = $(this).attr('data-square') || $(this).closest('.square-55d63').attr('data-square');
+                if (square) {
+                        onSquareClick(square);
+                }
         });
 }
 
@@ -569,11 +572,12 @@ function handleIncorrectMove() {
  * @param {string} square - The square clicked (e.g., 'e2')
  */
 function onSquareClick(square) {
+        console.log('Square clicked:', square);
         // If the game is paused, don't allow moves
         if (pauseflag) return;
 
-        // Clear highlights
-        $('#myBoard .square-55d63').css('box-shadow', 'none');
+        // Clear previous click-to-move highlights only
+        $('#myBoard .square-55d63').css('box-shadow', '');
 
         // If no source square is selected, select it if it has a piece of the correct color
         if (sourceSquare === null) {
@@ -582,8 +586,17 @@ function onSquareClick(square) {
                         sourceSquare = square;
                         // Highlight selected square
                         $('#myBoard .square-' + square).css('box-shadow', 'inset 0 0 3px 3px yellow');
+                        console.log('Source square selected:', sourceSquare);
                 }
         } else {
+                console.log('Attempting move from', sourceSquare, 'to', square);
+                
+                // If clicking the same square, deselect it
+                if (sourceSquare === square) {
+                        sourceSquare = null;
+                        return;
+                }
+
                 // Attempt to move from sourceSquare to square
                 const move = {
                         from: sourceSquare,
@@ -598,10 +611,20 @@ function onSquareClick(square) {
                         // Success! Handle the move as if it were a drop
                         updateBoard(true);
                         checkAndPlayNext();
+                        console.log('Move successful');
+                        sourceSquare = null;
+                } else {
+                        console.log('Move failed (snapback)');
+                        // If clicking another piece of the same color, treat it as a new selection
+                        const piece = game.get(square);
+                        if (piece && piece.color === game.turn()) {
+                                sourceSquare = square;
+                                $('#myBoard .square-' + square).css('box-shadow', 'inset 0 0 3px 3px yellow');
+                        } else {
+                                // Clicked an illegal destination square - reset selection
+                                sourceSquare = null;
+                        }
                 }
-
-                // Reset sourceSquare regardless of success
-                sourceSquare = null;
         }
 }
 
@@ -750,6 +773,10 @@ function makeMove(game, cfg) {
         if (move === null) {
                 return 'snapback';
         }
+        
+        // If it was a click-to-move, updateBoard and checkAndPlayNext are called in onSquareClick
+        // If it was a drag-and-drop, they are called in onDrop and onSnapEnd
+        return move;
 }
 
 /**
