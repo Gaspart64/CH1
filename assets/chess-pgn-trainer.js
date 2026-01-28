@@ -349,6 +349,15 @@ function resizeBoards() { // eslint-disable-line no-unused-vars
  */
 function updateBoard(animate) {
         board.position(game.fen(), animate);
+        
+        // Highlight last move for visual clarity
+        const history = game.history({ verbose: true });
+        if (history.length > 0) {
+                const lastMove = history[history.length - 1];
+                $('#myBoard .square-55d63').removeClass('last-move');
+                $('#myBoard .square-' + lastMove.from).addClass('last-move');
+                $('#myBoard .square-' + lastMove.to).addClass('last-move');
+        }
 }
 
 
@@ -398,10 +407,13 @@ function initalize() {
         // Add click-to-move support - Moved to a global delegation to survive board resets
         // Use a more specific selector and prevent default to avoid interference
         $(document).off('mousedown.clickToMove').on('mousedown.clickToMove', '#myBoard [class*="square-"]', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 const square = $(this).attr('data-square') || $(this).closest('.square-55d63').attr('data-square');
                 if (square) {
                         onSquareClick(square);
                 }
+                return false;
         });
 }
 
@@ -576,7 +588,7 @@ function onSquareClick(square) {
         // If the game is paused, don't allow moves
         if (pauseflag) return;
 
-        // Clear previous click-to-move highlights only
+        // Clear selection highlight only
         $('#myBoard .square-55d63').css('box-shadow', '');
 
         // If no source square is selected, select it if it has a piece of the correct color
@@ -610,7 +622,12 @@ function onSquareClick(square) {
                 if (result !== 'snapback') {
                         // Success! Handle the move as if it were a drop
                         updateBoard(true);
-                        checkAndPlayNext();
+                        
+                        // Small delay to let the board update before checking next move
+                        setTimeout(function() {
+                                checkAndPlayNext();
+                        }, 100);
+                        
                         console.log('Move successful');
                         sourceSquare = null;
                 } else {
