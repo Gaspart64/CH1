@@ -1135,8 +1135,13 @@ function loadPuzzle(PGNPuzzle) {
  * @returns {boolean}
  */
 function dragStart(source, piece, position, orientation) {
-    // Existing checks
-    if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+
+        // Reset click-to-move state when starting a drag
+        sourceSquare = null;
+        $('#myBoard .square-55d63').css('box-shadow', 'none');
+
+        // Existing checks
+        if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
         (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
         return false;
     }
