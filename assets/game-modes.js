@@ -110,6 +110,13 @@ function initializeGameModes() {
  * Create the mode selector UI
  */
 function createModeSelector() {
+    // Prevent duplicate selectors
+    if (document.getElementById('mode-selector')) {
+        // Just in case, ensure info display is also there
+        createModeInfoDisplay();
+        return;
+    }
+
     const modeSelector = document.createElement('div');
     modeSelector.id = 'mode-selector';
     modeSelector.className = 'w3-container w3-margin-bottom';
@@ -141,6 +148,7 @@ function createModeSelector() {
     // Insert into the designated container
     const container = document.getElementById('mode-selector-container');
     if (container) {
+        container.innerHTML = ''; // Clear existing content
         container.appendChild(modeSelector);
     } else {
         // Fallback: insert after the PGN file selector container
@@ -158,6 +166,9 @@ function createModeSelector() {
  * Create mode information display
  */
 function createModeInfoDisplay() {
+    // Prevent duplicate info display
+    if (document.getElementById('mode-info')) return;
+
     const infoDiv = document.createElement('div');
     infoDiv.id = 'mode-info';
     infoDiv.className = 'w3-container w3-margin-bottom w3-small w3-text-grey';
