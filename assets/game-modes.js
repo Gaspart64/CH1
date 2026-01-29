@@ -138,9 +138,15 @@ function createModeSelector() {
     modeSelector.appendChild(label);
     modeSelector.appendChild(select);
     
-    // Insert after the PGN file selector
+    // Insert after the PGN file selector container
     const pgnContainer = document.querySelector('p');
-    pgnContainer.parentNode.insertBefore(modeSelector, pgnContainer.nextSibling);
+    if (pgnContainer) {
+        pgnContainer.parentNode.insertBefore(modeSelector, pgnContainer.nextSibling);
+    } else {
+        // Fallback: append to sidebar
+        const sidebar = document.getElementById('mySidebar');
+        if (sidebar) sidebar.appendChild(modeSelector);
+    }
     
     // Create mode info display
     createModeInfoDisplay();
