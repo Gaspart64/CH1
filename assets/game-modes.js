@@ -138,14 +138,16 @@ function createModeSelector() {
     modeSelector.appendChild(label);
     modeSelector.appendChild(select);
     
-    // Insert after the PGN file selector container
-    const pgnContainer = document.querySelector('p');
-    if (pgnContainer) {
-        pgnContainer.parentNode.insertBefore(modeSelector, pgnContainer.nextSibling);
+    // Insert into the designated container
+    const container = document.getElementById('mode-selector-container');
+    if (container) {
+        container.appendChild(modeSelector);
     } else {
-        // Fallback: append to sidebar
-        const sidebar = document.getElementById('mySidebar');
-        if (sidebar) sidebar.appendChild(modeSelector);
+        // Fallback: insert after the PGN file selector container
+        const pgnContainer = document.querySelector('p');
+        if (pgnContainer) {
+            pgnContainer.parentNode.insertBefore(modeSelector, pgnContainer.nextSibling);
+        }
     }
     
     // Create mode info display

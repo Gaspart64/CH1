@@ -814,6 +814,11 @@ $(document).on('click', '#btn_starttest_landscape, #btn_starttest_portrait', fun
         startTest();
 });
 
+// Bind Reset button
+$(document).on('click', '#btn_reset', function() {
+        resetGame();
+});
+
 // Bind Hint buttons
 $(document).on('click', '#btn_hint_landscape, #btn_hint_portrait', function() {
         if (typeof handleHintUsed === 'function') {
