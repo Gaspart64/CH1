@@ -29,9 +29,9 @@ function startRepetitionMode() {
 }
 
 /**
- * Handle correct move in repetition mode
+ * Handle correct puzzle completion in repetition mode
  */
-function onCorrectMoveInRepetition() {
+function onPuzzleCompleteInRepetition() {
     progress++;
     
     // Update the game-modes system state
@@ -63,37 +63,23 @@ function onCorrectMoveInRepetition() {
     }
 }
 
-/**
- * Handle mistake in repetition mode
- */
-function onMistakeInRepetition() {
-    alert("Mistake! Restarting current set.");
-    // We don't necessarily want to clear ALL progress (which might be across many sets)
-    // but rather restart the current set.
-    progress = 0;
-    currentPuzzleIndex = 0;
-    
-    if (typeof modeState !== 'undefined') {
-        modeState.levelProgress = 0;
-        modeState.levelErrors++;
-        updateLevelDisplay();
-    }
-    
-    // Load the first puzzle of the current set again
-    if (typeof puzzleset !== 'undefined') {
-        loadPuzzle(puzzleset[0]);
-    }
-}
-
 // Hook into the existing game-modes.js logic if needed
 if (typeof GAME_MODES !== 'undefined') {
     // Override the generic handlers in game-modes.js for repetition mode
     const originalHandleCorrectMove = handleCorrectMove;
     handleCorrectMove = function() {
         if (getCurrentGameMode() === GAME_MODES.REPETITION) {
-            onCorrectMoveInRepetition();
+            // Do nothing on individual moves in repetition mode
+            // We wait for puzzle completion signal from the trainer
         } else {
             originalHandleCorrectMove();
+        }
+    };
+    
+    // Global handler for puzzle completion
+    window.handlePuzzleComplete = function() {
+        if (getCurrentGameMode() === GAME_MODES.REPETITION) {
+            onPuzzleCompleteInRepetition();
         }
     };
 
