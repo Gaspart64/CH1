@@ -517,6 +517,11 @@ function handleCorrectMove() {
 function handleIncorrectMove() {
     const config = MODE_CONFIGS[currentGameMode];
     
+    // Repetition mode handles its own mistake logic
+    if (currentGameMode === GAME_MODES.REPETITION) {
+        return;
+    }
+
     if (currentGameMode === GAME_MODES.THREE) {
         modeState.livesRemaining--;
         updateLivesDisplay();
@@ -537,9 +542,6 @@ function handleIncorrectMove() {
             handleTimeUp();
             return;
         }
-    } else if (currentGameMode === GAME_MODES.REPETITION) {
-        modeState.levelErrors++;
-        // Will restart level when puzzle set is complete
     }
 }
 
