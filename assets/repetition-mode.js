@@ -84,11 +84,33 @@ if (typeof GAME_MODES !== 'undefined') {
     };
 
     const originalHandleIncorrectMove = handleIncorrectMove;
-    handleIncorrectMove = function() {
+    window.handleIncorrectMove = function() {
         if (getCurrentGameMode() === GAME_MODES.REPETITION) {
             onMistakeInRepetition();
         } else {
             originalHandleIncorrectMove();
         }
     };
+}
+
+/**
+ * Handle mistake in repetition mode
+ */
+function onMistakeInRepetition() {
+    alert("Mistake! Restarting current set.");
+    // We don't necessarily want to clear ALL progress (which might be across many sets)
+    // but rather restart the current set.
+    progress = 0;
+    currentPuzzleIndex = 0;
+    
+    if (typeof modeState !== 'undefined') {
+        modeState.levelProgress = 0;
+        modeState.levelErrors++;
+        updateLevelDisplay();
+    }
+    
+    // Load the first puzzle of the current set again
+    if (typeof puzzleset !== 'undefined') {
+        loadPuzzle(puzzleset[0]);
+    }
 }

@@ -494,6 +494,11 @@ function handleTimeUp() {
 function handleCorrectMove() {
     const config = MODE_CONFIGS[currentGameMode];
     
+    // Repetition mode handles its own puzzle completion logic
+    if (currentGameMode === GAME_MODES.REPETITION) {
+        return;
+    }
+
     modeState.totalSolved++;
     
     if (currentGameMode === GAME_MODES.HASTE) {
@@ -501,27 +506,8 @@ function handleCorrectMove() {
         modeState.timeRemaining += config.timeGain;
         updateTimerDisplay();
     } else if (currentGameMode === GAME_MODES.REPETITION) {
-        modeState.levelProgress++;
-        updateLevelDisplay();
-        
-        // Check if level is complete
-        if (modeState.levelProgress >= config.puzzlesPerLevel) {
-            if (modeState.levelErrors === 0) {
-                // Level completed perfectly, advance to next level
-                modeState.currentLevel++;
-                modeState.levelProgress = 0;
-                modeState.levelErrors = 0;
-                updateLevelDisplay();
-                
-                // Show level completion message
-                setTimeout(() => {
-                    alert(`Level ${modeState.currentLevel - 1} completed! Moving to Level ${modeState.currentLevel}`);
-                }, 100);
-            } else {
-                // Restart current level due to errors
-                restartCurrentLevel();
-            }
-        }
+        // Handled in assets/repetition-mode.js via handlePuzzleComplete
+        return;
     }
 }
 
