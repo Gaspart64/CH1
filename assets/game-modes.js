@@ -197,6 +197,19 @@ function handlePuzzleComplete() {
         modeState.totalSolved++;
         if (currentGameMode === GAME_MODES.HASTE) {
             modeState.comboCount++;
+            
+            // Check for combo time bonuses
+            const cfg = MODE_CONFIGS[GAME_MODES.HASTE];
+            if (cfg.comboThresholds) {
+                for (const threshold of cfg.comboThresholds) {
+                    if (modeState.comboCount === threshold.at) {
+                        modeState.timeRemaining += threshold.gain;
+                        updateTimerDisplay();
+                        if (typeof showRepBanner === 'function') showRepBanner('+' + threshold.gain + 's combo bonus!', 1500);
+                        break;
+                    }
+                }
+            }
             updateComboDisplay();
         }
     }
@@ -208,6 +221,18 @@ function handleIncorrectMove() {
         updateLivesDisplay();
         if (modeState.livesRemaining <= 0) alert('Game Over!');
     }
+    
+    if (currentGameMode === GAME_MODES.HASTE) {
+        const cfg = MODE_CONFIGS[GAME_MODES.HASTE];
+        if (cfg.timeLoss) {
+            modeState.timeRemaining -= cfg.timeLoss;
+            if (modeState.timeRemaining < 0) modeState.timeRemaining = 0;
+            updateTimerDisplay();
+        }
+        // Reset combo on wrong answer
+        modeState.comboCount = 0;
+        updateComboDisplay();
+    }
 }
 
 function formatTime(s) {
@@ -216,8 +241,66 @@ function formatTime(s) {
     return `${s < 0 ? '-' : ''}${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
-function stopModeTimer() { /* Timer logic here */ }
-function startModeTimer() { /* Timer logic here */ }
+let modeTimerInterval = null;
+
+function stopModeTimer() {
+    if (modeTimerInterval) {
+        clearInterval(modeTimerInterval);
+        modeTimerInterval = null;
+    }
+}
+
+function startModeTimer() {
+    stopModeTimer(); // Clear any existing timer
+    
+    const cfg = MODE_CONFIGS[currentGameMode];
+    if (!cfg.hasTimer) return;
+    
+    // Initialize time based on mode
+    if (currentGameMode === GAME_MODES.SPEEDRUN) {
+        // Speedrun mode - count UP from 0
+        modeState.timeRemaining = 0;
+    } else if (currentGameMode === GAME_MODES.COUNTDOWN || currentGameMode === GAME_MODES.THREE) {
+        // Countdown modes - start from timeLimit
+        modeState.timeRemaining = cfg.timeLimit || 180;
+    } else if (currentGameMode === GAME_MODES.HASTE) {
+        // Haste mode - start from baseTime
+        modeState.timeRemaining = cfg.baseTime || 180;
+    }
+    
+    updateTimerDisplay();
+    
+    modeTimerInterval = setInterval(() => {
+        if (currentGameMode === GAME_MODES.SPEEDRUN) {
+            // Speedrun: count UP
+            modeState.timeRemaining++;
+        } else {
+            // Other timed modes: count DOWN
+            modeState.timeRemaining--;
+        }
+        
+        updateTimerDisplay();
+        
+        // Check for time run out (except speedrun)
+        if (modeState.timeRemaining <= 0 && currentGameMode !== GAME_MODES.SPEEDRUN) {
+            stopModeTimer();
+            handleTimeUp();
+        }
+    }, 1000);
+}
+
+function handleTimeUp() {
+    if (currentGameMode === GAME_MODES.THREE) {
+        alert('Time\'s up! Game Over.');
+        if (typeof resetGame === 'function') resetGame();
+    } else if (currentGameMode === GAME_MODES.COUNTDOWN) {
+        alert('Time\'s up! You solved ' + modeState.totalSolved + ' puzzles.');
+        if (typeof resetGame === 'function') resetGame();
+    } else if (currentGameMode === GAME_MODES.HASTE) {
+        alert('Time\'s up! Game Over.');
+        if (typeof resetGame === 'function') resetGame();
+    }
+}
 function getCurrentGameMode() { return currentGameMode; }
 function shouldContinueToNextPuzzle() {
     if (currentGameMode === GAME_MODES.REPETITION && typeof _repetitionShouldContinue === 'function') {
