@@ -102,7 +102,55 @@ config = {
 // -----------------------
 // Local stoarge Functions
 // -----------------------
-
+/**
+ * Save current game progress to resume later
+ */
+function saveCurrentGameProgress() {
+        if (!puzzleset || puzzleset.length === 0 || setcomplete) {
+                return;
+        }
+        const gameState = {
+                increment: increment,
+                PuzzleOrder: PuzzleOrder,
+                puzzleset: puzzleset,
+                errorcount: errorcount,
+                pauseDateTimeTotal: pauseDateTimeTotal,
+                startDateTime: startDateTime.getTime(),
+                // We can't easily save the exact move history of the current puzzle without more logic,
+                // but we can at least save which puzzle we were on.
+                timestamp: new Date().getTime()
+        };
+        saveGameState(gameState);
+}
+/**
+ * Resume game from saved state
+ */
+function resumeSavedGame() {
+        const savedState = loadGameState();
+        if (!savedState) return false;
+        // Basic validation of saved state
+        if (!savedState.puzzleset || savedState.puzzleset.length === 0) return false;
+        // Restore state variables
+        puzzleset = savedState.puzzleset;
+        PuzzleOrder = savedState.PuzzleOrder;
+        increment = savedState.increment;
+        errorcount = savedState.errorcount;
+        pauseDateTimeTotal = savedState.pauseDateTimeTotal;
+        startDateTime = new Date(savedState.startDateTime);
+        // Setup UI for the resumed game
+        $('#puzzleNumbertotal_landscape').text(puzzleset.length);
+        $('#puzzleNumbertotal_portrait').text(puzzleset.length);
+        // Load the puzzle we were on
+        loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+        // UI adjustments
+        setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'none', true);
+        setDisplayAndDisabled(['#btn_pause_landscape', '#btn_pause_portrait'], 'block', false);
+        setDisplayAndDisabled(['#btn_hint_landscape', '#btn_hint_portrait'], 'block', false);
+        return true;
+}
+window.addEventListener('beforeunload', () => {
+        saveCurrentGameProgress();
+});
 /**
  * Save a key/value pair to local storage
  * @param {string} key - The name of the key 
