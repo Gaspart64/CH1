@@ -112,20 +112,13 @@ let modeState = {
     isActive:       false
 };
 
-/**
- * Initialize game mode system
- */
 function initializeGameModes() {
     createModeSelector();
     resetModeState();
 }
 
-/**
- * Create the mode selector UI
- */
 function createModeSelector() {
     if (document.getElementById('mode-selector')) return;
-
     const modeSelector = document.createElement('div');
     modeSelector.id = 'mode-selector';
     modeSelector.className = 'w3-container w3-margin-bottom';
@@ -148,56 +141,35 @@ function createModeSelector() {
         select.appendChild(option);
     });
 
-    select.addEventListener('change', handleModeChange);
-
+    select.addEventListener('change', (e) => setGameMode(e.target.value));
     modeSelector.appendChild(label);
     modeSelector.appendChild(select);
 
-    // Restore direct insertion after the first <p> in the sidebar confirmed from index.html
     const pgnContainer = document.querySelector('p');
-    if (pgnContainer) {
-        pgnContainer.parentNode.insertBefore(modeSelector, pgnContainer.nextSibling);
-    }
-
+    if (pgnContainer) pgnContainer.parentNode.insertBefore(modeSelector, pgnContainer.nextSibling);
     createModeInfoDisplay();
 }
 
-/**
- * Create mode information display
- */
 function createModeInfoDisplay() {
     if (document.getElementById('mode-info')) return;
-
     const infoDiv = document.createElement('div');
     infoDiv.id = 'mode-info';
     infoDiv.className = 'w3-container w3-margin-bottom w3-small w3-text-grey';
-    infoDiv.style.paddingTop = '2px';
-
     const modeSelector = document.getElementById('mode-selector');
-    if (modeSelector) {
-        modeSelector.parentNode.insertBefore(infoDiv, modeSelector.nextSibling);
-    }
-
+    if (modeSelector) modeSelector.parentNode.insertBefore(infoDiv, modeSelector.nextSibling);
     updateModeInfo();
 }
 
 function updateModeInfo() {
     const infoDiv = document.getElementById('mode-info');
     const config = MODE_CONFIGS[currentGameMode];
-    if (infoDiv && config) {
-        infoDiv.textContent = config.description;
-    }
-}
-
-function handleModeChange(event) {
-    setGameMode(event.target.value);
+    if (infoDiv && config) infoDiv.textContent = config.description;
 }
 
 function setGameMode(mode) {
     if (!MODE_CONFIGS[mode]) return;
-
     if (modeState.isActive) {
-        if (!confirm('Changing game mode will reset the current session. Continue?')) {
+        if (!confirm('Changing mode will reset the session. Continue?')) {
             const sel = document.getElementById('game-mode-select');
             if (sel) sel.value = currentGameMode;
             return;
@@ -205,7 +177,6 @@ function setGameMode(mode) {
         stopModeTimer();
         if (typeof resetGame === 'function') resetGame();
     }
-
     currentGameMode = mode;
     resetModeState();
     updateModeInfo();
@@ -214,7 +185,6 @@ function setGameMode(mode) {
 
 function resetModeState() {
     const config = MODE_CONFIGS[currentGameMode];
-
     modeState = {
         timeRemaining:  config.timeLimit || config.baseTime || 0,
         livesRemaining: config.lives || 0,
@@ -227,7 +197,6 @@ function resetModeState() {
         modeTimer:      null,
         isActive:       false
     };
-
     if (typeof _repModeInit === 'function') _repModeInit();
     updateModeUI();
 }
@@ -248,20 +217,16 @@ function _getOrCreateModeDisplay(id, labelText, valueClass) {
         div.id = id;
         div.className = 'w3-container w3-center w3-margin-bottom';
         div.style.paddingTop = '4px';
-
         const labelEl = document.createElement('span');
         labelEl.textContent = labelText;
         labelEl.className = 'w3-text-indigo';
         labelEl.style.fontWeight = 'bold';
-
         const display = document.createElement('span');
         display.id = id + '-value';
         display.className = valueClass + ' w3-large';
         display.style.marginLeft = '6px';
-
         div.appendChild(labelEl);
         div.appendChild(display);
-
         const landscapeCenter = document.querySelector('.landscapemode .w3-container.w3-center');
         if (landscapeCenter) landscapeCenter.appendChild(div);
     }
@@ -271,46 +236,36 @@ function _getOrCreateModeDisplay(id, labelText, valueClass) {
 function updateTimerDisplay() {
     const config = MODE_CONFIGS[currentGameMode];
     const div = _getOrCreateModeDisplay('mode-timer', 'Time:', 'w3-text-red');
-
     if (config.hasTimer) {
         const display = document.getElementById('mode-timer-value');
         if (display) display.textContent = formatTime(modeState.timeRemaining);
         div.style.display = 'block';
-    } else {
-        div.style.display = 'none';
-    }
+    } else div.style.display = 'none';
 }
 
 function updateLivesDisplay() {
     const config = MODE_CONFIGS[currentGameMode];
     const div = _getOrCreateModeDisplay('mode-lives', 'Lives:', 'w3-text-red');
-
     if (config.hasLives) {
         const display = document.getElementById('mode-lives-value');
         if (display) display.textContent = '❤️'.repeat(Math.max(0, modeState.livesRemaining));
         div.style.display = 'block';
-    } else {
-        div.style.display = 'none';
-    }
+    } else div.style.display = 'none';
 }
 
 function updateHintsDisplay() {
     const config = MODE_CONFIGS[currentGameMode];
     const div = _getOrCreateModeDisplay('mode-hints', 'Hints:', 'w3-text-blue');
-
     if (config.hasHints) {
         const display = document.getElementById('mode-hints-value');
         if (display) display.textContent = '💡'.repeat(Math.max(0, modeState.hintsRemaining));
         div.style.display = 'block';
-    } else {
-        div.style.display = 'none';
-    }
+    } else div.style.display = 'none';
 }
 
 function updateLevelDisplay() {
     const config = MODE_CONFIGS[currentGameMode];
     const div = _getOrCreateModeDisplay('mode-level', 'Level:', 'w3-text-green');
-
     if (config.hasLevels) {
         const display = document.getElementById('mode-level-value');
         if (display) {
@@ -319,15 +274,12 @@ function updateLevelDisplay() {
             display.textContent = modeState.currentLevel + ' (' + progress + '/' + total + ')';
         }
         div.style.display = 'block';
-    } else {
-        div.style.display = 'none';
-    }
+    } else div.style.display = 'none';
 }
 
 function updateComboDisplay() {
     const config = MODE_CONFIGS[currentGameMode];
     const div = _getOrCreateModeDisplay('mode-combo', 'Combo:', 'w3-text-orange');
-
     if (config.hasCombo) {
         const display = document.getElementById('mode-combo-value');
         if (display) {
@@ -335,9 +287,7 @@ function updateComboDisplay() {
             display.textContent = combo > 0 ? 'x' + combo + ' 🔥' : '—';
         }
         div.style.display = 'block';
-    } else {
-        div.style.display = 'none';
-    }
+    } else div.style.display = 'none';
 }
 
 function toggleModeElements(config) {
@@ -345,69 +295,43 @@ function toggleModeElements(config) {
     hintSelectors.forEach(sel => {
         const btn = document.querySelector(sel);
         if (!btn) return;
-        if (!config.hasHints && currentGameMode !== GAME_MODES.STANDARD) {
-            btn.style.display = 'none';
-        }
+        btn.style.display = (!config.hasHints && currentGameMode !== GAME_MODES.STANDARD) ? 'none' : 'block';
     });
 }
 
 function startModeTimer() {
     const config = MODE_CONFIGS[currentGameMode];
     if (!config.hasTimer) return;
-
     stopModeTimer();
     modeState.isActive = true;
-
-    if (config.isSpeedrun) {
-        modeState.timeRemaining = 0;
-        modeState.modeTimer = setInterval(() => {
-            modeState.timeRemaining++;
-            updateTimerDisplay();
-        }, 1000);
-    } else {
-        modeState.modeTimer = setInterval(() => {
-            modeState.timeRemaining--;
-            updateTimerDisplay();
-            if (modeState.timeRemaining <= 0) {
-                modeState.timeRemaining = 0;
-                updateTimerDisplay();
-                handleTimeUp();
-            }
-        }, 1000);
-    }
+    modeState.modeTimer = setInterval(() => {
+        if (config.isSpeedrun) modeState.timeRemaining++;
+        else modeState.timeRemaining--;
+        updateTimerDisplay();
+        if (!config.isSpeedrun && modeState.timeRemaining <= 0) handleTimeUp();
+    }, 1000);
 }
 
 function stopModeTimer() {
-    if (modeState.modeTimer) {
-        clearInterval(modeState.modeTimer);
-        modeState.modeTimer = null;
-    }
+    if (modeState.modeTimer) clearInterval(modeState.modeTimer);
+    modeState.modeTimer = null;
     modeState.isActive = false;
 }
 
 function handleTimeUp() {
     stopModeTimer();
-    let msg = "Time's up! You solved " + modeState.totalSolved + " puzzles.";
-    if (currentGameMode === GAME_MODES.HASTE && modeState.comboCount > 0) {
-        msg += " (Max combo: x" + modeState.comboCount + ")";
-    }
-    endGameSession(msg);
+    endGameSession("Time's up! You solved " + modeState.totalSolved + " puzzles.");
 }
 
-function handleCorrectMove() {
-    // Correct scoring happens at puzzle-completion level
-}
+function handleCorrectMove() {}
 
 function handleIncorrectMove() {
     if (currentGameMode === GAME_MODES.REPETITION) return;
     const config = MODE_CONFIGS[currentGameMode];
-
     if (currentGameMode === GAME_MODES.THREE) {
         modeState.livesRemaining = Math.max(0, modeState.livesRemaining - 1);
         updateLivesDisplay();
-        if (modeState.livesRemaining <= 0) {
-            endGameSession('No lives remaining! You solved ' + modeState.totalSolved + ' puzzles.');
-        }
+        if (modeState.livesRemaining <= 0) endGameSession('No lives remaining!');
     } else if (currentGameMode === GAME_MODES.HASTE) {
         modeState.comboCount = 0;
         updateComboDisplay();
@@ -420,26 +344,20 @@ function handleIncorrectMove() {
 function handleHintUsed() {
     const config = MODE_CONFIGS[currentGameMode];
     if (!config.hasHints) return;
-
     modeState.hintsRemaining = Math.max(0, modeState.hintsRemaining - 1);
     updateHintsDisplay();
-
-    if (modeState.hintsRemaining <= 0) {
-        ['#btn_hint_landscape', '#btn_hint_portrait'].forEach(sel => {
-            const btn = document.querySelector(sel);
-            if (btn) btn.disabled = true;
-        });
-    }
 }
 
+/**
+ * Crucial Hook: Called when a full puzzle is completed.
+ * Calls the repetition logic if active.
+ */
 function handlePuzzleComplete() {
     if (currentGameMode === GAME_MODES.REPETITION) {
         if (typeof _repetitionPuzzleComplete === 'function') _repetitionPuzzleComplete();
         return;
     }
-
     modeState.totalSolved++;
-
     if (currentGameMode === GAME_MODES.HASTE) {
         modeState.comboCount++;
         const thresholds = MODE_CONFIGS[GAME_MODES.HASTE].comboThresholds;
@@ -447,7 +365,6 @@ function handlePuzzleComplete() {
             if (modeState.comboCount === t.at) {
                 modeState.timeRemaining += t.gain;
                 updateTimerDisplay();
-                _showHasteComboBonus('+' + t.gain + 's');
                 break;
             }
         }
@@ -455,21 +372,10 @@ function handlePuzzleComplete() {
     }
 }
 
-function _showHasteComboBonus(text) {
-    const timerEl = document.getElementById('mode-timer');
-    if (!timerEl) return;
-    const el = document.createElement('span');
-    el.textContent = ' ' + text;
-    el.style.cssText = 'color:#4CAF50;font-weight:bold;font-size:14px;opacity:1;transition:opacity 1s;pointer-events:none;';
-    timerEl.appendChild(el);
-    setTimeout(() => { el.style.opacity = '0'; }, 800);
-    setTimeout(() => { el.remove(); }, 1400);
-}
-
-function endGameSession(message) {
+function endGameSession(msg) {
     stopModeTimer();
     setTimeout(() => {
-        alert(message);
+        alert(msg);
         if (typeof showStats === 'function') showStats();
     }, 100);
 }
@@ -478,8 +384,7 @@ function formatTime(seconds) {
     const s = Math.abs(seconds);
     const mins = Math.floor(s / 60);
     const secs = s % 60;
-    const sign = seconds < 0 ? '-' : '';
-    return sign + String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+    return (seconds < 0 ? '-' : '') + String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
 }
 
 function getCurrentGameMode() { return currentGameMode; }
@@ -496,25 +401,4 @@ function shouldContinueToNextPuzzle() {
     }
     if (currentGameMode === GAME_MODES.INFINITY) return true;
     return typeof puzzleset !== 'undefined' && increment + 1 < puzzleset.length;
-}
-
-// Module exports
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        GAME_MODES,
-        MODE_CONFIGS,
-        initializeGameModes,
-        setGameMode,
-        getCurrentGameMode,
-        getModeState,
-        startModeTimer,
-        stopModeTimer,
-        handleCorrectMove,
-        handleIncorrectMove,
-        handleHintUsed,
-        isHintAvailable,
-        shouldContinueToNextPuzzle,
-        resetModeState,
-        updateModeUI
-    };
 }
