@@ -141,7 +141,7 @@ function createModeSelector() {
     select.className = 'w3-select w3-border w3-round';
     select.style.cssText = 'width:200px;display:inline-block;margin-left:8px;font-size:13px;';
 
-    Object.entries(MODE_CONFIG).forEach(([key, config]) => {
+    Object.entries(MODE_CONFIGS).forEach(([key, config]) => {
         const option = document.createElement('option');
         option.value = key;
         option.textContent = config.name;
@@ -153,7 +153,7 @@ function createModeSelector() {
     modeSelector.appendChild(label);
     modeSelector.appendChild(select);
 
-    // Restore original insertion after the <p> tag containing the file selector
+    // Restore direct insertion after the first <p> in the sidebar confirmed from index.html
     const pgnContainer = document.querySelector('p');
     if (pgnContainer) {
         pgnContainer.parentNode.insertBefore(modeSelector, pgnContainer.nextSibling);
@@ -181,9 +181,6 @@ function createModeInfoDisplay() {
     updateModeInfo();
 }
 
-/**
- * Update mode information display
- */
 function updateModeInfo() {
     const infoDiv = document.getElementById('mode-info');
     const config = MODE_CONFIGS[currentGameMode];
@@ -397,9 +394,12 @@ function handleTimeUp() {
     endGameSession(msg);
 }
 
+function handleCorrectMove() {
+    // Correct scoring happens at puzzle-completion level
+}
+
 function handleIncorrectMove() {
     if (currentGameMode === GAME_MODES.REPETITION) return;
-
     const config = MODE_CONFIGS[currentGameMode];
 
     if (currentGameMode === GAME_MODES.THREE) {
@@ -496,4 +496,25 @@ function shouldContinueToNextPuzzle() {
     }
     if (currentGameMode === GAME_MODES.INFINITY) return true;
     return typeof puzzleset !== 'undefined' && increment + 1 < puzzleset.length;
+}
+
+// Module exports
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        GAME_MODES,
+        MODE_CONFIGS,
+        initializeGameModes,
+        setGameMode,
+        getCurrentGameMode,
+        getModeState,
+        startModeTimer,
+        stopModeTimer,
+        handleCorrectMove,
+        handleIncorrectMove,
+        handleHintUsed,
+        isHintAvailable,
+        shouldContinueToNextPuzzle,
+        resetModeState,
+        updateModeUI
+    };
 }
