@@ -268,17 +268,24 @@ function updateTimerDisplay() {
             timerDiv.appendChild(label);
             timerDiv.appendChild(display);
             
-            // Insert in landscape mode
-            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-            if (landscapeDiv) {
-                landscapeDiv.appendChild(timerDiv);
-            }
+	            // Insert in both landscape and portrait containers for cross-device compatibility
+	            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
+	            const portraitDiv = document.querySelector('.portraitmode .w3-container.w3-center');
+	            if (landscapeDiv) landscapeDiv.appendChild(timerDiv);
+	            if (portraitDiv) {
+	                const clone = timerDiv.cloneNode(true);
+	                clone.id = 'mode-timer-portrait';
+	                portraitDiv.appendChild(clone);
+	            }
         }
         
-        const display = document.getElementById('timer-display');
-        if (display) {
-            display.textContent = formatTime(modeState.timeRemaining);
-        }
+	        const displays = document.querySelectorAll('[id$="timer-display"]');
+	        displays.forEach(display => {
+	            display.textContent = formatTime(modeState.timeRemaining);
+	        });
+	        // Also handle the case where the ID is exactly 'timer-display'
+	        const mainDisplay = document.getElementById('timer-display');
+	        if (mainDisplay) mainDisplay.textContent = formatTime(modeState.timeRemaining);
         
         timerDiv.style.display = 'block';
     } else if (timerDiv) {
@@ -310,17 +317,23 @@ function updateLivesDisplay() {
             livesDiv.appendChild(label);
             livesDiv.appendChild(display);
             
-            // Insert in landscape mode
-            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-            if (landscapeDiv) {
-                landscapeDiv.appendChild(livesDiv);
-            }
+	            // Insert in both landscape and portrait containers
+	            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
+	            const portraitDiv = document.querySelector('.portraitmode .w3-container.w3-center');
+	            if (landscapeDiv) landscapeDiv.appendChild(livesDiv);
+	            if (portraitDiv) {
+	                const clone = livesDiv.cloneNode(true);
+	                clone.id = 'mode-lives-portrait';
+	                portraitDiv.appendChild(clone);
+	            }
         }
         
-        const display = document.getElementById('lives-display');
-        if (display) {
-            display.textContent = '❤️'.repeat(modeState.livesRemaining);
-        }
+	        const displays = document.querySelectorAll('[id$="lives-display"]');
+	        displays.forEach(display => {
+	            display.textContent = '❤️'.repeat(modeState.livesRemaining);
+	        });
+	        const mainDisplay = document.getElementById('lives-display');
+	        if (mainDisplay) mainDisplay.textContent = '❤️'.repeat(modeState.livesRemaining);
         
         livesDiv.style.display = 'block';
     } else if (livesDiv) {
@@ -352,17 +365,23 @@ function updateHintsDisplay() {
             hintsDiv.appendChild(label);
             hintsDiv.appendChild(display);
             
-            // Insert in landscape mode
-            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-            if (landscapeDiv) {
-                landscapeDiv.appendChild(hintsDiv);
-            }
+	            // Insert in both landscape and portrait containers
+	            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
+	            const portraitDiv = document.querySelector('.portraitmode .w3-container.w3-center');
+	            if (landscapeDiv) landscapeDiv.appendChild(hintsDiv);
+	            if (portraitDiv) {
+	                const clone = hintsDiv.cloneNode(true);
+	                clone.id = 'mode-hints-portrait';
+	                portraitDiv.appendChild(clone);
+	            }
         }
         
-        const display = document.getElementById('hints-display');
-        if (display) {
-            display.textContent = '💡'.repeat(modeState.hintsRemaining);
-        }
+	        const displays = document.querySelectorAll('[id$="hints-display"]');
+	        displays.forEach(display => {
+	            display.textContent = '💡'.repeat(modeState.hintsRemaining);
+	        });
+	        const mainDisplay = document.getElementById('hints-display');
+	        if (mainDisplay) mainDisplay.textContent = '💡'.repeat(modeState.hintsRemaining);
         
         hintsDiv.style.display = 'block';
     } else if (hintsDiv) {
@@ -394,17 +413,23 @@ function updateLevelDisplay() {
             levelDiv.appendChild(label);
             levelDiv.appendChild(display);
             
-            // Insert in landscape mode
-            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-            if (landscapeDiv) {
-                landscapeDiv.appendChild(levelDiv);
-            }
+	            // Insert in both landscape and portrait containers
+	            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
+	            const portraitDiv = document.querySelector('.portraitmode .w3-container.w3-center');
+	            if (landscapeDiv) landscapeDiv.appendChild(levelDiv);
+	            if (portraitDiv) {
+	                const clone = levelDiv.cloneNode(true);
+	                clone.id = 'mode-level-portrait';
+	                portraitDiv.appendChild(clone);
+	            }
         }
         
-        const display = document.getElementById('level-display');
-        if (display) {
-            display.textContent = `${modeState.currentLevel} (${modeState.levelProgress}/${config.puzzlesPerLevel})`;
-        }
+	        const displays = document.querySelectorAll('[id$="level-display"]');
+	        displays.forEach(display => {
+	            display.textContent = `${modeState.currentLevel} (${modeState.levelProgress}/${config.puzzlesPerLevel})`;
+	        });
+	        const mainDisplay = document.getElementById('level-display');
+	        if (mainDisplay) mainDisplay.textContent = `${modeState.currentLevel} (${modeState.levelProgress}/${config.puzzlesPerLevel})`;
         
         levelDiv.style.display = 'block';
     } else if (levelDiv) {
@@ -427,6 +452,22 @@ function toggleModeElements(config) {
                 button.style.display = 'none';
             }
         }
+    });
+
+    // Toggle visibility for both main and portrait cloned elements
+    const elements = [
+        { id: 'mode-timer', has: config.hasTimer },
+        { id: 'mode-lives', has: config.hasLives },
+        { id: 'mode-hints', has: config.hasHints },
+        { id: 'mode-level', has: config.hasLevels }
+    ];
+
+    elements.forEach(el => {
+        const main = document.getElementById(el.id);
+        const portrait = document.getElementById(el.id + '-portrait');
+        const display = el.has ? 'block' : 'none';
+        if (main) main.style.display = display;
+        if (portrait) portrait.style.display = display;
     });
 }
 
@@ -474,251 +515,5 @@ function stopModeTimer() {
 }
 
 /**
- * Handle time up event
- */
-function handleTimeUp() {
-    stopModeTimer();
-    
-    const config = MODE_CONFIGS[currentGameMode];
-    
-    if (currentGameMode === GAME_MODES.THREE) {
-        endGameSession('Time\'s up! Session ended.');
-    } else if (currentGameMode === GAME_MODES.HASTE) {
-        endGameSession('Time ran out! Session ended.');
-    } else if (currentGameMode === GAME_MODES.COUNTDOWN) {
-        endGameSession(`Time's up! You solved ${modeState.totalSolved} puzzles.`);
-    }
-}
-
-/**
- * Handle correct move in current mode
- */
-function handleCorrectMove() {
-    const config = MODE_CONFIGS[currentGameMode];
-    
-    modeState.totalSolved++;
-    
-    if (currentGameMode === GAME_MODES.HASTE) {
-        // Add time for correct move
-        modeState.timeRemaining += config.timeGain;
-        updateTimerDisplay();
-    } else if (currentGameMode === GAME_MODES.REPETITION) {
-        modeState.levelProgress++;
-        updateLevelDisplay();
-        
-        // Check if level is complete
-        if (modeState.levelProgress >= config.puzzlesPerLevel) {
-            if (modeState.levelErrors === 0) {
-                // Level completed perfectly, advance to next level
-                modeState.currentLevel++;
-                modeState.levelProgress = 0;
-                modeState.levelErrors = 0;
-                updateLevelDisplay();
-                
-                // Show level completion message
-                setTimeout(() => {
-                    alert(`Level ${modeState.currentLevel - 1} completed! Moving to Level ${modeState.currentLevel}`);
-                }, 100);
-            } else {
-                // Restart current level due to errors
-                restartCurrentLevel();
-            }
-        }
-    }
-}
-
-/**
- * Handle incorrect move in current mode
- */
-function handleIncorrectMove() {
-    const config = MODE_CONFIGS[currentGameMode];
-    
-    if (currentGameMode === GAME_MODES.THREE) {
-        modeState.livesRemaining--;
-        updateLivesDisplay();
-        
-        if (modeState.livesRemaining <= 0) {
-            endGameSession('No lives remaining! Session ended.');
-            return;
-        }
-    } else if (currentGameMode === GAME_MODES.HASTE) {
-        // Lose time for incorrect move
-        modeState.timeRemaining -= config.timeLoss;
-        if (modeState.timeRemaining < 0) {
-            modeState.timeRemaining = 0;
-        }
-        updateTimerDisplay();
-        
-        if (modeState.timeRemaining <= 0) {
-            handleTimeUp();
-            return;
-        }
-    } else if (currentGameMode === GAME_MODES.REPETITION) {
-        modeState.levelErrors++;
-        // Will restart level when puzzle set is complete
-    }
-}
-
-/**
- * Handle hint usage in current mode
- */
-function handleHintUsed() {
-    const config = MODE_CONFIGS[currentGameMode];
-    
-    if (config.hasHints) {
-        modeState.hintsRemaining--;
-        updateHintsDisplay();
-        
-        if (modeState.hintsRemaining <= 0) {
-            // Disable hint buttons
-            const hintButtons = ['#btn_hint_landscape', '#btn_hint_portrait'];
-            hintButtons.forEach(selector => {
-                const button = document.querySelector(selector);
-                if (button) {
-                    button.disabled = true;
-                }
-            });
-        }
-    }
-}
-
-/**
- * Restart current level in repetition mode
- */
-function restartCurrentLevel() {
-    modeState.levelProgress = 0;
-    modeState.levelErrors = 0;
-    updateLevelDisplay();
-    
-    setTimeout(() => {
-        alert(`Level ${modeState.currentLevel} failed! Restarting level due to errors.`);
-        // Reset to beginning of current level
-        resetToLevelStart();
-    }, 100);
-}
-
-/**
- * Reset to start of current level
- */
-function resetToLevelStart() {
-    const config = MODE_CONFIGS[currentGameMode];
-    const levelStartIndex = (modeState.currentLevel - 1) * config.puzzlesPerLevel;
-    
-    // Reset increment to level start
-    increment = levelStartIndex;
-    
-    // Reset puzzle order for this level if randomized
-    if ($('#randomizeSet').is(':checked')) {
-        const levelEnd = Math.min(levelStartIndex + config.puzzlesPerLevel, puzzleset.length);
-        const levelRange = Array.from({length: levelEnd - levelStartIndex}, (_, i) => levelStartIndex + i);
-        const shuffledLevel = shuffle(levelRange);
-        
-        // Replace the level portion in PuzzleOrder
-        for (let i = 0; i < shuffledLevel.length; i++) {
-            PuzzleOrder[levelStartIndex + i] = shuffledLevel[i];
-        }
-    }
-    
-    // Load first puzzle of level
-    if (increment < puzzleset.length) {
-        loadPuzzle(puzzleset[PuzzleOrder[increment]]);
-    }
-}
-
-/**
- * End game session with message
- */
-function endGameSession(message) {
-    stopModeTimer();
-    
-    // Show completion message
-    setTimeout(() => {
-        alert(message);
-        showResults();
-    }, 100);
-}
-
-/**
- * Format time in MM:SS format
- */
-function formatTime(seconds) {
-    const mins = Math.floor(Math.abs(seconds) / 60);
-    const secs = Math.abs(seconds) % 60;
-    const sign = seconds < 0 ? '-' : '';
-    return `${sign}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-}
-
-/**
- * Get current game mode
- */
-function getCurrentGameMode() {
-    return currentGameMode;
-}
-
-/**
- * Get mode state
- */
-function getModeState() {
-    return modeState;
-}
-
-/**
- * Check if hint is available in current mode
- */
-function isHintAvailable() {
-    const config = MODE_CONFIGS[currentGameMode];
-    return !config.hasHints || modeState.hintsRemaining > 0;
-}
-
-/**
- * Check if game should continue to next puzzle
- */
-function shouldContinueToNextPuzzle() {
-    const config = MODE_CONFIGS[currentGameMode];
-    
-    if (currentGameMode === GAME_MODES.REVERSE) {
-        // In reverse mode, we continue until we've solved the full length of the puzzle
-        // The number of steps is moveHistory.length
-        if (modeState.reverseStep < moveHistory.length) {
-            modeState.reverseStep++;
-            return false; // Don't move to next puzzle yet
-        } else {
-            modeState.reverseStep = 1; // Reset for next puzzle
-            return increment + 1 < puzzleset.length;
-        }
-    }
-
-    if (currentGameMode === GAME_MODES.INFINITY) {
-        return true; // Always continue in infinity mode
-    }
-    
-    if (currentGameMode === GAME_MODES.REPETITION) {
-        // Continue within current level
-        const levelStartIndex = (modeState.currentLevel - 1) * config.puzzlesPerLevel;
-        const levelEndIndex = Math.min(levelStartIndex + config.puzzlesPerLevel, puzzleset.length);
-        return increment + 1 < levelEndIndex;
-    }
-    
-    return increment + 1 < puzzleset.length;
-}
-
-// Export functions for use in main script
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        GAME_MODES,
-        MODE_CONFIGS,
-        initializeGameModes,
-        setGameMode,
-        getCurrentGameMode,
-        getModeState,
-        startModeTimer,
-        stopModeTimer,
-        handleCorrectMove,
-        handleIncorrectMove,
-        handleHintUsed,
-        isHintAvailable,
-        shouldContinueToNextPuzzle,
-        resetModeState,
-        updateModeUI
-    };
-}
+ * Handle time up even
+(Content truncated due to size limit. Use line ranges to read remaining content)
