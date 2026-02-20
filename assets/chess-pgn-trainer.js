@@ -741,11 +741,16 @@ function pauseGame() {
 /**
  * Reset everything in order to start a new testing session
  */
-function resetGame() {
+function resetGame(preservePuzzles = false) {
         // Stop any mode-specific timers
         if (typeof stopModeTimer === 'function') {
                 stopModeTimer();
         }
+
+        // Save puzzleset if we want to preserve it (for mode switching)
+        const savedPuzzleset = preservePuzzles ? [...puzzleset] : [];
+        const savedPuzzleOrder = preservePuzzles ? [...PuzzleOrder] : [];
+        const savedIncrement = preservePuzzles ? increment : 0;
 
         // Reset the current game in memory
         board = null;
@@ -767,6 +772,14 @@ function resetGame() {
         PuzzleOrder = [];
 
 
+        // Restore puzzleset if preserving (mode switching)
+        if (preservePuzzles && savedPuzzleset.length > 0) {
+                puzzleset = savedPuzzleset;
+                PuzzleOrder = savedPuzzleOrder;
+                increment = savedIncrement;
+        }
+
+
         // Create the boards
         board = new Chessboard('myBoard', config);
         blankBoard = new Chessboard('blankBoard', { showNotation: false });
@@ -774,14 +787,23 @@ function resetGame() {
         // Resize the board to the current available space
         $(window).trigger('resize');
 
-        // Set the counters back to zero
-        $('#puzzleNumber_landscape').text('0');
-        $('#puzzleNumber_portrait').text('0');
-        $('#puzzleNumbertotal_landscape').text('0');
-        $('#puzzleNumbertotal_portrait').text('0');
+        // Set the counters back to zero (or restore if preserving)
+        if (preservePuzzles && savedPuzzleset.length > 0) {
+                $('#puzzleNumber_landscape').text(String(increment + 1));
+                $('#puzzleNumber_portrait').text(String(increment + 1));
+                $('#puzzleNumbertotal_landscape').text(puzzleset.length);
+                $('#puzzleNumbertotal_portrait').text(puzzleset.length);
+        } else {
+                $('#puzzleNumber_landscape').text('0');
+                $('#puzzleNumber_portrait').text('0');
+                $('#puzzleNumbertotal_landscape').text('0');
+                $('#puzzleNumbertotal_portrait').text('0');
+        }
 
         // Show Start button and hide "Pause" and "Restart" buttons
-        setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'block', true);
+        // Enable start button if puzzles are loaded
+        const puzzlesLoaded = preservePuzzles && savedPuzzleset.length > 0;
+        setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'block', !puzzlesLoaded);
         setDisplayAndDisabled(
                 ['#btn_pause_landscape', '#btn_pause_portrait',
                         '#btn_restart_landscape', '#btn_restart_portrait'], 'none', false);
