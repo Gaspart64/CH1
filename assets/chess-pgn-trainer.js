@@ -332,6 +332,21 @@ function updateBoard(animate) {
 // ------------------------------------
 
 /**
+ * Handle user choice for resuming game
+ * @param {boolean} resume - True to resume, false to start new
+ */
+function handleResumeChoice(resume) {
+        document.getElementById('resume-modal').style.display = 'none';
+        if (resume) {
+                if (resumeSavedGame()) {
+                        console.log('Game resumed from saved state');
+                }
+        } else {
+                clearSavedGameState();
+                resetGame();
+        }
+}
+/**
  * Initializes the application upon load
  */
 function initalize() {
@@ -340,7 +355,14 @@ function initalize() {
 	addPieceSetNames();
 	changePieces();
 	resetGame();
-	
+
+	// Try to resume a saved game
+        setTimeout(() => {
+                if (resumeSavedGame()) {
+                        console.log('Game resumed from saved state');
+                }
+        }, 500);
+
 	// Initialize game modes system
 	if (typeof initializeGameModes === 'function') {
 		initializeGameModes();
@@ -574,6 +596,8 @@ function checkAndPlayNext() {
 
 	// Stop once all the puzzles in the set are done
 	if (setcomplete && puzzlecomplete) {
+		// Clear saved progress as the set is finished
+                clearSavedGameState();
 		// Stop any mode-specific timers
 		if (typeof stopModeTimer === 'function') {
 			stopModeTimer();
