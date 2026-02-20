@@ -2,6 +2,13 @@
 <html style="overscroll-behavior: contain;"> <!-- Prevent swiping on mobile forcing a refresh of the page -->
 
 <head>
+		<!-- PWA Metadata -->
+		<link rel="manifest" href="/manifest.json">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<meta name="apple-mobile-web-app-title" content="PGN Trainer">
+		<meta name="msapplication-TileImage" content="img/icon-192.png">
+		<meta name="msapplication-TileColor" content="#3f51b5">
 	<title>Chess PGN Trainer</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-16">
 	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
@@ -196,21 +203,6 @@
 					</div>
 				</div>
 			</div>
-<!-- Resume Game Modal -->
-                        <div id="resume-modal" class="w3-modal" style="z-index: 1000;">
-                                <div class="w3-modal-content light-mode" style="width: 300px; margin-top: 100px;">
-                                        <header class="w3-container w3-indigo">
-                                                <h3>Resume Game?</h3>
-                                        </header>
-                                        <div class="w3-container w3-center" style="padding: 16px;">
-                                                <p>A saved game was found. Would you like to resume or start a new game?</p>
-                                                <div class="w3-bar">
-                                                        <button onclick="handleResumeChoice(true)" class="w3-button w3-round-large w3-indigo w3-hover-blue">Resume</button>
-                                                        <button onclick="handleResumeChoice(false)" class="w3-button w3-round-large w3-red w3-hover-orange">Start New</button>
-                                                </div>
-                                        </div>
-                                </div>
-                        </div>
 
 			<!-- Main board window -->
 			<div class="w3-container w3-center" style="padding:4px; display: flexbox;">
@@ -354,10 +346,24 @@
 	</div>
 
 	<!-- Custom code for this project (needs to be here AFTER elements are built & labelled)-->
-	<script src="./assets/storage.js"></script>
 	<script src="./assets/game-modes.js"></script>
 	<script src="./assets/chess-pgn-trainer.js"></script>
-	<script src="./assets/piece-list.js"></script>
+		<script src="./assets/piece-list.js"></script>
+
+		<!-- PWA Service Worker Registration -->
+		<script>
+			if ('serviceWorker' in navigator) {
+				window.addEventListener('load', () => {
+					navigator.serviceWorker.register('/sw.js')
+						.then(registration => {
+							console.log('Service Worker registered: ', registration);
+						})
+						.catch(error => {
+							console.log('Service Worker registration failed: ', error);
+						});
+				});
+			}
+		</script>
 </body>
 
 </html>
