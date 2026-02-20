@@ -102,55 +102,7 @@ config = {
 // -----------------------
 // Local stoarge Functions
 // -----------------------
-/**
- * Save current game progress to resume later
- */
-function saveCurrentGameProgress() {
-        if (!puzzleset || puzzleset.length === 0 || setcomplete) {
-                return;
-        }
-        const gameState = {
-                increment: increment,
-                PuzzleOrder: PuzzleOrder,
-                puzzleset: puzzleset,
-                errorcount: errorcount,
-                pauseDateTimeTotal: pauseDateTimeTotal,
-                startDateTime: startDateTime.getTime(),
-                // We can't easily save the exact move history of the current puzzle without more logic,
-                // but we can at least save which puzzle we were on.
-                timestamp: new Date().getTime()
-        };
-        saveGameState(gameState);
-}
-/**
- * Resume game from saved state
- */
-function resumeSavedGame() {
-        const savedState = loadGameState();
-        if (!savedState) return false;
-        // Basic validation of saved state
-        if (!savedState.puzzleset || savedState.puzzleset.length === 0) return false;
-        // Restore state variables
-        puzzleset = savedState.puzzleset;
-        PuzzleOrder = savedState.PuzzleOrder;
-        increment = savedState.increment;
-        errorcount = savedState.errorcount;
-        pauseDateTimeTotal = savedState.pauseDateTimeTotal;
-        startDateTime = new Date(savedState.startDateTime);
-        // Setup UI for the resumed game
-        $('#puzzleNumbertotal_landscape').text(puzzleset.length);
-        $('#puzzleNumbertotal_portrait').text(puzzleset.length);
-        // Load the puzzle we were on
-        loadPuzzle(puzzleset[PuzzleOrder[increment]]);
-        // UI adjustments
-        setDisplayAndDisabled(['#btn_starttest_landscape', '#btn_starttest_portrait'], 'none', true);
-        setDisplayAndDisabled(['#btn_pause_landscape', '#btn_pause_portrait'], 'block', false);
-        setDisplayAndDisabled(['#btn_hint_landscape', '#btn_hint_portrait'], 'block', false);
-        return true;
-}
-window.addEventListener('beforeunload', () => {
-        saveCurrentGameProgress();
-});
+
 /**
  * Save a key/value pair to local storage
  * @param {string} key - The name of the key 
@@ -332,21 +284,6 @@ function updateBoard(animate) {
 // ------------------------------------
 
 /**
- * Handle user choice for resuming game
- * @param {boolean} resume - True to resume, false to start new
- */
-function handleResumeChoice(resume) {
-        document.getElementById('resume-modal').style.display = 'none';
-        if (resume) {
-                if (resumeSavedGame()) {
-                        console.log('Game resumed from saved state');
-                }
-        } else {
-                clearSavedGameState();
-                resetGame();
-        }
-}
-/**
  * Initializes the application upon load
  */
 function initalize() {
@@ -355,14 +292,7 @@ function initalize() {
 	addPieceSetNames();
 	changePieces();
 	resetGame();
-
-	// Try to resume a saved game
-        setTimeout(() => {
-                if (resumeSavedGame()) {
-                        console.log('Game resumed from saved state');
-                }
-        }, 500);
-
+	
 	// Initialize game modes system
 	if (typeof initializeGameModes === 'function') {
 		initializeGameModes();
@@ -565,39 +495,76 @@ function checkAndPlayNext() {
 		return 'snapback';
 	}
 
-	// Check if all the expected moves have been played
-	if (game.history().length === moveHistory.length) {
-		puzzlecomplete = true;
+		// Check if all the expected moves have been played
+		if (game.history().length === moveHistory.length) {
+			puzzlecomplete = true;
 
-		// Check to see if this is the last puzzle
-		if (increment + 1 === puzzleset.length) {
-			setcomplete = true;
-		}
+			// Handle repetition mode progression
+			if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'repetition') {
+				const modeState = getModeState();
+				const config = MODE_CONFIGS['repetition'];
+				
+				// If this puzzle was solved without errors, increment progress
+				if (error === false) {
+					modeState.levelProgress++;
+					updateLevelDisplay();
+				}
 
-		// Check if we should continue to next puzzle based on current game mode
-		const shouldContinue = typeof shouldContinueToNextPuzzle === 'function' ? 
-			shouldContinueToNextPuzzle() : (increment < puzzleset.length - 1);
+				// Check if we've reached the end of the set (20 puzzles)
+				const levelStartIndex = (modeState.currentLevel - 1) * config.puzzlesPerLevel;
+				const isEndOfSet = (increment + 1) >= Math.min(levelStartIndex + config.puzzlesPerLevel, puzzleset.length);
 
-		// Are there more puzzles to go?  If yes, load the next one in the sequence
-		if (shouldContinue) {
-			increment += 1;
-			
-			// Handle infinity mode - cycle back to beginning if needed
-			if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'infinity' && increment >= puzzleset.length) {
-				increment = 0;
+				if (isEndOfSet) {
+					if (modeState.levelErrors === 0 && modeState.levelProgress >= config.puzzlesPerLevel) {
+						// Level completed perfectly!
+						modeState.currentLevel++;
+						modeState.levelProgress = 0;
+						modeState.levelErrors = 0;
+						updateLevelDisplay();
+						setTimeout(() => {
+							alert(`Level ${modeState.currentLevel - 1} completed! Moving to Level ${modeState.currentLevel}`);
+						}, 100);
+						// Start the next level
+						resetToLevelStart();
+						return;
+					} else {
+						// Level failed due to errors or incomplete progress
+						setTimeout(() => {
+							alert(`Level ${modeState.currentLevel} failed! You must solve all ${config.puzzlesPerLevel} puzzles perfectly.`);
+							restartCurrentLevel();
+						}, 100);
+						return;
+					}
+				}
 			}
-			
-			loadPuzzle(puzzleset[PuzzleOrder[increment]]);
-		} else if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'reverse' && !setcomplete) {
-			// In reverse mode, if we're not moving to the next puzzle, reload the current one with the next step
-			loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+	
+			// Check to see if this is the last puzzle
+			if (increment + 1 === puzzleset.length) {
+				setcomplete = true;
+			}
+	
+			// Check if we should continue to next puzzle based on current game mode
+			const shouldContinue = typeof shouldContinueToNextPuzzle === 'function' ? 
+				shouldContinueToNextPuzzle() : (increment < puzzleset.length - 1);
+	
+			// Are there more puzzles to go?  If yes, load the next one in the sequence
+			if (shouldContinue) {
+				increment += 1;
+				
+				// Handle infinity mode - cycle back to beginning if needed
+				if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'infinity' && increment >= puzzleset.length) {
+					increment = 0;
+				}
+				
+				loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+			} else if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'reverse' && !setcomplete) {
+				// In reverse mode, if we're not moving to the next puzzle, reload the current one with the next step
+				loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+			}
 		}
-	}
 
 	// Stop once all the puzzles in the set are done
 	if (setcomplete && puzzlecomplete) {
-		// Clear saved progress as the set is finished
-                clearSavedGameState();
 		// Stop any mode-specific timers
 		if (typeof stopModeTimer === 'function') {
 			stopModeTimer();
