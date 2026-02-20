@@ -46,12 +46,18 @@ function repPuzzlesDoneInLevel() {
 
 function syncRepDisplay() {
     if (typeof modeState === 'undefined') return;
+    
     modeState.currentLevel  = repState.currentLevel;
-    modeState.levelProgress = Math.max(0, repPuzzlesDoneInLevel());
+    
+    // Ensure progress is at least 1 when a level starts
+    let progress = repPuzzlesDoneInLevel();
+    if (progress <= 0) progress = 1; 
+    
+    modeState.levelProgress = progress;
     modeState.levelErrors   = repState.levelErrors;
+    
     if (typeof updateLevelDisplay === 'function') updateLevelDisplay();
 }
-
 
 // -----------------------------------------------------------------------
 // Banner
