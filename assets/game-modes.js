@@ -114,7 +114,7 @@ function setGameMode(mode) {
     }
     stopModeTimer();
     currentGameMode = mode;
-    if (typeof resetGame === 'function') resetGame();
+    if (typeof resetGame === 'function') resetGame(true); // true = preserve puzzles
     resetModeState();
     updateModeInfo();
 }
