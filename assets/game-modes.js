@@ -515,5 +515,232 @@ function stopModeTimer() {
 }
 
 /**
- * Handle time up even
-(Content truncated due to size limit. Use line ranges to read remaining content)
+ * Handle time up event
+ */
+function handleTimeUp() {
+    stopModeTimer();
+    
+    const config = MODE_CONFIGS[currentGameMode];
+    
+    if (currentGameMode === GAME_MODES.THREE) {
+        endGameSession('Time\'s up! Session ended.');
+    } else if (currentGameMode === GAME_MODES.HASTE) {
+        endGameSession('Time ran out! Session ended.');
+    } else if (currentGameMode === GAME_MODES.COUNTDOWN) {
+        endGameSession(`Time's up! You solved ${modeState.totalSolved} puzzles.`);
+    }
+}
+
+/**
+ * Handle correct move in current mode
+ */
+function handleCorrectMove() {
+    const config = MODE_CONFIGS[currentGameMode];
+    
+    modeState.totalSolved++;
+    
+    if (currentGameMode === GAME_MODES.HASTE) {
+        // Add time for correct move
+        modeState.timeRemaining += config.timeGain;
+        updateTimerDisplay();
+    } else if (currentGameMode === GAME_MODES.REPETITION) {
+        // In repetition mode, we track progress in chess-pgn-trainer.js when a puzzle is fully solved.
+        // This function is called for every correct move.
+    }
+}
+
+/**
+ * Handle incorrect move in current mode
+ */
+function handleIncorrectMove() {
+    const config = MODE_CONFIGS[currentGameMode];
+    
+    if (currentGameMode === GAME_MODES.THREE) {
+        modeState.livesRemaining--;
+        updateLivesDisplay();
+        
+        if (modeState.livesRemaining <= 0) {
+            endGameSession('No lives remaining! Session ended.');
+            return;
+        }
+    } else if (currentGameMode === GAME_MODES.HASTE) {
+        // Lose time for incorrect move
+        modeState.timeRemaining -= config.timeLoss;
+        if (modeState.timeRemaining < 0) {
+            modeState.timeRemaining = 0;
+        }
+        updateTimerDisplay();
+        
+        if (modeState.timeRemaining <= 0) {
+            handleTimeUp();
+            return;
+        }
+    } else if (currentGameMode === GAME_MODES.REPETITION) {
+        modeState.levelErrors++;
+        // We don't restart immediately; we allow the user to finish the set.
+    }
+}
+
+/**
+ * Handle hint usage in current mode
+ */
+function handleHintUsed() {
+    const config = MODE_CONFIGS[currentGameMode];
+    
+    if (config.hasHints) {
+        modeState.hintsRemaining--;
+        updateHintsDisplay();
+        
+        if (modeState.hintsRemaining <= 0) {
+            // Disable hint buttons
+            const hintButtons = ['#btn_hint_landscape', '#btn_hint_portrait'];
+            hintButtons.forEach(selector => {
+                const button = document.querySelector(selector);
+                if (button) {
+                    button.disabled = true;
+                }
+            });
+        }
+    }
+}
+
+/**
+ * Restart current level in repetition mode
+ */
+function restartCurrentLevel() {
+    modeState.levelProgress = 0;
+    modeState.levelErrors = 0;
+    updateLevelDisplay();
+    
+    setTimeout(() => {
+        alert(`Level ${modeState.currentLevel} failed! Restarting level due to errors.`);
+        // Reset to beginning of current level
+        resetToLevelStart();
+    }, 100);
+}
+
+/**
+ * Reset to start of current level
+ */
+function resetToLevelStart() {
+    const config = MODE_CONFIGS[currentGameMode];
+    const levelStartIndex = (modeState.currentLevel - 1) * config.puzzlesPerLevel;
+    
+    // Reset increment to level start
+    increment = levelStartIndex;
+    
+    // Reset puzzle order for this level if randomized
+    if ($('#randomizeSet').is(':checked')) {
+        const levelEnd = Math.min(levelStartIndex + config.puzzlesPerLevel, puzzleset.length);
+        const levelRange = Array.from({length: levelEnd - levelStartIndex}, (_, i) => levelStartIndex + i);
+        const shuffledLevel = shuffle(levelRange);
+        
+        // Replace the level portion in PuzzleOrder
+        for (let i = 0; i < shuffledLevel.length; i++) {
+            PuzzleOrder[levelStartIndex + i] = shuffledLevel[i];
+        }
+    }
+    
+    // Load first puzzle of level
+    if (increment < puzzleset.length) {
+        loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+    }
+}
+
+/**
+ * End game session with message
+ */
+function endGameSession(message) {
+    stopModeTimer();
+    
+    // Show completion message
+    setTimeout(() => {
+        alert(message);
+        showResults();
+    }, 100);
+}
+
+/**
+ * Format time in MM:SS format
+ */
+function formatTime(seconds) {
+    const mins = Math.floor(Math.abs(seconds) / 60);
+    const secs = Math.abs(seconds) % 60;
+    const sign = seconds < 0 ? '-' : '';
+    return `${sign}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Get current game mode
+ */
+function getCurrentGameMode() {
+    return currentGameMode;
+}
+
+/**
+ * Get mode state
+ */
+function getModeState() {
+    return modeState;
+}
+
+/**
+ * Check if hint is available in current mode
+ */
+function isHintAvailable() {
+    const config = MODE_CONFIGS[currentGameMode];
+    return !config.hasHints || modeState.hintsRemaining > 0;
+}
+
+/**
+ * Check if game should continue to next puzzle
+ */
+function shouldContinueToNextPuzzle() {
+    const config = MODE_CONFIGS[currentGameMode];
+    
+    if (currentGameMode === GAME_MODES.REVERSE) {
+        // In reverse mode, we continue until we've solved the full length of the puzzle
+        // The number of steps is moveHistory.length
+        if (modeState.reverseStep < moveHistory.length) {
+            modeState.reverseStep++;
+            return false; // Don't move to next puzzle yet
+        } else {
+            modeState.reverseStep = 1; // Reset for next puzzle
+            return increment + 1 < puzzleset.length;
+        }
+    }
+
+    if (currentGameMode === GAME_MODES.INFINITY) {
+        return true; // Always continue in infinity mode
+    }
+    
+    if (currentGameMode === GAME_MODES.REPETITION) {
+        // Continue within current level
+        const levelStartIndex = (modeState.currentLevel - 1) * config.puzzlesPerLevel;
+        const levelEndIndex = Math.min(levelStartIndex + config.puzzlesPerLevel, puzzleset.length);
+        return increment + 1 < levelEndIndex;
+    }
+    
+    return increment + 1 < puzzleset.length;
+}
+
+// Export functions for use in main script
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        GAME_MODES,
+        MODE_CONFIGS,
+        initializeGameModes,
+        setGameMode,
+        getCurrentGameMode,
+        getModeState,
+        startModeTimer,
+        stopModeTimer,
+        handleCorrectMove,
+        handleIncorrectMove,
+        handleHintUsed,
+        isHintAvailable,
+        shouldContinueToNextPuzzle,
+        resetModeState,
+        updateModeUI
+    };
+}
