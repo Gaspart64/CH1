@@ -115,11 +115,6 @@ let srCards                 = {};   // map: puzzleIndex → card, persisted acro
 let srCurrentPgnFile        = '';   // localStorage key suffix
 let srCurrentPuzzleHadError = false;// true if user made any mistake on the current puzzle
 
-// srSessionRetryQueue — puzzle indices that were failed THIS session and not
-// yet solved cleanly.  Entries stay here until a clean solve removes them.
-// This is purely in-memory; it resets each session.
-let srSessionRetryQueue     = [];
-
 // ── Persistence ─────────────────────────────────────────────────────────────
 
 function srGetStorageKey() {
@@ -148,8 +143,8 @@ function srGetCard(puzzleIndex) {
             index:       puzzleIndex,
             interval:    1,
             easeFactor:  2.5,
-            repetitions: 0,
-            nextReview:  Date.now(),
+            repetitions: 0,           // consecutive clean solves
+            nextReview:  Date.now(),  // new cards are immediately due
             due:         true
         };
     }
@@ -157,8 +152,12 @@ function srGetCard(puzzleIndex) {
 }
 
 // ── SM-2 update ──────────────────────────────────────────────────────────────
-//  Only called when a puzzle is solved cleanly (exits the retry queue).
-//  quality 4 = clean solve, quality 1 = eventually solved after errors.
+//  Called on every puzzle completion, pass or fail.
+//
+//  quality 4 = clean solve (no errors)
+//  quality 1 = completed but had errors → interval resets to 1 day,
+//              nextReview = now so it's immediately due again this session
+//              AND comes back first thing next session.
 
 function srApplySM2(card, quality) {
     card.easeFactor = Math.max(
@@ -169,41 +168,43 @@ function srApplySM2(card, quality) {
     const msPerDay = 24 * 60 * 60 * 1000;
 
     if (quality < 3) {
+        // Failed — reset streak, set nextReview to right now so the card is
+        // immediately overdue both within this session and next time they return.
         card.repetitions = 0;
         card.interval    = 1;
+        card.nextReview  = Date.now() - 1; // 1ms in the past = always overdue
+        card.due         = true;
     } else {
+        // Clean solve — advance interval per SM-2
         if (card.repetitions === 0)      card.interval = 1;
         else if (card.repetitions === 1) card.interval = 6;
         else card.interval = Math.round(card.interval * card.easeFactor);
-        card.repetitions++;
-    }
 
-    card.nextReview = Date.now() + card.interval * msPerDay;
-    card.due        = false;
+        card.repetitions++;
+        card.nextReview = Date.now() + card.interval * msPerDay;
+        card.due        = false;
+    }
 }
 
 // ── Queue builder ────────────────────────────────────────────────────────────
-//  Builds the base session queue from card history (excludes retry queue items,
-//  which are prepended separately in srAdvance).
-//  Order: overdue → new (never seen) → future (not yet due).
+//  Rebuilds PuzzleOrder on every advance.
+//  Order: overdue (most overdue first) → new (never attempted) → future (not yet due).
+//  Because failed cards get nextReview in the past, they always sort to the top.
 
-function srBuildBaseQueue(totalPuzzles) {
+function srBuildQueue(totalPuzzles) {
     const now    = Date.now();
     const due    = [];
     const fresh  = [];
     const future = [];
 
     for (let i = 0; i < totalPuzzles; i++) {
-        if (srSessionRetryQueue.includes(i)) continue; // handled separately
         const card = srCards[i];
         if (!card) {
             fresh.push(i);
+        } else if (card.nextReview <= now) {
+            due.push({ i, overdue: now - card.nextReview });
         } else {
-            if (card.nextReview <= now) {
-                due.push({ i, overdue: now - card.nextReview });
-            } else {
-                future.push({ i, nextReview: card.nextReview });
-            }
+            future.push({ i, nextReview: card.nextReview });
         }
     }
 
@@ -220,12 +221,11 @@ function srBuildBaseQueue(totalPuzzles) {
 // ── Session initialisation ───────────────────────────────────────────────────
 
 function srInitSession() {
-    srCurrentPgnFile = ($('#openPGN').val() || 'default').replace(/[^a-zA-Z0-9]/g, '_');
-    srLoadCards();
-    srSessionRetryQueue     = [];
+    srCurrentPgnFile        = ($('#openPGN').val() || 'default').replace(/[^a-zA-Z0-9]/g, '_');
     srCurrentPuzzleHadError = false;
+    srLoadCards();
 
-    PuzzleOrder = srBuildBaseQueue(puzzleset.length);
+    PuzzleOrder = srBuildQueue(puzzleset.length);
     increment   = 0;
     srUpdateStatsDisplay();
 }
@@ -237,37 +237,18 @@ function srOnPuzzleStart() {
 }
 
 function srOnError() {
-    // Mark the current puzzle as failed in this session.
-    // Add to retry queue if not already there.
     srCurrentPuzzleHadError = true;
-    const puzzleIndex = PuzzleOrder[increment];
-    if (!srSessionRetryQueue.includes(puzzleIndex)) {
-        srSessionRetryQueue.push(puzzleIndex);
-        srUpdateStatsDisplay();
-    }
 }
 
 function srOnPuzzleComplete() {
     const puzzleIndex = PuzzleOrder[increment];
+    const card        = srGetCard(puzzleIndex);
 
-    if (srCurrentPuzzleHadError) {
-        // Failed this attempt — puzzle stays in retry queue.
-        // Don't update the SM-2 card yet; we wait for a clean solve.
-        srCurrentPuzzleHadError = false;
-        srUpdateStatsDisplay();
-        return;
-    }
-
-    // Clean solve — remove from retry queue if it was there.
-    const retryIdx = srSessionRetryQueue.indexOf(puzzleIndex);
-    const wasInRetry = retryIdx !== -1;
-    if (wasInRetry) {
-        srSessionRetryQueue.splice(retryIdx, 1);
-    }
-
-    // Update SM-2 card: quality 1 if it needed retry, 4 if first-time clean.
-    const quality = wasInRetry ? 1 : 4;
-    const card    = srGetCard(puzzleIndex);
+    // Always apply SM-2 immediately — quality 1 for errors, 4 for clean.
+    // A failed card gets nextReview = now-1ms, making it overdue instantly.
+    // srBuildQueue will therefore put it back at the front of the next queue,
+    // both within this session and when the user returns another day.
+    const quality = srCurrentPuzzleHadError ? 1 : 4;
     srApplySM2(card, quality);
     srSaveCards();
 
@@ -276,16 +257,12 @@ function srOnPuzzleComplete() {
 }
 
 // ── Queue cycling ─────────────────────────────────────────────────────────────
-//  After each puzzle, rebuild PuzzleOrder:
-//    retry queue items first (shuffled so they don't always appear in the same order)
-//    then the normal base queue
-//  increment is set to -1 so that caller's += 1 lands on index 0.
+//  Rebuild PuzzleOrder after every puzzle so the updated card scores take
+//  effect immediately.  Failed cards (nextReview in the past) sort to front.
+//  increment = -1 because caller does += 1 before loadPuzzle.
 
 function srAdvance() {
-    // Shuffle retry queue so failed puzzles appear in varied order
-    const retryShuffled = [...srSessionRetryQueue].sort(() => Math.random() - 0.5);
-    const baseQueue     = srBuildBaseQueue(puzzleset.length);
-    PuzzleOrder = [...retryShuffled, ...baseQueue];
+    PuzzleOrder = srBuildQueue(puzzleset.length);
     increment   = -1;
 }
 
@@ -307,26 +284,25 @@ function srUpdateStatsDisplay() {
     }
 
     const now    = Date.now();
-    let due      = srSessionRetryQueue.length;  // puzzles failed this session
+    let due      = 0;
     let learned  = 0;
     let newCount = 0;
 
     for (let i = 0; i < puzzleset.length; i++) {
-        if (srSessionRetryQueue.includes(i)) continue; // already counted as due
         const card = srCards[i];
         if (!card) {
             newCount++;
-        } else if (card.repetitions > 0 && card.nextReview > now) {
-            learned++;   // has a clean solve and not yet due
         } else if (card.nextReview <= now) {
-            due++;       // overdue from a previous session
+            due++;      // overdue — includes failed cards from this or previous sessions
+        } else if (card.repetitions > 0) {
+            learned++;  // at least one clean solve, not yet due
         } else {
-            newCount++;  // seen but never cleanly solved, not retrying right now
+            newCount++; // seen but never cleanly solved, not currently due (edge case)
         }
     }
 
     statsDiv.innerHTML =
-        `<span style="color:#e53935;">⏰ Retry: ${due}</span> &nbsp;|&nbsp; ` +
+        `<span style="color:#e53935;">⏰ Due: ${due}</span> &nbsp;|&nbsp; ` +
         `<span style="color:#43a047;">✓ Learned: ${learned}</span> &nbsp;|&nbsp; ` +
         `<span style="color:#1e88e5;">★ New: ${newCount}</span>`;
     statsDiv.style.display = 'block';
