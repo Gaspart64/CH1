@@ -119,6 +119,7 @@ function saveCurrentGameProgress() {
                 pauseDateTimeTotal: pauseDateTimeTotal,
                 startDateTime: startDateTime.getTime(),
                 lastSelectedPgnFile: $('#openPGN').val(),
+                gameMode: typeof getCurrentGameMode === 'function' ? getCurrentGameMode() : 'standard',
                 timestamp: new Date().getTime()
         };
 
@@ -145,6 +146,11 @@ function resumeSavedGame() {
 
         if (savedState.lastSelectedPgnFile) {
                 $('#openPGN').val(savedState.lastSelectedPgnFile);
+        }
+
+        // Restore game mode
+        if (savedState.gameMode && typeof setGameMode === 'function') {
+                setGameMode(savedState.gameMode);
         }
 
         // Setup UI for the resumed game
@@ -920,6 +926,11 @@ function startTest() {
                 updateModeUI();
         }
 
+        // Allow game mode to override PuzzleOrder before first puzzle loads
+        if (typeof onStartTest === 'function') {
+                onStartTest();
+        }
+
         // Now just need to send the desired puzzle to the board.
         loadPuzzle(puzzleset[PuzzleOrder[increment]]);
 }
@@ -988,6 +999,11 @@ function loadPuzzle(PGNPuzzle) {
         // Set the error flag to false for this puzzle (ie: only count 1 error per puzzle)
         error = false;
         puzzlecomplete = false;
+
+        // Notify game mode that a new puzzle is starting
+        if (typeof handlePuzzleStart === 'function') {
+                handlePuzzleStart();
+        }
 
         // Load the board position into memory
         game = new Chess(PGNPuzzle.FEN);
