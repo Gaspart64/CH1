@@ -589,6 +589,11 @@ function checkAndPlayNext() {
         if (game.history().length === moveHistory.length) {
                 puzzlecomplete = true;
 
+                // Notify game mode that a puzzle is complete
+                if (typeof handlePuzzleComplete === 'function') {
+                        handlePuzzleComplete();
+                }
+
                 // Check to see if this is the last puzzle
                 if (increment + 1 === puzzleset.length) {
                         setcomplete = true;
