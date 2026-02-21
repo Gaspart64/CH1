@@ -80,6 +80,16 @@
         <!-- Options will be dynamically added here, either statically or via API -->
     </select>
     
+    <select id="game-mode-select-manual" onchange="if(typeof setGameMode === 'function') setGameMode(this.value)">
+        <option value="standard">Standard Mode</option>
+        <option value="repetition">Repetition Mode</option>
+        <option value="three">Three Mode</option>
+        <option value="haste">Haste Mode</option>
+        <option value="countdown">Countdown Mode</option>
+        <option value="speedrun">Speedrun Mode</option>
+        <option value="infinity">Infinity Mode</option>
+    </select>
+
     <button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue">Reset</button>
 </p>
 
