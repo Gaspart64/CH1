@@ -165,10 +165,14 @@ function srApplySM2(card, quality) {
         card.easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
     );
 
+    const msPerDay = 24 * 60 * 60 * 1000;
+
     if (quality < 3) {
-        // Failed — reset streak
+        // Failed — reset streak and make immediately due again
         card.repetitions = 0;
         card.interval    = 1;
+        card.nextReview  = Date.now();   // due right now, not tomorrow
+        card.due         = true;
     } else {
         // Passed
         if (card.repetitions === 0)      card.interval = 1;
@@ -176,11 +180,9 @@ function srApplySM2(card, quality) {
         else                             card.interval = Math.round(card.interval * card.easeFactor);
 
         card.repetitions++;
+        card.nextReview = Date.now() + card.interval * msPerDay;
+        card.due        = false;
     }
-
-    const msPerDay    = 24 * 60 * 60 * 1000;
-    card.nextReview   = Date.now() + card.interval * msPerDay;
-    card.due          = false;
 }
 
 // ── Queue builder ────────────────────────────────────────────────────────────
@@ -293,12 +295,21 @@ function srUpdateStatsDisplay() {
     let newCount= 0;
 
     for (let i = 0; i < puzzleset.length; i++) {
-        if (!srCards[i]) {
-            newCount++;
+        const card = srCards[i];
+        if (!card || card.repetitions === 0) {
+            // Never seen, or seen but never cleanly solved — count as new/unseen
+            if (card && card.nextReview <= now) {
+                due++;   // failed before, due again now
+            } else {
+                newCount++;
+            }
         } else {
-            const card = srCards[i];
-            if (card.nextReview <= now) due++;
-            else                        learned++;
+            // Has at least one clean solve
+            if (card.nextReview <= now) {
+                due++;
+            } else {
+                learned++;
+            }
         }
     }
 
