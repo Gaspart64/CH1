@@ -4,6 +4,8 @@
  *
  * Repetition mode logic is fully integrated here.
  * repetition-mode.js is no longer needed and should be deleted.
+ *
+ * Infinity Mode is now a full Spaced Repetition (SM-2) mode.
  */
 
 // Game mode constants
@@ -22,68 +24,42 @@ const MODE_CONFIGS = {
     [GAME_MODES.STANDARD]: {
         name: 'Standard Mode',
         description: 'Play puzzles sequentially from a PGN file',
-        hasTimer: false,
-        hasLives: false,
-        hasHints: false,
-        hasLevels: false
+        hasTimer: false, hasLives: false, hasHints: false, hasLevels: false
     },
     [GAME_MODES.REPETITION]: {
         name: 'Repetition Mode',
         description: 'Complete levels perfectly to unlock the next (20 puzzles per level)',
-        hasTimer: false,
-        hasLives: false,
-        hasHints: false,
-        hasLevels: true,
+        hasTimer: false, hasLives: false, hasHints: false, hasLevels: true,
         puzzlesPerLevel: 20
     },
     [GAME_MODES.THREE]: {
         name: 'Three Mode',
         description: '3 minutes, 3 lives, 3 hints',
-        hasTimer: true,
-        hasLives: true,
-        hasHints: true,
-        hasLevels: false,
-        timeLimit: 180,
-        lives: 3,
-        hints: 3
+        hasTimer: true, hasLives: true, hasHints: true, hasLevels: false,
+        timeLimit: 180, lives: 3, hints: 3
     },
     [GAME_MODES.HASTE]: {
         name: 'Haste Mode',
         description: 'Start with base time, gain/lose time on correct/incorrect moves',
-        hasTimer: true,
-        hasLives: false,
-        hasHints: false,
-        hasLevels: false,
-        baseTime: 30,
-        timeGain: 5,
-        timeLoss: 10
+        hasTimer: true, hasLives: false, hasHints: false, hasLevels: false,
+        baseTime: 30, timeGain: 5, timeLoss: 10
     },
     [GAME_MODES.COUNTDOWN]: {
         name: 'Countdown Mode',
         description: 'Fixed total time to solve as many puzzles as possible',
-        hasTimer: true,
-        hasLives: false,
-        hasHints: false,
-        hasLevels: false,
+        hasTimer: true, hasLives: false, hasHints: false, hasLevels: false,
         timeLimit: 600
     },
     [GAME_MODES.SPEEDRUN]: {
         name: 'Speedrun Mode',
         description: 'Complete all puzzles as fast as possible',
-        hasTimer: true,
-        hasLives: false,
-        hasHints: false,
-        hasLevels: false,
+        hasTimer: true, hasLives: false, hasHints: false, hasLevels: false,
         isSpeedrun: true
     },
     [GAME_MODES.INFINITY]: {
-        name: 'Infinity Mode',
-        description: 'Endless play through puzzles',
-        hasTimer: false,
-        hasLives: false,
-        hasHints: false,
-        hasLevels: false,
-        isInfinite: true
+        name: 'Spaced Repetition',
+        description: 'Puzzles you struggle with appear more often. Progress is saved across sessions.',
+        hasTimer: false, hasLives: false, hasHints: false, hasLevels: false
     }
 };
 
@@ -98,26 +74,245 @@ let modeState = {
     livesRemaining: 0,
     hintsRemaining: 0,
     currentLevel:   1,
-    levelProgress:  0,   // puzzles completed without error in the current set
-    levelErrors:    0,   // total errors accumulated in the current set
+    levelProgress:  0,
+    levelErrors:    0,
     totalSolved:    0,
     modeTimer:      null,
     isActive:       false
 };
 
-// Repetition-mode internal tracking
-// (replaces the variables that lived in repetition-mode.js)
-let repetitionSetStartIndex = 0;  // value of `increment` when the current set began
-let repetitionSetHadError = false; // true if any puzzle in the current set had an error
+// Repetition-mode tracking
+let repetitionSetStartIndex = 0;
+let repetitionSetHadError   = false;
+
+// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+//  SPACED REPETITION (SM-2) — Infinity Mode
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//  Each puzzle has a "card" stored in localStorage under the key
+//  'sr_cards_<pgnFile>'.  A card looks like:
+//
+//    {
+//      index:       <number>   -- index into puzzleset[]
+//      interval:    <days>     -- current review interval (starts 1)
+//      easeFactor:  <float>    -- SM-2 ease factor (starts 2.5, min 1.3)
+//      repetitions: <number>   -- consecutive correct solves
+//      nextReview:  <ms>       -- Date.now() value when due next
+//      due:         <boolean>  -- convenience flag set at queue-build time
+//    }
+//
+//  The session queue (srQueue) is an ordered list of puzzle indices built
+//  fresh each time the user presses Start.  It is stored in PuzzleOrder so
+//  the rest of chess-pgn-trainer.js works without modification.
+//
+//  Per-puzzle error tracking uses srCurrentPuzzleHadError (reset each puzzle).
+// ---------------------------------------------------------------------------
+
+const SR_STORAGE_PREFIX = 'sr_cards_';
+
+let srCards           = {};   // map: puzzleIndex → card object
+let srCurrentPgnFile  = '';   // key used to load/save cards
+let srCurrentPuzzleHadError = false;  // reset at each puzzle start
+
+// ── Persistence ─────────────────────────────────────────────────────────────
+
+function srGetStorageKey() {
+    return SR_STORAGE_PREFIX + srCurrentPgnFile;
+}
+
+function srLoadCards() {
+    const raw = localStorage.getItem(srGetStorageKey());
+    srCards = raw ? JSON.parse(raw) : {};
+}
+
+function srSaveCards() {
+    localStorage.setItem(srGetStorageKey(), JSON.stringify(srCards));
+}
+
+function srClearCards() {
+    localStorage.removeItem(srGetStorageKey());
+    srCards = {};
+}
+
+// ── Card initialisation ──────────────────────────────────────────────────────
+
+function srGetCard(puzzleIndex) {
+    if (!srCards[puzzleIndex]) {
+        srCards[puzzleIndex] = {
+            index:       puzzleIndex,
+            interval:    1,
+            easeFactor:  2.5,
+            repetitions: 0,
+            nextReview:  Date.now(),   // new cards are immediately due
+            due:         true
+        };
+    }
+    return srCards[puzzleIndex];
+}
+
+// ── SM-2 update ──────────────────────────────────────────────────────────────
+//
+//  quality: 5 = perfect, 3 = correct with effort, 0 = total blackout
+//  We map our binary outcome to:
+//    clean solve  → quality 4
+//    had error    → quality 1  (interval resets)
+
+function srApplySM2(card, quality) {
+    // Update ease factor
+    card.easeFactor = Math.max(
+        1.3,
+        card.easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+    );
+
+    if (quality < 3) {
+        // Failed — reset streak
+        card.repetitions = 0;
+        card.interval    = 1;
+    } else {
+        // Passed
+        if (card.repetitions === 0)      card.interval = 1;
+        else if (card.repetitions === 1) card.interval = 6;
+        else                             card.interval = Math.round(card.interval * card.easeFactor);
+
+        card.repetitions++;
+    }
+
+    const msPerDay    = 24 * 60 * 60 * 1000;
+    card.nextReview   = Date.now() + card.interval * msPerDay;
+    card.due          = false;
+}
+
+// ── Queue builder ────────────────────────────────────────────────────────────
+//
+//  Called by srInitSession() to construct PuzzleOrder for this session.
+//  Order: overdue cards (sorted by most overdue first) → new cards → future cards.
+
+function srBuildQueue(totalPuzzles) {
+    srLoadCards();
+
+    const now   = Date.now();
+    const due   = [];
+    const fresh = [];   // never seen
+    const future= [];   // not yet due
+
+    for (let i = 0; i < totalPuzzles; i++) {
+        if (!srCards[i]) {
+            fresh.push(i);
+        } else {
+            const card = srCards[i];
+            card.due = card.nextReview <= now;
+            if (card.due) {
+                due.push({ i, overdue: now - card.nextReview });
+            } else {
+                future.push({ i, nextReview: card.nextReview });
+            }
+        }
+    }
+
+    // Sort overdue by most overdue first, future by soonest first
+    due.sort((a, b) => b.overdue - a.overdue);
+    future.sort((a, b) => a.nextReview - b.nextReview);
+
+    const queue = [
+        ...due.map(x => x.i),
+        ...fresh,
+        ...future.map(x => x.i)
+    ];
+
+    return queue;
+}
+
+// ── Session initialisation ───────────────────────────────────────────────────
+//
+//  Called from startTest() via the hook below when mode is Infinity.
+//  Builds the queue and writes it into PuzzleOrder so the engine works normally.
+
+function srInitSession() {
+    srCurrentPgnFile = ($('#openPGN').val() || 'default').replace(/[^a-zA-Z0-9]/g, '_');
+    const queue = srBuildQueue(puzzleset.length);
+    PuzzleOrder = queue;
+    increment   = 0;
+    srCurrentPuzzleHadError = false;
+    srUpdateStatsDisplay();
+}
+
+// ── Per-puzzle hooks ─────────────────────────────────────────────────────────
+
+function srOnPuzzleStart() {
+    srCurrentPuzzleHadError = false;
+}
+
+function srOnError() {
+    srCurrentPuzzleHadError = true;
+}
+
+function srOnPuzzleComplete() {
+    const puzzleIndex = PuzzleOrder[increment];
+    const card        = srGetCard(puzzleIndex);
+    const quality     = srCurrentPuzzleHadError ? 1 : 4;
+    srApplySM2(card, quality);
+    srSaveCards();
+    srCurrentPuzzleHadError = false;
+    srUpdateStatsDisplay();
+}
+
+// ── Queue cycling ─────────────────────────────────────────────────────────────
+//
+//  After each puzzle in Infinity mode, rebuild the queue from the updated cards.
+//  This means newly-failed puzzles re-appear sooner in the next cycle.
+//  chess-pgn-trainer.js will do increment += 1 after this returns, so we
+//  set increment to -1 here to land on index 0 of the fresh queue.
+
+function srAdvance() {
+    const queue = srBuildQueue(puzzleset.length);
+    PuzzleOrder = queue;
+    increment   = -1;   // caller does += 1, so we start at 0
+}
+
+// ── Stats display ─────────────────────────────────────────────────────────────
+
+function srUpdateStatsDisplay() {
+    let statsDiv = document.getElementById('sr-stats');
+    if (!statsDiv) {
+        statsDiv = document.createElement('div');
+        statsDiv.id = 'sr-stats';
+        statsDiv.className = 'w3-container w3-center w3-margin-bottom w3-small';
+        const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
+        if (landscapeDiv) landscapeDiv.appendChild(statsDiv);
+    }
+
+    if (currentGameMode !== GAME_MODES.INFINITY) {
+        statsDiv.style.display = 'none';
+        return;
+    }
+
+    const now   = Date.now();
+    let due     = 0;
+    let learned = 0;
+    let newCount= 0;
+
+    for (let i = 0; i < puzzleset.length; i++) {
+        if (!srCards[i]) {
+            newCount++;
+        } else {
+            const card = srCards[i];
+            if (card.nextReview <= now) due++;
+            else                        learned++;
+        }
+    }
+
+    statsDiv.innerHTML =
+        `<span style="color:#e53935;">⏰ Due: ${due}</span> &nbsp;|&nbsp; ` +
+        `<span style="color:#43a047;">✓ Learned: ${learned}</span> &nbsp;|&nbsp; ` +
+        `<span style="color:#1e88e5;">★ New: ${newCount}</span>`;
+    statsDiv.style.display = 'block';
+}
 
 // ---------------------------------------------------------------------------
 // Initialisation
 // ---------------------------------------------------------------------------
 
-/**
- * Initialise the game mode system — call once on page load.
- * Wires up the dropdown that already exists in index.html.
- */
 function initializeGameModes() {
     const select = document.getElementById('game-mode-select-manual');
     if (select) {
@@ -137,7 +332,8 @@ function handleModeChange(event) {
 function setGameMode(mode) {
     if (modeState.isActive) {
         if (!confirm('Changing game mode will reset the current session. Continue?')) {
-            document.getElementById('game-mode-select').value = currentGameMode;
+            const select = document.getElementById('game-mode-select-manual');
+            if (select) select.value = currentGameMode;
             return;
         }
         stopModeTimer();
@@ -145,7 +341,6 @@ function setGameMode(mode) {
     }
 
     currentGameMode = mode;
-    // Keep the HTML dropdown in sync if setGameMode() is called programmatically
     const select = document.getElementById('game-mode-select-manual');
     if (select) select.value = mode;
     resetModeState();
@@ -171,9 +366,8 @@ function resetModeState() {
         isActive:       false
     };
 
-    // Reset repetition tracking so a new session always starts from the top
     repetitionSetStartIndex = 0;
-    repetitionSetHadError = false;
+    repetitionSetHadError   = false;
 
     updateModeUI();
 }
@@ -188,6 +382,7 @@ function updateModeUI() {
     updateHintsDisplay();
     updateLevelDisplay();
     toggleModeElements(MODE_CONFIGS[currentGameMode]);
+    srUpdateStatsDisplay();
 }
 
 function updateTimerDisplay() {
@@ -354,15 +549,11 @@ function handleTimeUp() {
 
 // ---------------------------------------------------------------------------
 // Move & puzzle event hooks
-// Called by chess-pgn-trainer.js at the appropriate moments.
 // ---------------------------------------------------------------------------
 
-/**
- * Called after every correct move.
- * Repetition mode ignores individual moves — it only reacts at puzzle completion.
- */
 function handleCorrectMove() {
     if (currentGameMode === GAME_MODES.REPETITION) return;
+    if (currentGameMode === GAME_MODES.INFINITY)   return;  // handled at puzzle level
 
     modeState.totalSolved++;
     if (currentGameMode === GAME_MODES.HASTE) {
@@ -371,19 +562,13 @@ function handleCorrectMove() {
     }
 }
 
-/**
- * Called after every incorrect move.
- *
- * IMPORTANT: must NOT call loadPuzzle() here.
- * chess-pgn-trainer.js calls game.undo() immediately after this returns,
- * so the board is still mid-move. Loading a new puzzle here would corrupt it.
- *
- * For repetition mode we record the error and let shouldContinueToNextPuzzle()
- * decide what to do once the full puzzle is eventually completed.
- */
 function handleIncorrectMove() {
     if (currentGameMode === GAME_MODES.REPETITION) {
-        repetitionSetHadError = true;  // flag the whole set as having an error
+        repetitionSetHadError = true;
+        return;
+    }
+    if (currentGameMode === GAME_MODES.INFINITY) {
+        srOnError();
         return;
     }
     if (currentGameMode === GAME_MODES.THREE) {
@@ -398,23 +583,26 @@ function handleIncorrectMove() {
     }
 }
 
-/**
- * Called by chess-pgn-trainer.js when the user finishes a complete puzzle.
- *
- * For repetition mode: count the puzzle toward the current set only if it
- * was solved without any errors.
- */
 function handlePuzzleComplete() {
-    if (currentGameMode !== GAME_MODES.REPETITION) return;
-
-    if (!repetitionSetHadError) {
-        // Clean solve — count it toward the current set
-        modeState.levelProgress++;
+    if (currentGameMode === GAME_MODES.REPETITION) {
+        if (!repetitionSetHadError) {
+            modeState.levelProgress++;
+        }
+        updateLevelDisplay();
+        return;
     }
-    updateLevelDisplay();
+
+    if (currentGameMode === GAME_MODES.INFINITY) {
+        srOnPuzzleComplete();
+        return;
+    }
 }
 
 function handleHintUsed() {
+    if (currentGameMode === GAME_MODES.INFINITY) {
+        // Treat hint as an error for spaced repetition scoring
+        srOnError();
+    }
     if (MODE_CONFIGS[currentGameMode].hasHints) {
         modeState.hintsRemaining--;
         updateHintsDisplay();
@@ -428,56 +616,49 @@ function handleHintUsed() {
 }
 
 // ---------------------------------------------------------------------------
-// Puzzle advancement logic
+// Puzzle start notification
+// Called from loadPuzzle() in chess-pgn-trainer.js via the hook below.
 // ---------------------------------------------------------------------------
 
-/**
- * Called by chess-pgn-trainer.js after a puzzle completes to decide whether
- * to move forward.  Always returns true — advancement is always wanted —
- * but for repetition mode this function also adjusts `increment` so that
- * chess-pgn-trainer.js lands on the right puzzle after doing `increment += 1`.
- *
- * Repetition set logic:
- *   - Mid-set (< puzzlesPerLevel done): advance normally.
- *   - Full set complete, all clean:     level up, continue forward.
- *   - Full set complete, had errors:    restart the set by rewinding increment.
- *
- * Why `increment = repetitionSetStartIndex - 1`?
- * chess-pgn-trainer.js does `increment += 1` right after this returns, so
- * setting increment to (start - 1) makes it land exactly on the set start.
- *
- * `increment`, `puzzleset`, and `PuzzleOrder` are globals from
- * chess-pgn-trainer.js, visible here because both files share the page scope.
- */
+function handlePuzzleStart() {
+    if (currentGameMode === GAME_MODES.INFINITY) {
+        srOnPuzzleStart();
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Puzzle advancement
+// ---------------------------------------------------------------------------
+
 function shouldContinueToNextPuzzle() {
-    if (currentGameMode === GAME_MODES.INFINITY) return true;
+    if (currentGameMode === GAME_MODES.INFINITY) {
+        // Rebuild the queue after every puzzle so updated card scores take effect.
+        // Set increment to -1 so that after caller does += 1 we land on index 0.
+        srAdvance();
+        return true;
+    }
 
     if (currentGameMode === GAME_MODES.REPETITION) {
         const config = MODE_CONFIGS[GAME_MODES.REPETITION];
         const puzzlesCompletedInSet = (increment - repetitionSetStartIndex) + 1;
 
         if (puzzlesCompletedInSet < config.puzzlesPerLevel) {
-            // Still working through the set — reset per-puzzle error flag and advance
             repetitionSetHadError = false;
             return true;
         }
 
-        // A full set of 20 just finished — check if it was clean
-        const setWasClean = !repetitionSetHadError && modeState.levelProgress >= config.puzzlesPerLevel;
-
-        // Reset for the next set
+        const setWasClean = !repetitionSetHadError &&
+                            modeState.levelProgress >= config.puzzlesPerLevel;
         repetitionSetHadError = false;
 
         if (setWasClean) {
-            // Perfect set — unlock the next level
             modeState.currentLevel++;
-            modeState.levelProgress = 0;
-            repetitionSetStartIndex = increment + 1;
+            modeState.levelProgress  = 0;
+            repetitionSetStartIndex  = increment + 1;
             updateLevelDisplay();
             alert(`Level ${modeState.currentLevel - 1} complete! Starting Level ${modeState.currentLevel}.`);
             return true;
         } else {
-            // Errors were made — restart the same set
             modeState.levelProgress = 0;
             increment = repetitionSetStartIndex - 1;
             updateLevelDisplay();
@@ -486,8 +667,18 @@ function shouldContinueToNextPuzzle() {
         }
     }
 
-    // All other modes: continue while puzzles remain
     return increment + 1 < puzzleset.length;
+}
+
+// ---------------------------------------------------------------------------
+// Hook called by startTest() in chess-pgn-trainer.js
+// Allows Infinity mode to override PuzzleOrder before the first puzzle loads.
+// ---------------------------------------------------------------------------
+
+function onStartTest() {
+    if (currentGameMode === GAME_MODES.INFINITY) {
+        srInitSession();
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -518,7 +709,7 @@ function getModeState()       { return modeState; }
 function isHintAvailable()    { return !MODE_CONFIGS[currentGameMode].hasHints || modeState.hintsRemaining > 0; }
 
 // ---------------------------------------------------------------------------
-// Module export (Node / test environments only)
+// Module export
 // ---------------------------------------------------------------------------
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -527,8 +718,10 @@ if (typeof module !== 'undefined' && module.exports) {
         initializeGameModes, setGameMode,
         getCurrentGameMode, getModeState,
         startModeTimer, stopModeTimer,
-        handleCorrectMove, handleIncorrectMove, handlePuzzleComplete, handleHintUsed,
+        handleCorrectMove, handleIncorrectMove,
+        handlePuzzleComplete, handlePuzzleStart, handleHintUsed,
         isHintAvailable, shouldContinueToNextPuzzle,
-        resetModeState, updateModeUI
+        onStartTest, resetModeState, updateModeUI,
+        srClearCards
     };
 }
