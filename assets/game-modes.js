@@ -107,13 +107,26 @@ let repetitionSetHadError   = false;
 //  the rest of chess-pgn-trainer.js works without modification.
 //
 //  Per-puzzle error tracking uses srCurrentPuzzleHadError (reset each puzzle).
+//
+//  Within-session retry: failed puzzles are reinserted ~4 positions ahead in
+//  the live queue (srQueue), not immediately next and not at the very front.
+//  Cross-session: on clean solve the SM-2 card is updated and saved.
+//  If the session ends while a puzzle is still failing, its card already has
+//  nextReview in the past so it comes back first next session.
 // ---------------------------------------------------------------------------
 
-const SR_STORAGE_PREFIX = 'sr_cards_';
+const SR_STORAGE_PREFIX  = 'sr_cards_';
+const SR_REINSERT_AFTER  = 4;   // reinsert failed card this many puzzles later
 
-let srCards                 = {};   // map: puzzleIndex → card, persisted across sessions
-let srCurrentPgnFile        = '';   // localStorage key suffix
-let srCurrentPuzzleHadError = false;// true if user made any mistake on the current puzzle
+let srCards                 = {};   // puzzleIndex → SM-2 card, persisted to localStorage
+let srCurrentPgnFile        = '';   // key suffix for localStorage
+let srCurrentPuzzleHadError = false;// true if any wrong move on the current puzzle
+let srQueue                 = [];   // live ordered list of puzzle indices for this session
+// srQueue is the source of truth within a session; PuzzleOrder is kept in sync.
+// Failed puzzles are spliced back into srQueue at position (currentPos + SR_REINSERT_AFTER).
+// srPendingRetry tracks which puzzles are currently awaiting a retry in srQueue,
+// so we don't apply SM-2 until they're solved cleanly.
+let srPendingRetry          = new Set();
 
 // ── Persistence ─────────────────────────────────────────────────────────────
 
@@ -143,7 +156,7 @@ function srGetCard(puzzleIndex) {
             index:       puzzleIndex,
             interval:    1,
             easeFactor:  2.5,
-            repetitions: 0,           // consecutive clean solves
+            repetitions: 0,
             nextReview:  Date.now(),  // new cards are immediately due
             due:         true
         };
@@ -152,12 +165,10 @@ function srGetCard(puzzleIndex) {
 }
 
 // ── SM-2 update ──────────────────────────────────────────────────────────────
-//  Called on every puzzle completion, pass or fail.
-//
-//  quality 4 = clean solve (no errors)
-//  quality 1 = completed but had errors → interval resets to 1 day,
-//              nextReview = now so it's immediately due again this session
-//              AND comes back first thing next session.
+//  Only called on a CLEAN solve (no errors, or cleaned up after retry).
+//  quality 4 = first-time clean; quality 1 = eventually cleaned after errors.
+//  Failed cards pending retry keep nextReview in the past so they're overdue
+//  if the session ends before they're solved.
 
 function srApplySM2(card, quality) {
     card.easeFactor = Math.max(
@@ -168,14 +179,13 @@ function srApplySM2(card, quality) {
     const msPerDay = 24 * 60 * 60 * 1000;
 
     if (quality < 3) {
-        // Failed — reset streak, set nextReview to right now so the card is
-        // immediately overdue both within this session and next time they return.
+        // Shouldn't happen in normal flow (we only call SM-2 on clean solve)
+        // but guard just in case.
         card.repetitions = 0;
         card.interval    = 1;
-        card.nextReview  = Date.now() - 1; // 1ms in the past = always overdue
+        card.nextReview  = Date.now() - 1;
         card.due         = true;
     } else {
-        // Clean solve — advance interval per SM-2
         if (card.repetitions === 0)      card.interval = 1;
         else if (card.repetitions === 1) card.interval = 6;
         else card.interval = Math.round(card.interval * card.easeFactor);
@@ -186,12 +196,11 @@ function srApplySM2(card, quality) {
     }
 }
 
-// ── Queue builder ────────────────────────────────────────────────────────────
-//  Rebuilds PuzzleOrder on every advance.
-//  Order: overdue (most overdue first) → new (never attempted) → future (not yet due).
-//  Because failed cards get nextReview in the past, they always sort to the top.
+// ── Initial queue builder ────────────────────────────────────────────────────
+//  Builds the queue at session start from card history.
+//  Order: overdue (most overdue first) → new (never seen) → future (not yet due).
 
-function srBuildQueue(totalPuzzles) {
+function srBuildInitialQueue(totalPuzzles) {
     const now    = Date.now();
     const due    = [];
     const fresh  = [];
@@ -223,9 +232,11 @@ function srBuildQueue(totalPuzzles) {
 function srInitSession() {
     srCurrentPgnFile        = ($('#openPGN').val() || 'default').replace(/[^a-zA-Z0-9]/g, '_');
     srCurrentPuzzleHadError = false;
+    srPendingRetry          = new Set();
     srLoadCards();
 
-    PuzzleOrder = srBuildQueue(puzzleset.length);
+    srQueue     = srBuildInitialQueue(puzzleset.length);
+    PuzzleOrder = srQueue;
     increment   = 0;
     srUpdateStatsDisplay();
 }
@@ -241,29 +252,65 @@ function srOnError() {
 }
 
 function srOnPuzzleComplete() {
-    const puzzleIndex = PuzzleOrder[increment];
-    const card        = srGetCard(puzzleIndex);
+    const puzzleIndex  = srQueue[increment];
+    const wasInRetry   = srPendingRetry.has(puzzleIndex);
 
-    // Always apply SM-2 immediately — quality 1 for errors, 4 for clean.
-    // A failed card gets nextReview = now-1ms, making it overdue instantly.
-    // srBuildQueue will therefore put it back at the front of the next queue,
-    // both within this session and when the user returns another day.
-    const quality = srCurrentPuzzleHadError ? 1 : 4;
+    if (srCurrentPuzzleHadError) {
+        // Failed this attempt.
+        // 1. Mark the card as overdue right now so it survives a session close.
+        const card = srGetCard(puzzleIndex);
+        card.nextReview = Date.now() - 1;
+        card.due        = true;
+        srSaveCards();
+
+        // 2. Add to pending retry set so we know it needs a clean solve.
+        srPendingRetry.add(puzzleIndex);
+
+        // 3. Reinsert into srQueue ~SR_REINSERT_AFTER positions ahead.
+        //    We insert AFTER increment because increment hasn't been bumped yet
+        //    (caller does += 1 after this returns via srAdvance → no-op path).
+        const insertAt = Math.min(
+            increment + SR_REINSERT_AFTER,
+            srQueue.length   // append at end if queue is short
+        );
+        srQueue.splice(insertAt, 0, puzzleIndex);
+        PuzzleOrder = srQueue;
+
+        srCurrentPuzzleHadError = false;
+        srUpdateStatsDisplay();
+        return;
+    }
+
+    // Clean solve.
+    // Determine quality: penalised (1) if this was a retry, full (4) if first-time clean.
+    const quality = wasInRetry ? 1 : 4;
+    const card    = srGetCard(puzzleIndex);
     srApplySM2(card, quality);
     srSaveCards();
+
+    // Remove from pending retry — it's been mastered for this session.
+    srPendingRetry.delete(puzzleIndex);
 
     srCurrentPuzzleHadError = false;
     srUpdateStatsDisplay();
 }
 
-// ── Queue cycling ─────────────────────────────────────────────────────────────
-//  Rebuild PuzzleOrder after every puzzle so the updated card scores take
-//  effect immediately.  Failed cards (nextReview in the past) sort to front.
-//  increment = -1 because caller does += 1 before loadPuzzle.
+// ── Queue advance ─────────────────────────────────────────────────────────────
+//  For Infinity mode, PuzzleOrder = srQueue is already updated by srOnPuzzleComplete.
+//  We just let increment advance normally (caller does += 1).
+//  When increment would go past the end of srQueue, wrap back to 0 so the
+//  session loops rather than ending.
 
 function srAdvance() {
-    PuzzleOrder = srBuildQueue(puzzleset.length);
-    increment   = -1;
+    // If increment + 1 would exceed the queue, loop from the start of whatever
+    // remains (due/new cards may have been reinserted or the queue just cycles).
+    if (increment + 1 >= srQueue.length) {
+        // Rebuild queue for the next loop — picks up any newly-due cards.
+        srQueue     = srBuildInitialQueue(puzzleset.length);
+        PuzzleOrder = srQueue;
+        increment   = -1;  // caller does += 1, lands on 0
+    }
+    // else: just let caller do increment += 1 normally.
 }
 
 // ── Stats display ─────────────────────────────────────────────────────────────
@@ -284,20 +331,21 @@ function srUpdateStatsDisplay() {
     }
 
     const now    = Date.now();
-    let due      = 0;
+    let due      = srPendingRetry.size;  // currently failing this session
     let learned  = 0;
     let newCount = 0;
 
     for (let i = 0; i < puzzleset.length; i++) {
+        if (srPendingRetry.has(i)) continue;  // already counted above
         const card = srCards[i];
         if (!card) {
             newCount++;
         } else if (card.nextReview <= now) {
-            due++;      // overdue — includes failed cards from this or previous sessions
+            due++;      // overdue from a previous session
         } else if (card.repetitions > 0) {
-            learned++;  // at least one clean solve, not yet due
+            learned++;  // at least one clean solve, scheduled for future
         } else {
-            newCount++; // seen but never cleanly solved, not currently due (edge case)
+            newCount++; // seen but no clean solve yet, not currently pending
         }
     }
 
