@@ -468,12 +468,12 @@ function shouldContinueToNextPuzzle() {
         if (!hadErrors && modeState.levelProgress >= config.puzzlesPerLevel) {
             // Perfect set — unlock the next level
             modeState.currentLevel++;
-            modeState.levelProgress  = 0;
-            repetitionSetStartIndex  = increment + 1;  // next puzzle starts the new set
+            modeState.levelProgress = 0;
+            repetitionSetStartIndex = increment + 1;  // next puzzle starts the new set
             updateLevelDisplay();
-            setTimeout(() => alert(
-                `Level ${modeState.currentLevel - 1} complete! Starting Level ${modeState.currentLevel}.`
-            ), 50);
+            // Alert synchronously here so it fires BEFORE chess-pgn-trainer.js
+            // calls loadPuzzle(), keeping the board setup and drag handlers intact.
+            alert(`Level ${modeState.currentLevel - 1} complete! Starting Level ${modeState.currentLevel}.`);
             return true;
         } else {
             // Errors were made — restart the same set
@@ -482,9 +482,7 @@ function shouldContinueToNextPuzzle() {
             // it loads the first puzzle of the current set again.
             increment = repetitionSetStartIndex - 1;
             updateLevelDisplay();
-            setTimeout(() => alert(
-                `Set not clean. Restarting Level ${modeState.currentLevel}.`
-            ), 50);
+            alert(`Set not clean. Restarting Level ${modeState.currentLevel}.`);
             return true;
         }
     }
