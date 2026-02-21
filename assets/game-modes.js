@@ -115,75 +115,14 @@ let repetitionSetStartIndex = 0;  // value of `increment` when the current set b
 
 /**
  * Initialise the game mode system — call once on page load.
+ * Wires up the dropdown that already exists in index.html.
  */
 function initializeGameModes() {
-    createModeSelector();
+    const select = document.getElementById('game-mode-select-manual');
+    if (select) {
+        select.addEventListener('change', handleModeChange);
+    }
     resetModeState();
-}
-
-// ---------------------------------------------------------------------------
-// Mode selector UI
-// ---------------------------------------------------------------------------
-
-function createModeSelector() {
-    // If a select already exists in the HTML, just attach the event listener
-    // and description display — don't inject a second dropdown.
-    const existing = document.getElementById('game-mode-select');
-    if (existing) {
-        existing.addEventListener('change', handleModeChange);
-        createModeInfoDisplay();
-        return;
-    }
-
-    const modeSelector = document.createElement('div');
-    modeSelector.id = 'mode-selector';
-    modeSelector.className = 'w3-container w3-margin-bottom';
-
-    const label = document.createElement('label');
-    label.textContent = 'Game Mode: ';
-    label.className = 'w3-text-indigo';
-
-    const select = document.createElement('select');
-    select.id = 'game-mode-select';
-    select.className = 'w3-select w3-border w3-round';
-    select.style.width = '200px';
-    select.style.display = 'inline-block';
-    select.style.marginLeft = '8px';
-
-    Object.entries(MODE_CONFIGS).forEach(([key, config]) => {
-        const option = document.createElement('option');
-        option.value = key;
-        option.textContent = config.name;
-        select.appendChild(option);
-    });
-
-    select.addEventListener('change', handleModeChange);
-
-    modeSelector.appendChild(label);
-    modeSelector.appendChild(select);
-
-    const pgnContainer = document.querySelector('p');
-    pgnContainer.parentNode.insertBefore(modeSelector, pgnContainer.nextSibling);
-
-    createModeInfoDisplay();
-}
-
-function createModeInfoDisplay() {
-    const infoDiv = document.createElement('div');
-    infoDiv.id = 'mode-info';
-    infoDiv.className = 'w3-container w3-margin-bottom w3-small w3-text-grey';
-
-    const modeSelector = document.getElementById('mode-selector');
-    modeSelector.parentNode.insertBefore(infoDiv, modeSelector.nextSibling);
-
-    updateModeInfo();
-}
-
-function updateModeInfo() {
-    const infoDiv = document.getElementById('mode-info');
-    if (infoDiv) {
-        infoDiv.textContent = MODE_CONFIGS[currentGameMode].description;
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -205,8 +144,10 @@ function setGameMode(mode) {
     }
 
     currentGameMode = mode;
+    // Keep the HTML dropdown in sync if setGameMode() is called programmatically
+    const select = document.getElementById('game-mode-select-manual');
+    if (select) select.value = mode;
     resetModeState();
-    updateModeInfo();
     updateModeUI();
 }
 
