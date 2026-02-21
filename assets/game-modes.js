@@ -108,6 +108,7 @@ let modeState = {
 // Repetition-mode internal tracking
 // (replaces the variables that lived in repetition-mode.js)
 let repetitionSetStartIndex = 0;  // value of `increment` when the current set began
+let repetitionSetHadError = false; // true if any puzzle in the current set had an error
 
 // ---------------------------------------------------------------------------
 // Initialisation
@@ -172,6 +173,7 @@ function resetModeState() {
 
     // Reset repetition tracking so a new session always starts from the top
     repetitionSetStartIndex = 0;
+    repetitionSetHadError = false;
 
     updateModeUI();
 }
@@ -381,7 +383,7 @@ function handleCorrectMove() {
  */
 function handleIncorrectMove() {
     if (currentGameMode === GAME_MODES.REPETITION) {
-        modeState.levelErrors++;
+        repetitionSetHadError = true;  // flag the whole set as having an error
         return;
     }
     if (currentGameMode === GAME_MODES.THREE) {
@@ -405,12 +407,11 @@ function handleIncorrectMove() {
 function handlePuzzleComplete() {
     if (currentGameMode !== GAME_MODES.REPETITION) return;
 
-    if (modeState.levelErrors === 0) {
+    if (!repetitionSetHadError) {
         // Clean solve — count it toward the current set
         modeState.levelProgress++;
     }
     updateLevelDisplay();
-    // levelErrors is reset for the next puzzle inside shouldContinueToNextPuzzle()
 }
 
 function handleHintUsed() {
@@ -455,31 +456,29 @@ function shouldContinueToNextPuzzle() {
         const config = MODE_CONFIGS[GAME_MODES.REPETITION];
         const puzzlesCompletedInSet = (increment - repetitionSetStartIndex) + 1;
 
-        // Reset per-puzzle error counter for the upcoming puzzle
-        const hadErrors = modeState.levelErrors > 0;
-        modeState.levelErrors = 0;
-
         if (puzzlesCompletedInSet < config.puzzlesPerLevel) {
-            // Still working through the set — just advance
+            // Still working through the set — reset per-puzzle error flag and advance
+            repetitionSetHadError = false;
             return true;
         }
 
-        // A full set of 20 just finished
-        if (!hadErrors && modeState.levelProgress >= config.puzzlesPerLevel) {
+        // A full set of 20 just finished — check if it was clean
+        const setWasClean = !repetitionSetHadError && modeState.levelProgress >= config.puzzlesPerLevel;
+
+        // Reset for the next set
+        repetitionSetHadError = false;
+
+        if (setWasClean) {
             // Perfect set — unlock the next level
             modeState.currentLevel++;
             modeState.levelProgress = 0;
-            repetitionSetStartIndex = increment + 1;  // next puzzle starts the new set
+            repetitionSetStartIndex = increment + 1;
             updateLevelDisplay();
-            // Alert synchronously here so it fires BEFORE chess-pgn-trainer.js
-            // calls loadPuzzle(), keeping the board setup and drag handlers intact.
             alert(`Level ${modeState.currentLevel - 1} complete! Starting Level ${modeState.currentLevel}.`);
             return true;
         } else {
             // Errors were made — restart the same set
             modeState.levelProgress = 0;
-            // Rewind so that after chess-pgn-trainer does increment += 1,
-            // it loads the first puzzle of the current set again.
             increment = repetitionSetStartIndex - 1;
             updateLevelDisplay();
             alert(`Set not clean. Restarting Level ${modeState.currentLevel}.`);
