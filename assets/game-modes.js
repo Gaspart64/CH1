@@ -126,6 +126,15 @@ function initializeGameModes() {
 // ---------------------------------------------------------------------------
 
 function createModeSelector() {
+    // If a select already exists in the HTML, just attach the event listener
+    // and description display — don't inject a second dropdown.
+    const existing = document.getElementById('game-mode-select');
+    if (existing) {
+        existing.addEventListener('change', handleModeChange);
+        createModeInfoDisplay();
+        return;
+    }
+
     const modeSelector = document.createElement('div');
     modeSelector.id = 'mode-selector';
     modeSelector.className = 'w3-container w3-margin-bottom';
