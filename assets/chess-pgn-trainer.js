@@ -600,8 +600,12 @@ function checkAndPlayNext() {
                         handlePuzzleComplete();
                 }
 
-                // Check to see if this is the last puzzle
-                if (increment + 1 === puzzleset.length) {
+                // Check to see if this is the last puzzle.
+                // For SR/Infinity mode, defer to the mode — the queue may be
+                // longer than puzzleset.length due to reinserted retries.
+                const isInfinityMode = typeof getCurrentGameMode === 'function' &&
+                        getCurrentGameMode() === 'infinity';
+                if (!isInfinityMode && increment + 1 === puzzleset.length) {
                         setcomplete = true;
                 }
 
@@ -612,12 +616,6 @@ function checkAndPlayNext() {
                 // Are there more puzzles to go?  If yes, load the next one in the sequence
                 if (shouldContinue) {
                         increment += 1;
-                        
-                        // Handle infinity mode - cycle back to beginning if needed
-                        if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'infinity' && increment >= puzzleset.length) {
-                                increment = 0;
-                        }
-                        
                         loadPuzzle(puzzleset[PuzzleOrder[increment]]);
                 }
         }
