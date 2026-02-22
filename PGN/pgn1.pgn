@@ -105,3 +105,75 @@
 [Remark ""]
 
 1. Qg5+ hxg5 2. Bxg5# 1-0
+
+[Event "Tactics-01, Unit-06, Ex-011"]
+[Site ""]
+[Date "????.??.??"]
+[Round "?"]
+[White ""]
+[Black ""]
+[Result "1-0"]
+[WhiteElo "0"]
+[BlackElo "0"]
+[ECO "?"]
+[Annotator ""]
+[SetUp "1"]
+[FEN "r2r1n2/2p4k/p1P1p2q/1p1b1p1Q/3P1P1b/3BB3/PP5P/2K3R1 w - - 0 1"]
+[Source ""]
+[Remark ""]
+
+1. Qf7+ Kh8 2. Rg8# 1-0
+
+[Event "Tactics-01, Unit-06, Ex-012"]
+[Site ""]
+[Date "????.??.??"]
+[Round "?"]
+[White ""]
+[Black ""]
+[Result "1-0"]
+[WhiteElo "0"]
+[BlackElo "0"]
+[ECO "?"]
+[Annotator ""]
+[SetUp "1"]
+[FEN "3R4/p3Qbkp/1p6/2p2qP1/2P5/8/P3K3/8 w - - 0 1"]
+[Source ""]
+[Remark ""]
+
+1. Qf8+ Kg6 2. Qh6# 1-0
+
+[Event "Tactics-01, Unit-06, Ex-013"]
+[Site ""]
+[Date "????.??.??"]
+[Round "?"]
+[White ""]
+[Black ""]
+[Result "0-1"]
+[WhiteElo "0"]
+[BlackElo "0"]
+[ECO "?"]
+[Annotator ""]
+[SetUp "1"]
+[FEN "1r4k1/2p2ppp/8/1qP5/R3Q3/1rP2P2/4N1PP/K6R b - - 0 1"]
+[Source ""]
+[Remark ""]
+
+1... Ra3+ 2. Rxa3 Qb2# 0-1
+
+[Event "Tactics-01, Unit-06, Ex-014"]
+[Site ""]
+[Date "????.??.??"]
+[Round "?"]
+[White ""]
+[Black ""]
+[Result "0-1"]
+[WhiteElo "0"]
+[BlackElo "0"]
+[ECO "?"]
+[Annotator ""]
+[SetUp "1"]
+[FEN "1k4r1/pp3Q2/P4p2/1Pb1pP2/4P3/3rq2P/2R3PK/R7 b - - 0 1"]
+[Source ""]
+[Remark ""]
+
+1... Rxg2+ 2. Rxg2 Qxh3# 0-1
