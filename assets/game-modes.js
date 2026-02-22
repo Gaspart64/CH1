@@ -296,21 +296,32 @@ function srOnPuzzleComplete() {
 }
 
 // ── Queue advance ─────────────────────────────────────────────────────────────
-//  For Infinity mode, PuzzleOrder = srQueue is already updated by srOnPuzzleComplete.
-//  We just let increment advance normally (caller does += 1).
-//  When increment would go past the end of srQueue, wrap back to 0 so the
-//  session loops rather than ending.
+//  Called by shouldContinueToNextPuzzle after every puzzle.
+//  PuzzleOrder/srQueue may already have retries spliced in by srOnPuzzleComplete.
+//  We only need to act when increment + 1 would run off the end of the queue.
 
 function srAdvance() {
-    // If increment + 1 would exceed the queue, loop from the start of whatever
-    // remains (due/new cards may have been reinserted or the queue just cycles).
-    if (increment + 1 >= srQueue.length) {
-        // Rebuild queue for the next loop — picks up any newly-due cards.
-        srQueue     = srBuildInitialQueue(puzzleset.length);
-        PuzzleOrder = srQueue;
-        increment   = -1;  // caller does += 1, lands on 0
+    const nextIncrement = increment + 1;
+
+    if (nextIncrement < srQueue.length) {
+        // Queue still has items — just let caller do increment += 1 normally.
+        return;
     }
-    // else: just let caller do increment += 1 normally.
+
+    // Reached the end of the queue.
+    // Rebuild, but always keep pending retries at the front.
+    const retryList = [...srPendingRetry];
+    const baseQueue = srBuildInitialQueue(puzzleset.length);
+
+    // baseQueue already excludes nothing — pending retries will appear in it
+    // as overdue (nextReview in the past). Put them explicitly at the front
+    // and remove duplicates from the rest.
+    const retrySet  = new Set(retryList);
+    const remainder = baseQueue.filter(i => !retrySet.has(i));
+
+    srQueue     = [...retryList, ...remainder];
+    PuzzleOrder = srQueue;
+    increment   = -1;  // caller does += 1, lands on 0
 }
 
 // ── Stats display ─────────────────────────────────────────────────────────────
@@ -679,8 +690,8 @@ function handlePuzzleStart() {
 
 function shouldContinueToNextPuzzle() {
     if (currentGameMode === GAME_MODES.INFINITY) {
-        // Rebuild the queue after every puzzle so updated card scores take effect.
-        // Set increment to -1 so that after caller does += 1 we land on index 0.
+        // Let srAdvance manage the queue. Always return true — the session
+        // never ends naturally in SR mode; the user stops when they choose to.
         srAdvance();
         return true;
     }
