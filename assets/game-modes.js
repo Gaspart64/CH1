@@ -297,31 +297,40 @@ function srOnPuzzleComplete() {
 
 // ── Queue advance ─────────────────────────────────────────────────────────────
 //  Called by shouldContinueToNextPuzzle after every puzzle.
-//  PuzzleOrder/srQueue may already have retries spliced in by srOnPuzzleComplete.
-//  We only need to act when increment + 1 would run off the end of the queue.
+//  Returns true if there is a next puzzle to load, false if the session is done.
 
 function srAdvance() {
     const nextIncrement = increment + 1;
 
     if (nextIncrement < srQueue.length) {
-        // Queue still has items — just let caller do increment += 1 normally.
-        return;
+        // Queue still has items ahead — continue normally.
+        return true;
     }
 
-    // Reached the end of the queue.
-    // Rebuild, but always keep pending retries at the front.
+    // Reached the end of the queue. Check if there's anything left to do.
+    const now       = Date.now();
+    const hasPending = srPendingRetry.size > 0;
+    const hasDueOrNew = [...Array(puzzleset.length).keys()].some(i => {
+        if (srPendingRetry.has(i)) return false; // already counted
+        const card = srCards[i];
+        return !card || card.nextReview <= now;  // new or overdue
+    });
+
+    if (!hasPending && !hasDueOrNew) {
+        // Nothing left due or pending — session is genuinely complete.
+        return false;
+    }
+
+    // There are still pending retries or due cards — rebuild queue and continue.
     const retryList = [...srPendingRetry];
     const baseQueue = srBuildInitialQueue(puzzleset.length);
-
-    // baseQueue already excludes nothing — pending retries will appear in it
-    // as overdue (nextReview in the past). Put them explicitly at the front
-    // and remove duplicates from the rest.
     const retrySet  = new Set(retryList);
     const remainder = baseQueue.filter(i => !retrySet.has(i));
 
     srQueue     = [...retryList, ...remainder];
     PuzzleOrder = srQueue;
     increment   = -1;  // caller does += 1, lands on 0
+    return true;
 }
 
 // ── Stats display ─────────────────────────────────────────────────────────────
@@ -690,10 +699,14 @@ function handlePuzzleStart() {
 
 function shouldContinueToNextPuzzle() {
     if (currentGameMode === GAME_MODES.INFINITY) {
-        // Let srAdvance manage the queue. Always return true — the session
-        // never ends naturally in SR mode; the user stops when they choose to.
-        srAdvance();
-        return true;
+        const hasMore = srAdvance();
+        if (!hasMore) {
+            // All due and pending puzzles solved — show completion message.
+            setTimeout(() => {
+                alert('Session complete! All due puzzles have been solved. Come back tomorrow for your next review.');
+            }, 50);
+        }
+        return hasMore;
     }
 
     if (currentGameMode === GAME_MODES.REPETITION) {
