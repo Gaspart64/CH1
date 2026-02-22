@@ -617,6 +617,9 @@ function checkAndPlayNext() {
                 if (shouldContinue) {
                         increment += 1;
                         loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+                } else if (isInfinityMode) {
+                        // SR session complete — trigger end-of-session UI
+                        setcomplete = true;
                 }
         }
 
