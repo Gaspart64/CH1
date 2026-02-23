@@ -119,6 +119,7 @@ function saveCurrentGameProgress() {
                 pauseDateTimeTotal: pauseDateTimeTotal,
                 startDateTime: startDateTime.getTime(),
                 lastSelectedPgnFile: $('#openPGN').val(),
+                gameMode: typeof getCurrentGameMode === 'function' ? getCurrentGameMode() : 'standard',
                 timestamp: new Date().getTime()
         };
 
@@ -145,6 +146,11 @@ function resumeSavedGame() {
 
         if (savedState.lastSelectedPgnFile) {
                 $('#openPGN').val(savedState.lastSelectedPgnFile);
+        }
+
+        // Restore game mode
+        if (savedState.gameMode && typeof setGameMode === 'function') {
+                setGameMode(savedState.gameMode);
         }
 
         // Setup UI for the resumed game
@@ -594,8 +600,12 @@ function checkAndPlayNext() {
                         handlePuzzleComplete();
                 }
 
-                // Check to see if this is the last puzzle
-                if (increment + 1 === puzzleset.length) {
+                // Check to see if this is the last puzzle.
+                // For SR/Infinity mode, defer to the mode — the queue may be
+                // longer than puzzleset.length due to reinserted retries.
+                const isInfinityMode = typeof getCurrentGameMode === 'function' &&
+                        getCurrentGameMode() === 'infinity';
+                if (!isInfinityMode && increment + 1 === puzzleset.length) {
                         setcomplete = true;
                 }
 
@@ -606,13 +616,10 @@ function checkAndPlayNext() {
                 // Are there more puzzles to go?  If yes, load the next one in the sequence
                 if (shouldContinue) {
                         increment += 1;
-                        
-                        // Handle infinity mode - cycle back to beginning if needed
-                        if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'infinity' && increment >= puzzleset.length) {
-                                increment = 0;
-                        }
-                        
                         loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+                } else if (isInfinityMode) {
+                        // SR session complete — trigger end-of-session UI
+                        setcomplete = true;
                 }
         }
 
@@ -920,6 +927,11 @@ function startTest() {
                 updateModeUI();
         }
 
+        // Allow game mode to override PuzzleOrder before first puzzle loads
+        if (typeof onStartTest === 'function') {
+                onStartTest();
+        }
+
         // Now just need to send the desired puzzle to the board.
         loadPuzzle(puzzleset[PuzzleOrder[increment]]);
 }
@@ -988,6 +1000,11 @@ function loadPuzzle(PGNPuzzle) {
         // Set the error flag to false for this puzzle (ie: only count 1 error per puzzle)
         error = false;
         puzzlecomplete = false;
+
+        // Notify game mode that a new puzzle is starting
+        if (typeof handlePuzzleStart === 'function') {
+                handlePuzzleStart();
+        }
 
         // Load the board position into memory
         game = new Chess(PGNPuzzle.FEN);
