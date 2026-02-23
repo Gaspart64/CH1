@@ -11,7 +11,6 @@
 /* global Chess, PgnParser, FileReader */
 /* global $, document, localStorage, alert, navigator, window */
 /* global w3_close, showresults */
-/* global Chessboard, COLOR, INPUT_EVENT_TYPE, PromotionDialog, PROMOTION_DIALOG_RESULT_TYPE, CM_ASSETS_URL */
 
 /* eslint no-unused-vars: ["error", { "vars": "all", "args": "none"}] */
 
@@ -82,7 +81,7 @@ let messagelist = ['#messagecomplete', '#puzzlename_landscape', '#puzzlename_por
 
 // cm-chessboard: assetsUrl points to the cm-chessboard assets folder you downloaded.
 // See MIGRATION.md for setup instructions.
-const CM_ASSETS_URL = './assets/cm-chessboard/';
+const CM_ASSETS_URL = './assets/cm-chessboard/assets/';
 
 // pieceThemePath is kept for the promotion dialog image population (getPieces).
 // cm-chessboard uses its own SVG sprite for rendering pieces on the board.
@@ -764,19 +763,17 @@ function resetGame() {
                 board = null;
         }
 
-        // Create the cm-chessboard instance with move input enabled.
-        // assetsUrl must point to the folder containing the 'pieces' subfolder.
-        // sprite.url is set explicitly to avoid 404s from the wrong default path.
+        // Create the cm-chessboard instance with move input enabled
         board = new Chessboard(document.getElementById('myBoard'), {
                 position: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
                 assetsUrl: CM_ASSETS_URL,
-                assetsCache: false,
                 style: {
                         cssClass: 'default',
                         showCoordinates: true,
                         pieces: { file: 'pieces/staunty.svg' }
                 },
                 extensions: [
+                        { class: Markers },
                         { class: PromotionDialog }
                 ]
         });
