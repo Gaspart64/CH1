@@ -781,8 +781,8 @@ function resetGame() {
                 ]
         });
 
-        // Wire up move input — handler defined below in handleMoveInput()
-        board.enableMoveInput(handleMoveInput);
+        // Move input is enabled per-puzzle in loadPuzzle(), not here,
+        // because it must be set after the position and orientation are established.
 
         // Set the counters back to zero
         $('#puzzleNumber_landscape').text('0');
@@ -1069,6 +1069,11 @@ function loadPuzzle(PGNPuzzle) {
         indicateMove();
 
         changecolor();
+
+        // Enable move input for this puzzle.
+        // Must be called after setPosition/setOrientation so cm-chessboard
+        // knows the current position when the user clicks.
+        board.enableMoveInput(handleMoveInput);
 }
 
 
@@ -1134,6 +1139,7 @@ function handleMoveInput(event) {
                                         if (!result || result.type === PROMOTION_DIALOG_RESULT_TYPE.canceled) {
                                                 // User cancelled — reset the board position
                                                 board.setPosition(game.fen(), false);
+                                                board.enableMoveInput(handleMoveInput);
                                                 return;
                                         }
                                         const promotionPiece = result.piece.charAt(1); // e.g. 'wq' → 'q'
@@ -1142,6 +1148,7 @@ function handleMoveInput(event) {
                                         board.setPosition(game.fen(), true);
                                         checkAndPlayNext();
                                         indicateMove();
+                                        board.enableMoveInput(handleMoveInput);
                                         $('#btn_hint_landscape').text('Hint');
                                         $('#btn_hint_portrait').text('Hint');
                                 });
@@ -1152,9 +1159,13 @@ function handleMoveInput(event) {
                 moveCfg = { from: source, to: target, promotion: 'q' };
                 makeMove(game, moveCfg);
 
-                // Update board to reflect castling / en-passant side effects
+                // Update board to reflect castling / en-passant side effects,
+                // then re-enable move input for the next move.
                 event.chessboard.state.moveInputProcess.then(() => {
                         board.setPosition(game.fen(), true);
+                        if (!puzzlecomplete) {
+                                board.enableMoveInput(handleMoveInput);
+                        }
                 });
 
                 checkAndPlayNext();
