@@ -368,8 +368,7 @@ function initalize() {
 
         loadSettings();
         addPieceSetNames();
-        changePieces();
-        resetGame();
+        changePieces(); // changePieces() calls resetGame() internally — don't call it again
 
         // Try to resume a saved game
         setTimeout(() => {
@@ -762,6 +761,10 @@ function resetGame() {
                 board.destroy();
                 board = null;
         }
+        // Clear the DOM element — cm-chessboard appends SVG children and
+        // destroy() may not remove them, causing multiple boards on screen.
+        const boardEl = document.getElementById('myBoard');
+        if (boardEl) boardEl.innerHTML = '';
 
         // Create the cm-chessboard instance with move input enabled
         board = new Chessboard(document.getElementById('myBoard'), {
