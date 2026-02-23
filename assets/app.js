@@ -1,9 +1,5 @@
 /**
  * app.js — ES Module entry point for Chess PGN Trainer
- *
- * cm-chessboard is an ES module and cannot be loaded with a plain <script> tag.
- * This file imports it and re-exports the symbols the app needs as globals,
- * then dynamically loads the remaining non-module app scripts in order.
  */
 
 import {
@@ -11,11 +7,6 @@ import {
     COLOR,
     INPUT_EVENT_TYPE
 } from './cm-chessboard/src/Chessboard.js';
-
-import {
-    Markers,
-    MARKER_TYPE
-} from './cm-chessboard/src/extensions/markers/Markers.js';
 
 import {
     PromotionDialog,
@@ -26,8 +17,6 @@ import {
 window.Chessboard                   = Chessboard;
 window.COLOR                        = COLOR;
 window.INPUT_EVENT_TYPE             = INPUT_EVENT_TYPE;
-window.MARKER_TYPE                  = MARKER_TYPE;
-window.Markers                      = Markers;
 window.PromotionDialog              = PromotionDialog;
 window.PROMOTION_DIALOG_RESULT_TYPE = PROMOTION_DIALOG_RESULT_TYPE;
 window.CM_ASSETS_URL                = './assets/cm-chessboard/assets/';
@@ -50,12 +39,20 @@ async function loadScript(src) {
         await loadScript('./assets/chess-pgn-trainer.js');
         await loadScript('./assets/piece-list.js');
 
-        // Scripts are now fully loaded — safe to initialise the app.
-        // This replaces the body onload="initalize()" attribute which fires
-        // before ES modules finish loading.
+        // All scripts loaded — safe to initialise.
+        // body onload="initalize()" has been removed; we call it here instead.
         if (typeof initalize === 'function') {
             initalize();
         }
+
+        // Wire up resize here instead of body onresize="resizeBoards()"
+        // so the function is guaranteed to exist when it fires.
+        window.addEventListener('resize', () => {
+            if (typeof resizeBoards === 'function') {
+                resizeBoards();
+            }
+        });
+
     } catch (err) {
         console.error('App failed to load:', err);
     }
