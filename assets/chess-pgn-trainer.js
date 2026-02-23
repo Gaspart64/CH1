@@ -81,7 +81,7 @@ let messagelist = ['#messagecomplete', '#puzzlename_landscape', '#puzzlename_por
 
 // cm-chessboard: assetsUrl points to the cm-chessboard assets folder you downloaded.
 // See MIGRATION.md for setup instructions.
-const CM_ASSETS_URL = './assets/cm-chessboard/';
+const CM_ASSETS_URL = './assets/cm-chessboard/assets/';
 
 // pieceThemePath is kept for the promotion dialog image population (getPieces).
 // cm-chessboard uses its own SVG sprite for rendering pieces on the board.
