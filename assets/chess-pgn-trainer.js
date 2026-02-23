@@ -8,7 +8,7 @@
 /* eslint semi: ["error"] */
 
 /* eslint no-undef: "error"*/
-/* global Chess, Chessboard, PgnParser, FileReader */
+/* global Chess, PgnParser, FileReader */
 /* global $, document, localStorage, alert, navigator, window */
 /* global w3_close, showresults */
 
@@ -31,7 +31,7 @@ Features for this version:
 // Board & Overall configuration-related variables
 const version = '1.8.2';
 let board;
-let blankBoard;
+// blankBoard element is used for pause overlay (no longer a Chessboard instance)
 let pieceThemePath;
 let game;
 let config;
@@ -79,23 +79,15 @@ let checkboxlist = ['#playbothsides', '#playoppositeside', '#randomizeSet', '#fl
 // Collection of text elements
 let messagelist = ['#messagecomplete', '#puzzlename_landscape', '#puzzlename_portrait', '#errors', '#errorRate', '#elapsedTime', '#avgTime'];
 
-// Assign default configuration of the board
-// Assign default theme for the pieces for both the board and the promotion popup window
+// cm-chessboard: assetsUrl points to the cm-chessboard assets folder you downloaded.
+// See MIGRATION.md for setup instructions.
+const CM_ASSETS_URL = './assets/cm-chessboard/';
 
-//pieceThemePath = 'https://github.com/lichess-org/lila/raw/refs/heads/master/public/piece/alpha/{piece}.svg'
+// pieceThemePath is kept for the promotion dialog image population (getPieces).
+// cm-chessboard uses its own SVG sprite for rendering pieces on the board.
 pieceThemePath = 'img/chesspieces/staunty/{piece}.svg';
 
 promotionDialog = $('#promotion-dialog');
-
-// Initial Board Configuration
-config = {
-        draggable: true,
-        pieceTheme: pieceThemePath,
-        onDragStart: dragStart,
-        onDrop: dropPiece,
-        onSnapEnd: snapEnd,
-        position: 'start',
-};
 
 
 
@@ -253,22 +245,10 @@ function changePieces() {
         // Build the path to the piece theme using the object properties
         pieceThemePath = 'img/chesspieces/' + pieceObject.DirectoryName + '/{piece}.' + pieceObject.Type;
 
-        config = {
-                draggable: true,
-                pieceTheme: pieceThemePath,
-                onDragStart: dragStart,
-                onDrop: dropPiece,
-                onSnapEnd: snapEnd,
-                position: 'start',
-        };
-
-        // Update the board with the new pieces
-        Chessboard('myBoard', config);
-
-        // Set the colors after the piece change
+        // cm-chessboard uses SVG sprites — piece theme path is kept only for
+        // the jQuery UI promotion popup images (getPieces).
+        // Board re-creation on piece change is handled by resetGame().
         changecolor();
-
-        // Reset the game
         resetGame();
 }
 
@@ -279,8 +259,12 @@ function changePieces() {
  * @param {string} dark - The RGB color value for the dark squares (such as a1) 
  */
 function setBoardColor(light, dark) {
-        $(".white-1e1d7").css({ "backgroundColor": '#' + light, "color": '#' + dark });
-        $(".black-3c85d").css({ "backgroundColor": '#' + dark, "color": '#' + light });
+        // cm-chessboard uses CSS custom properties on the board element for square colours.
+        const boardEl = document.getElementById('myBoard');
+        if (boardEl) {
+                boardEl.style.setProperty('--cm-chessboard-white-square-color', '#' + light);
+                boardEl.style.setProperty('--cm-chessboard-black-square-color', '#' + dark);
+        }
 }
 
 /**
@@ -341,8 +325,7 @@ function toggleDarkMode() {
  * Resize both boards to available space
  */
 function resizeBoards() { // eslint-disable-line no-unused-vars
-        board.resize();
-        blankBoard.resize();
+        // cm-chessboard is SVG-based and resizes automatically — no manual resize needed.
         changecolor();
 }
 
@@ -353,7 +336,7 @@ function resizeBoards() { // eslint-disable-line no-unused-vars
  *                                                        Setting to false sets the pieces instantly.
  */
 function updateBoard(animate) {
-        board.position(game.fen(), animate);
+        board.setPosition(game.fen(), animate);
 }
 
 
@@ -774,12 +757,28 @@ function resetGame() {
         PuzzleOrder = [];
 
 
-        // Create the boards
-        board = new Chessboard('myBoard', config);
-        blankBoard = new Chessboard('blankBoard', { showNotation: false });
+        // Destroy existing board cleanly before recreating
+        if (board) {
+                board.destroy();
+                board = null;
+        }
 
-        // Resize the board to the current available space
-        $(window).trigger('resize');
+        // Create the cm-chessboard instance with move input enabled
+        board = new Chessboard(document.getElementById('myBoard'), {
+                position: 'start',
+                assetsUrl: CM_ASSETS_URL,
+                style: {
+                        cssClass: 'default',
+                        showCoordinates: true,
+                },
+                extensions: [
+                        { class: Markers },
+                        { class: PromotionDialog }
+                ]
+        });
+
+        // Wire up move input — handler defined below in handleMoveInput()
+        board.enableMoveInput(handleMoveInput);
 
         // Set the counters back to zero
         $('#puzzleNumber_landscape').text('0');
@@ -1025,17 +1024,19 @@ function loadPuzzle(PGNPuzzle) {
 
         // Ensure the orientation is set to match the puzzle
         // Default is white
-        board.orientation('white');
+        let boardOrientation = COLOR.white;
 
         // Flip the board if Black to play
         if (game.turn() === 'b') {
-                board.orientation('black');
+                boardOrientation = COLOR.black;
         }
 
         // Flip board if "Flipped" checkbox is checked
         if ($('#flipped').is(':checked')) {
-                board.flip();
+                boardOrientation = (boardOrientation === COLOR.white) ? COLOR.black : COLOR.white;
         }
+
+        board.setOrientation(boardOrientation);
 
         if ($('#analysisboard').is(':checked')) { AnalysisLink = true; } else { AnalysisLink = false; }
 
@@ -1069,136 +1070,106 @@ function loadPuzzle(PGNPuzzle) {
 
 
 // -----------------------
-// Chessboard JS functions
+// cm-chessboard move input
 // -----------------------
 
 /**
- * Handle the start of moving a piece on the board
- *
- * @param {*} source - The source square from where the piece started
- * @param {*} piece - A chess.js game piece
- * @param {*} position - The position of the board
- * @param {*} orientation - The board orientation
- * @returns {boolean}
+ * Determines whether the current player is allowed to interact with a square.
+ * Replaces the old dragStart() side-to-move guard logic.
  */
-function dragStart(source, piece, position, orientation) {
-    // Existing checks
-    if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-        (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
-        return false;
-    }
+function isMoveAllowed() {
+        if (pauseflag) return false;
+        if (game.history().length === moveHistory.length) return false;
 
-    if (pauseflag) {
-        return false;
-    }
-
-    
-        // Prevent piece dragging if it's not the correct side's turn or move
         if (!$('#playbothsides').is(':checked')) {
-            if (!$('#playoppositeside').is(':checked') && game.history().length % 2 !== 0) {
-                return false;
-            }
-
-            if ($('#playoppositeside').is(':checked') && (game.history().length % 2 === 0 || game.history().length === 0)) {
-                return false;
-            }
+                if (!$('#playoppositeside').is(':checked') && game.history().length % 2 !== 0) {
+                        return false;
+                }
+                if ($('#playoppositeside').is(':checked') && (game.history().length % 2 === 0 || game.history().length === 0)) {
+                        return false;
+                }
         }
-
-        if (game.history().length === moveHistory.length) {
-            return false;
-        }
-    
-
-    return true;
+        return true;
 }
 
-
 /**
- * Handle the end of moving a piece on the board
+ * Single unified move input handler for cm-chessboard.
+ * Replaces dragStart(), dropPiece(), and snapEnd().
  *
- * @param {*} source - The source square from where the piece started
- * @param {*} target - The target square to where the piece ended
- * @returns {string}
+ * @param {object} event - cm-chessboard input event
  */
-function dropPiece(source, target) {
-        let move;
+function handleMoveInput(event) {
+        switch (event.type) {
 
-        // is it a promotion?
-        const source_rank = source.substring(2, 1);
-        const target_rank = target.substring(2, 1);
-        const piece = game.get(source).type;
+        case INPUT_EVENT_TYPE.moveInputStarted:
+                // User clicked/touched a piece — decide whether to allow it.
+                return isMoveAllowed();
 
-        // First attempt at move
-        // see if the move is legal
-        moveCfg = {
-                from: source,
-                promotion: 'q',
-                to: target,
-        };
+        case INPUT_EVENT_TYPE.validateMoveInput: {
+                // User completed a move gesture — validate and execute it.
+                const source = event.squareFrom;
+                const target = event.squareTo;
 
-        move = game.move(moveCfg);
+                // Test legality with a queen promotion placeholder
+                const testMove = game.move({ from: source, to: target, promotion: 'q' });
+                if (testMove === null) {
+                        return false; // illegal — cm-chessboard snaps piece back
+                }
+                game.undo();
 
-        if (move === null) {
-                return 'snapback';
-        }
+                // Check for pawn promotion
+                const piece = game.get(source);
+                const isPromotion = piece && piece.type === 'p' &&
+                        ((piece.color === 'w' && target[1] === '8') ||
+                         (piece.color === 'b' && target[1] === '1'));
 
-        game.undo(); // move is ok, now we can go ahead and check for promotion
+                if (isPromotion) {
+                        // Use cm-chessboard's built-in PromotionDialog extension
+                        board.showPromotionDialog(target, piece.color === 'w' ? COLOR.white : COLOR.black,
+                                (result) => {
+                                        if (!result || result.type === PROMOTION_DIALOG_RESULT_TYPE.canceled) {
+                                                // User cancelled — reset the board position
+                                                board.setPosition(game.fen(), false);
+                                                return;
+                                        }
+                                        const promotionPiece = result.piece.charAt(1); // e.g. 'wq' → 'q'
+                                        moveCfg = { from: source, to: target, promotion: promotionPiece };
+                                        makeMove(game, moveCfg);
+                                        board.setPosition(game.fen(), true);
+                                        checkAndPlayNext();
+                                        indicateMove();
+                                        $('#btn_hint_landscape').text('Hint');
+                                        $('#btn_hint_portrait').text('Hint');
+                                });
+                        return true; // accept the move visually while dialog shows
+                }
 
-        if (piece === 'p' && ((source_rank === '7' && target_rank === '8') || (source_rank === '2' && target_rank === '1'))) {
-                //promoting = true;
+                // Normal (non-promotion) move
+                moveCfg = { from: source, to: target, promotion: 'q' };
+                makeMove(game, moveCfg);
 
-                // Get the correct color pieces for the promotion popup
-                getPieces();
-
-                // Show the select piece promotion dialog screen
-                promotionDialog.dialog({
-                        close: onDialogClose,
-                        closeOnEscape: false,
-                        dialogClass: 'noTitleStuff',
-                        draggable: false,
-                        height: 50,
-                        modal: true,
-                        resizable: true,
-                        width: 184,
-                }).dialog('widget').position({
-                        of: $('#myBoard'),
-                        // my: 'center center',
-                        // at: 'center center',   //Maybe add code to position near the pawn being promoted?
+                // Update board to reflect castling / en-passant side effects
+                event.chessboard.state.moveInputProcess.then(() => {
+                        board.setPosition(game.fen(), true);
                 });
-                // the actual move is made after the piece to promote to
-                // has been selected, in the stop event of the promotion piece selectable
 
-                return;
+                checkAndPlayNext();
+                indicateMove();
+
+                if (setcomplete && puzzlecomplete) {
+                        $('#moveturn').text('');
+                }
+
+                $('#btn_hint_landscape').text('Hint');
+                $('#btn_hint_portrait').text('Hint');
+
+                return true;
         }
 
-        // No promotion, go ahead and move
-        makeMove(game, moveCfg);
-
-        // Check if the move played is the expected one and play the next one if it was
-        checkAndPlayNext();
-
-        // Indicate the player to move
-        indicateMove();
-
-        // Clear the move indicator if everything is done
-        if (setcomplete && puzzlecomplete) {
-                $('#moveturn').text('');
-        }
-
-        // Clear the hint if used
-        $('#btn_hint_landscape').text('Hint');
-        $('#btn_hint_portrait').text('Hint');
-}
-
-/**
- * Update the board position after the piece snap for castling, en passant, pawn promotion
- */
-function snapEnd() {
-        // Update instantly if the puzzle is done
-        if (game.history().length === moveHistory.length) {
-                updateBoard(false);
-        } else {
-                updateBoard(true);
+        case INPUT_EVENT_TYPE.moveInputCanceled:
+        case INPUT_EVENT_TYPE.moveInputFinished:
+                // Nothing to do — cm-chessboard handles visual cleanup
+                break;
         }
 }
 
