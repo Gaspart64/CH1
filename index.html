@@ -17,7 +17,7 @@
         <!-- Support functions for the w3 template -->
         <script src="./assets/w3.js"></script>
 
-        <!-- JQuery (required for chessboard.js) -->
+        <!-- JQuery (used for UI interactions, settings dialogs, and promotion popup) -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.0/jquery.min.js"
                 integrity="sha384-NXgwF8Kv9SSAr+jemKKcbvQsz+teULH/a5UNJvZc6kP47hZgl62M1vGnw6gHQhb1"
                 crossorigin="anonymous"></script>
@@ -31,14 +31,10 @@
                 integrity="sha384-EZJUCwX9EfOmrML5/1WejmhFx/azi54nnVfOndPu+VTQKOHabXXC9eS7VFdkLz0V"
                 crossorigin="anonymous"></script>
 
-        <!-- Chessboard.css -->
-        <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css"
-                integrity="sha384-q94+BZtLrkL1/ohfjR8c6L+A6qzNH9R2hBLwyoAfu3i/WCvQjzL2RQJ3uNHDISdU" crossorigin="anonymous">
-
-        <!-- Chessboard.js -->
-        <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"
-                integrity="sha384-8Vi8VHwn3vjQ9eUHUxex3JSN/NFqUg3QbPyX8kWyb93+8AC/pPWTzj+nHtbC5bxD"
-                crossorigin="anonymous"></script>
+        <!-- cm-chessboard CSS (local copy — see MIGRATION.md for setup) -->
+        <link rel="stylesheet" href="./assets/cm-chessboard/styles/cm-chessboard.css">
+        <link rel="stylesheet" href="./assets/cm-chessboard/extensions/markers/markers.css">
+        <link rel="stylesheet" href="./assets/cm-chessboard/extensions/promotion-dialog/promotion-dialog.css">
 
         <!-- chess.js -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js"
@@ -77,7 +73,6 @@
         <option value="./PGN/4.pgn">Chessimo 4</option>
         <option value="./PGN/5.pgn">Chessimo 5</option>
         <option value="./PGN/MorphyWhite15.pgn">Morphy as white</option>
-        <option value="./PGN/pgn1.pgn">Spaced test</option>
         <!-- Options will be dynamically added here, either statically or via API -->
     </select>
     
@@ -364,10 +359,12 @@
         </div>
 
         <!-- Custom code for this project (needs to be here AFTER elements are built & labelled)-->
-        <script src="./assets/storage.js"></script>
-        <script src="./assets/game-modes.js"></script>
-        <script src="./assets/chess-pgn-trainer.js"></script>
-        <script src="./assets/piece-list.js"></script>
+        <!--
+             cm-chessboard requires ES modules. All app scripts are loaded via
+             app.js which imports cm-chessboard then loads the rest in order.
+             See MIGRATION.md for the one-time asset download step.
+        -->
+        <script type="module" src="./assets/app.js"></script>
 </body>
 
 </html>
