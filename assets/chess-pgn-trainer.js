@@ -1071,8 +1071,8 @@ function loadPuzzle(PGNPuzzle) {
         changecolor();
 
         // Enable move input for this puzzle.
-        // Must be called after setPosition/setOrientation so cm-chessboard
-        // knows the current position when the user clicks.
+        // Disable first in case it's already active from the previous puzzle.
+        board.disableMoveInput();
         board.enableMoveInput(handleMoveInput);
 }
 
