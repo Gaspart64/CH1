@@ -9,7 +9,6 @@
 import {
     Chessboard,
     COLOR,
-    FEN,
     INPUT_EVENT_TYPE
 } from './cm-chessboard/src/Chessboard.js';
 
@@ -26,7 +25,6 @@ import {
 // ── Expose cm-chessboard symbols as globals ──────────────────────────────────
 window.Chessboard                   = Chessboard;
 window.COLOR                        = COLOR;
-window.FEN                          = FEN;
 window.INPUT_EVENT_TYPE             = INPUT_EVENT_TYPE;
 window.MARKER_TYPE                  = MARKER_TYPE;
 window.Markers                      = Markers;
