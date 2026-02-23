@@ -11,6 +11,7 @@
 /* global Chess, PgnParser, FileReader */
 /* global $, document, localStorage, alert, navigator, window */
 /* global w3_close, showresults */
+/* global Chessboard, COLOR, INPUT_EVENT_TYPE, PromotionDialog, PROMOTION_DIALOG_RESULT_TYPE, CM_ASSETS_URL */
 
 /* eslint no-unused-vars: ["error", { "vars": "all", "args": "none"}] */
 
@@ -763,16 +764,19 @@ function resetGame() {
                 board = null;
         }
 
-        // Create the cm-chessboard instance with move input enabled
+        // Create the cm-chessboard instance with move input enabled.
+        // assetsUrl must point to the folder containing the 'pieces' subfolder.
+        // sprite.url is set explicitly to avoid 404s from the wrong default path.
         board = new Chessboard(document.getElementById('myBoard'), {
                 position: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
                 assetsUrl: CM_ASSETS_URL,
+                assetsCache: false,
                 style: {
                         cssClass: 'default',
                         showCoordinates: true,
+                        pieces: { file: 'pieces/staunty.svg' }
                 },
                 extensions: [
-                        { class: Markers },
                         { class: PromotionDialog }
                 ]
         });
