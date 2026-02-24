@@ -551,6 +551,11 @@ function checkAndPlayNext() {
                         // Play the opponent's next move from the PGN
                         game.move(moveHistory[game.history().length]);
                 }
+
+                // Sync board visuals to chess.js after the computer's response move.
+                // cm-chessboard doesn't auto-update — we must call this explicitly.
+                updateBoard(true);
+
         } else { // wrong move
 
                 if (error === false) { // Add one to the error count for any given puzzle
@@ -566,8 +571,8 @@ function checkAndPlayNext() {
                 // Undo that move from the game
                 game.undo();
 
-                // Maybe flash the square in red to indicate an error?
-
+                // Sync board back to match chess.js after the undo.
+                updateBoard(false);
 
                 // Snap the bad piece back
                 return 'snapback';
@@ -1186,12 +1191,6 @@ function handleMoveInput(event) {
 
                 $('#btn_hint_landscape').text('Hint');
                 $('#btn_hint_portrait').text('Hint');
-
-                // Sync board visuals to chess.js state AFTER checkAndPlayNext()
-                // has run (which may include the computer's response move).
-                // This ensures cm-chessboard and chess.js always agree on piece
-                // positions, eliminating "no piece on X" warnings.
-                board.setPosition(game.fen(), false);
 
                 return true;
         }
