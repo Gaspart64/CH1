@@ -595,41 +595,46 @@ function checkAndPlayNext() {
                 const shouldContinue = typeof shouldContinueToNextPuzzle === 'function' ? 
                         shouldContinueToNextPuzzle() : (increment < puzzleset.length - 1);
 
-                // Are there more puzzles to go?  If yes, load the next one in the sequence
+                // Are there more puzzles to go?  If yes, load the next one in the sequence.
+                // Deferred with setTimeout so cm-chessboard finishes processing the current
+                // validateMoveInput event before we call disableMoveInput/enableMoveInput
+                // for the next puzzle — otherwise cm-chessboard's state machine deadlocks.
                 if (shouldContinue) {
                         increment += 1;
-                        loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+                        setTimeout(() => loadPuzzle(puzzleset[PuzzleOrder[increment]]), 0);
                 } else if (isInfinityMode) {
                         // SR session complete — trigger end-of-session UI
                         setcomplete = true;
                 }
         }
 
-        // Stop once all the puzzles in the set are done
+        // Stop once all the puzzles in the set are done.
+        // Deferred so cm-chessboard finishes the current move event first.
         if (setcomplete && puzzlecomplete) {
-                // Clear saved progress as the set is finished
-                clearSavedGameState();
+                setTimeout(() => {
+                        // Clear saved progress as the set is finished
+                        clearSavedGameState();
 
-                // Stop any mode-specific timers
-                if (typeof stopModeTimer === 'function') {
-                        stopModeTimer();
-                }
+                        // Stop any mode-specific timers
+                        if (typeof stopModeTimer === 'function') {
+                                stopModeTimer();
+                        }
 
-                // Show the stats
-                generateStats();
-                showStats();
+                        // Show the stats
+                        generateStats();
+                        showStats();
 
-                // Hide & disable the "Start" and "Pause" buttons
-                setDisplayAndDisabled(
-                        ['#btn_starttest_landscape', '#btn_starttest_portrait',
-                                '#btn_pause_landscape', '#btn_pause_portrait'], 'none', true);
+                        // Hide & disable the "Start" and "Pause" buttons
+                        setDisplayAndDisabled(
+                                ['#btn_starttest_landscape', '#btn_starttest_portrait',
+                                        '#btn_pause_landscape', '#btn_pause_portrait'], 'none', true);
 
-                // Show "Restart" button
-                setDisplayAndDisabled(['#btn_restart_landscape', '#btn_restart_portrait'], 'block', false);
+                        // Show "Restart" button
+                        setDisplayAndDisabled(['#btn_restart_landscape', '#btn_restart_portrait'], 'block', false);
 
-                // Clear the move indicator
-                $('#moveturn').text('');
-
+                        // Clear the move indicator
+                        $('#moveturn').text('');
+                }, 0);
         }
 }
 
@@ -1193,10 +1198,12 @@ function handleMoveInput(event) {
                         return false;
                 }
 
-                // Sync board to chess.js — picks up computer response,
-                // castling rook, en passant capture.
-                // Safe to call directly since animationDuration is 0.
-                board.setPosition(game.fen(), false);
+                // Only sync board position if the puzzle isn't complete.
+                // If puzzlecomplete, loadPuzzle() is about to be called via
+                // setTimeout and will set the correct position itself.
+                if (!puzzlecomplete) {
+                        board.setPosition(game.fen(), false);
+                }
 
                 return true;
         }
