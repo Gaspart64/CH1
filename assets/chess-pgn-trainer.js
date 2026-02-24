@@ -1174,10 +1174,6 @@ function handleMoveInput(event) {
                 }
 
                 // Normal (non-promotion) move.
-                // Update chess.js state immediately (synchronous), then sync
-                // the board visuals after the animation completes (.then()).
-                // This avoids "no piece on X" warnings while keeping game
-                // logic synchronous so all modes work correctly.
                 moveCfg = { from: source, to: target, promotion: 'q' };
                 makeMove(game, moveCfg);
 
@@ -1191,14 +1187,11 @@ function handleMoveInput(event) {
                 $('#btn_hint_landscape').text('Hint');
                 $('#btn_hint_portrait').text('Hint');
 
-                // After animation completes, sync board to chess.js to pick up
-                // castling rook moves and en passant captures visually.
-                // Use setTimeout to detach from the promise chain so it doesn't
-                // conflict with loadPuzzle() calls made by checkAndPlayNext().
-                const fenAfterMove = game.fen();
-                setTimeout(() => {
-                        board.setPosition(fenAfterMove, false);
-                }, 50);
+                // Sync board visuals to chess.js state AFTER checkAndPlayNext()
+                // has run (which may include the computer's response move).
+                // This ensures cm-chessboard and chess.js always agree on piece
+                // positions, eliminating "no piece on X" warnings.
+                board.setPosition(game.fen(), false);
 
                 return true;
         }
