@@ -1159,13 +1159,13 @@ function handleMoveInput(event) {
                 moveCfg = { from: source, to: target, promotion: 'q' };
                 makeMove(game, moveCfg);
 
-                // Update board to reflect castling / en-passant side effects,
-                // then re-enable move input for the next move.
+                // Update board position after the move animation completes
+                // (handles castling/en-passant side effects visually).
+                // Do NOT call enableMoveInput here — loadPuzzle() handles it
+                // for the next puzzle, and the current puzzle's input stays
+                // active until loadPuzzle() calls disableMoveInput().
                 event.chessboard.state.moveInputProcess.then(() => {
                         board.setPosition(game.fen(), true);
-                        if (!puzzlecomplete) {
-                                board.enableMoveInput(handleMoveInput);
-                        }
                 });
 
                 checkAndPlayNext();
