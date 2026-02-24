@@ -773,7 +773,8 @@ function resetGame() {
                 style: {
                         cssClass: 'default',
                         showCoordinates: true,
-                        pieces: { file: 'pieces/staunty.svg' }
+                        pieces: { file: 'pieces/staunty.svg' },
+                        animationDuration: 0  // disable animation to prevent race with setPosition
                 },
                 extensions: [
                         { class: Markers },
@@ -1192,12 +1193,10 @@ function handleMoveInput(event) {
                         return false;
                 }
 
-                // Correct move — wait for cm-chessboard's animation to finish,
-                // then sync the board to chess.js (picks up computer response,
-                // castling rook, en passant capture).
-                event.chessboard.state.moveInputProcess.then(() => {
-                        board.setPosition(game.fen(), false);
-                });
+                // Sync board to chess.js — picks up computer response,
+                // castling rook, en passant capture.
+                // Safe to call directly since animationDuration is 0.
+                board.setPosition(game.fen(), false);
 
                 return true;
         }
