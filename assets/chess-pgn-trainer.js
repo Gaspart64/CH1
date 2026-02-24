@@ -551,10 +551,8 @@ function checkAndPlayNext() {
                         // Play the opponent's next move from the PGN
                         game.move(moveHistory[game.history().length]);
                 }
-
-                // Sync board visuals to chess.js after the computer's response move.
-                // cm-chessboard doesn't auto-update — we must call this explicitly.
-                updateBoard(true);
+                // Board sync is handled by handleMoveInput after the move
+                // animation promise resolves — do not call updateBoard here.
 
         } else { // wrong move
 
@@ -1189,11 +1187,17 @@ function handleMoveInput(event) {
                 $('#btn_hint_landscape').text('Hint');
                 $('#btn_hint_portrait').text('Hint');
 
-                // Return false to cm-chessboard if the move was wrong —
-                // it will snap the piece back visually without us touching setPosition.
                 if (result === 'snapback') {
+                        // Wrong move — reject so cm-chessboard snaps piece back.
                         return false;
                 }
+
+                // Correct move — wait for cm-chessboard's animation to finish,
+                // then sync the board to chess.js (picks up computer response,
+                // castling rook, en passant capture).
+                event.chessboard.state.moveInputProcess.then(() => {
+                        board.setPosition(game.fen(), false);
+                });
 
                 return true;
         }
