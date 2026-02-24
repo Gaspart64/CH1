@@ -1072,6 +1072,8 @@ function loadPuzzle(PGNPuzzle) {
 
         // Enable move input for this puzzle.
         // Disable first in case it's already active from the previous puzzle.
+        // Also clear any markers left over from the previous puzzle.
+        board.removeMarkers();
         board.disableMoveInput();
         board.enableMoveInput(handleMoveInput);
 }
@@ -1110,9 +1112,25 @@ function isMoveAllowed() {
 function handleMoveInput(event) {
         switch (event.type) {
 
-        case INPUT_EVENT_TYPE.moveInputStarted:
-                // User clicked/touched a piece — decide whether to allow it.
-                return isMoveAllowed();
+        case INPUT_EVENT_TYPE.moveInputStarted: {
+                // User clicked a piece — check if move is allowed first.
+                if (!isMoveAllowed()) return false;
+
+                // Show legal move destinations as dots, and highlight the
+                // selected piece square with a frame — same as Lichess/Chess.com.
+                const legalMoves = game.moves({ square: event.square, verbose: true });
+                if (legalMoves.length === 0) return false;
+
+                // Highlight the selected piece square
+                board.addMarker(MARKER_TYPE.frame, event.square);
+
+                // Add a dot on each legal target square
+                legalMoves.forEach(move => {
+                        board.addMarker(MARKER_TYPE.dot, move.to);
+                });
+
+                return true;
+        }
 
         case INPUT_EVENT_TYPE.validateMoveInput: {
                 // User completed a move gesture — validate and execute it.
@@ -1183,7 +1201,8 @@ function handleMoveInput(event) {
 
         case INPUT_EVENT_TYPE.moveInputCanceled:
         case INPUT_EVENT_TYPE.moveInputFinished:
-                // Nothing to do — cm-chessboard handles visual cleanup
+                // Clear all dot and frame markers when the move is completed or cancelled.
+                board.removeMarkers();
                 break;
         }
 }
