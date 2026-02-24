@@ -1174,26 +1174,31 @@ function handleMoveInput(event) {
                 }
 
                 // Normal (non-promotion) move.
-                // Return true to let cm-chessboard animate the piece first,
-                // then update chess.js state and game logic in .then() so
-                // they don't race with the animation (avoids "no piece on X" warnings).
-                event.chessboard.state.moveInputProcess.then(() => {
-                        moveCfg = { from: source, to: target, promotion: 'q' };
-                        makeMove(game, moveCfg);
+                // Update chess.js state immediately (synchronous), then sync
+                // the board visuals after the animation completes (.then()).
+                // This avoids "no piece on X" warnings while keeping game
+                // logic synchronous so all modes work correctly.
+                moveCfg = { from: source, to: target, promotion: 'q' };
+                makeMove(game, moveCfg);
 
-                        // Sync board to chess.js — picks up castling/en-passant side effects
-                        board.setPosition(game.fen(), false);
+                checkAndPlayNext();
+                indicateMove();
 
-                        checkAndPlayNext();
-                        indicateMove();
+                if (setcomplete && puzzlecomplete) {
+                        $('#moveturn').text('');
+                }
 
-                        if (setcomplete && puzzlecomplete) {
-                                $('#moveturn').text('');
-                        }
+                $('#btn_hint_landscape').text('Hint');
+                $('#btn_hint_portrait').text('Hint');
 
-                        $('#btn_hint_landscape').text('Hint');
-                        $('#btn_hint_portrait').text('Hint');
-                });
+                // After animation completes, sync board to chess.js to pick up
+                // castling rook moves and en passant captures visually.
+                // Use setTimeout to detach from the promise chain so it doesn't
+                // conflict with loadPuzzle() calls made by checkAndPlayNext().
+                const fenAfterMove = game.fen();
+                setTimeout(() => {
+                        board.setPosition(fenAfterMove, false);
+                }, 50);
 
                 return true;
         }
