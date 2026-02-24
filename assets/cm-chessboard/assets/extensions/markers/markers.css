@@ -80,8 +80,8 @@
   opacity: 0.11;
 }
 .cm-chessboard .markers .marker.marker-dot {
-  fill: black;
-  opacity: 0.2;
+  fill: grey;
+  opacity: 0.35;
 }
 .cm-chessboard .markers .marker.marker-bevel {
   fill: black;
