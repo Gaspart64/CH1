@@ -571,9 +571,6 @@ function checkAndPlayNext() {
                 // Undo that move from the game
                 game.undo();
 
-                // Sync board back to match chess.js after the undo.
-                updateBoard(false);
-
                 // Snap the bad piece back
                 return 'snapback';
         }
@@ -1182,7 +1179,7 @@ function handleMoveInput(event) {
                 moveCfg = { from: source, to: target, promotion: 'q' };
                 makeMove(game, moveCfg);
 
-                checkAndPlayNext();
+                const result = checkAndPlayNext();
                 indicateMove();
 
                 if (setcomplete && puzzlecomplete) {
@@ -1191,6 +1188,12 @@ function handleMoveInput(event) {
 
                 $('#btn_hint_landscape').text('Hint');
                 $('#btn_hint_portrait').text('Hint');
+
+                // Return false to cm-chessboard if the move was wrong —
+                // it will snap the piece back visually without us touching setPosition.
+                if (result === 'snapback') {
+                        return false;
+                }
 
                 return true;
         }
