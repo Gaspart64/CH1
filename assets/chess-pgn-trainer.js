@@ -1173,28 +1173,27 @@ function handleMoveInput(event) {
                         return true; // accept the move visually while dialog shows
                 }
 
-                // Normal (non-promotion) move
-                moveCfg = { from: source, to: target, promotion: 'q' };
-                makeMove(game, moveCfg);
-
-                // Update board position after the move animation completes
-                // (handles castling/en-passant side effects visually).
-                // Do NOT call enableMoveInput here — loadPuzzle() handles it
-                // for the next puzzle, and the current puzzle's input stays
-                // active until loadPuzzle() calls disableMoveInput().
+                // Normal (non-promotion) move.
+                // Return true to let cm-chessboard animate the piece first,
+                // then update chess.js state and game logic in .then() so
+                // they don't race with the animation (avoids "no piece on X" warnings).
                 event.chessboard.state.moveInputProcess.then(() => {
-                        board.setPosition(game.fen(), true);
+                        moveCfg = { from: source, to: target, promotion: 'q' };
+                        makeMove(game, moveCfg);
+
+                        // Sync board to chess.js — picks up castling/en-passant side effects
+                        board.setPosition(game.fen(), false);
+
+                        checkAndPlayNext();
+                        indicateMove();
+
+                        if (setcomplete && puzzlecomplete) {
+                                $('#moveturn').text('');
+                        }
+
+                        $('#btn_hint_landscape').text('Hint');
+                        $('#btn_hint_portrait').text('Hint');
                 });
-
-                checkAndPlayNext();
-                indicateMove();
-
-                if (setcomplete && puzzlecomplete) {
-                        $('#moveturn').text('');
-                }
-
-                $('#btn_hint_landscape').text('Hint');
-                $('#btn_hint_portrait').text('Hint');
 
                 return true;
         }
