@@ -116,7 +116,11 @@ let repetitionSetHadError   = false;
 // ---------------------------------------------------------------------------
 
 const SR_STORAGE_PREFIX  = 'sr_cards_';
-const SR_REINSERT_AFTER  = 4;   // reinsert failed card this many puzzles later
+let SR_INITIAL_EASE   = 2.5;
+let SR_MIN_EASE       = 1.3;
+let SR_REINSERT_AFTER  = 4;   // reinsert failed card this many puzzles later
+const SR_PARAMS_KEY = 'sr_params';
+const SR_HISTORY_KEY = 'sr_history';
 
 let srCards                 = {};   // puzzleIndex → SM-2 card, persisted to localStorage
 let srCurrentPgnFile        = '';   // key suffix for localStorage
@@ -155,7 +159,7 @@ function srGetCard(puzzleIndex) {
         srCards[puzzleIndex] = {
             index:       puzzleIndex,
             interval:    1,
-            easeFactor:  2.5,
+            easeFactor:  SR_INITIAL_EASE,
             repetitions: 0,
             nextReview:  Date.now(),  // new cards are immediately due
             due:         true
@@ -172,7 +176,7 @@ function srGetCard(puzzleIndex) {
 
 function srApplySM2(card, quality) {
     card.easeFactor = Math.max(
-        1.3,
+        SR_MIN_EASE,
         card.easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
     );
 
@@ -257,6 +261,9 @@ function srOnPuzzleComplete() {
 
     if (srCurrentPuzzleHadError) {
         // Failed this attempt.
+        // Log the failure
+        srLogResult(0, 1);
+        
         // 1. Mark the card as overdue right now so it survives a session close.
         const card = srGetCard(puzzleIndex);
         card.nextReview = Date.now() - 1;
@@ -282,6 +289,9 @@ function srOnPuzzleComplete() {
     }
 
     // Clean solve.
+    // Log the success
+    srLogResult(1, 0);
+    
     // Determine quality: penalised (1) if this was a retry, full (4) if first-time clean.
     const quality = wasInRetry ? 1 : 4;
     const card    = srGetCard(puzzleIndex);
@@ -385,6 +395,11 @@ function initializeGameModes() {
     if (select) {
         select.addEventListener('change', handleModeChange);
     }
+    srLoadParams();
+    // Sync input values to loaded params
+    document.getElementById('sr-initial-ease').value   = SR_INITIAL_EASE;
+    document.getElementById('sr-min-ease').value        = SR_MIN_EASE;
+    document.getElementById('sr-reinsert-after').value  = SR_REINSERT_AFTER;
     resetModeState();
 }
 
@@ -450,6 +465,9 @@ function updateModeUI() {
     updateLevelDisplay();
     toggleModeElements(MODE_CONFIGS[currentGameMode]);
     srUpdateStatsDisplay();
+    // Show/hide SR parameters row based on mode
+    const srRow = document.getElementById('sr-params-row');
+    if (srRow) srRow.style.display = currentGameMode === GAME_MODES.INFINITY ? 'table-row' : 'none';
 }
 
 function updateTimerDisplay() {
@@ -573,6 +591,9 @@ function toggleModeElements(config) {
             button.style.display = 'none';
         }
     });
+    // Show/hide SR Dashboard button based on mode
+    const srBtn = document.getElementById('btn_sr_dashboard');
+    if (srBtn) srBtn.style.display = currentGameMode === GAME_MODES.INFINITY ? 'block' : 'none';
 }
 
 // ---------------------------------------------------------------------------
@@ -795,4 +816,194 @@ if (typeof module !== 'undefined' && module.exports) {
         onStartTest, resetModeState, updateModeUI,
         srClearCards
     };
+}
+
+// ── SR Parameter Management ──────────────────────────────────────────────────
+
+/**
+ * Load SR parameters from localStorage
+ */
+function srLoadParams() {
+    const raw = localStorage.getItem(SR_PARAMS_KEY);
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    if (p.initialEase)   SR_INITIAL_EASE   = p.initialEase;
+    if (p.minEase)       SR_MIN_EASE       = p.minEase;
+    if (p.reinsertAfter) SR_REINSERT_AFTER = p.reinsertAfter;
+}
+
+/**
+ * Save SR parameters to localStorage
+ */
+function srSaveParams() {
+    localStorage.setItem(SR_PARAMS_KEY, JSON.stringify({
+        initialEase: SR_INITIAL_EASE, minEase: SR_MIN_EASE, reinsertAfter: SR_REINSERT_AFTER
+    }));
+}
+
+/**
+ * Update a single SR parameter with validation and persistence
+ */
+function srUpdateParam(param, value) {
+    const v = parseFloat(value);
+    if (isNaN(v)) return;
+    if (param === 'initialEase')   SR_INITIAL_EASE   = Math.max(1.3, Math.min(3.5, v));
+    if (param === 'minEase')       SR_MIN_EASE       = Math.max(1.0, Math.min(2.0, v));
+    if (param === 'reinsertAfter') SR_REINSERT_AFTER = Math.max(1,   Math.min(10, Math.round(v)));
+    srSaveParams();
+}
+
+
+// ── SR Dashboard & Export/Import ──────────────────────────────────────────────
+
+/**
+ * Display the SR Dashboard with card statistics and export/import options
+ */
+function showSRDashboard() {
+    const tbody = document.getElementById('sr-dashboard-tbody');
+    const summary = document.getElementById('sr-dashboard-summary');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    const now = Date.now(), msPerDay = 86400000;
+    let totalNew = 0, totalDue = 0, totalLearned = 0;
+
+    for (let i = 0; i < puzzleset.length; i++) {
+        const card = srCards[i];
+        const name = (puzzleset[i] && puzzleset[i].Event) || `Puzzle ${i + 1}`;
+        let reps = '—', interval = '—', ease = '—', nextReview = 'New', status = '★ New';
+
+        if (card) {
+            reps = card.repetitions;
+            interval = `${card.interval}d`;
+            ease = card.easeFactor.toFixed(2);
+            const daysUntil = Math.round((card.nextReview - now) / msPerDay);
+            if (daysUntil <= 0) { nextReview = 'Due now'; status = '⏰ Due'; totalDue++; }
+            else if (daysUntil === 1) { nextReview = 'Tomorrow'; status = '✓'; totalLearned++; }
+            else { nextReview = `In ${daysUntil}d`; status = '✓'; totalLearned++; }
+        } else { totalNew++; }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i+1}</td><td>${name}</td><td>${reps}</td>
+                        <td>${interval}</td><td>${ease}</td><td>${nextReview}</td><td>${status}</td>`;
+        tbody.appendChild(tr);
+    }
+
+    summary.innerHTML =
+        `<span class="w3-tag w3-red w3-round">⏰ Due: ${totalDue}</span> &nbsp;` +
+        `<span class="w3-tag w3-green w3-round">✓ Learned: ${totalLearned}</span> &nbsp;` +
+        `<span class="w3-tag w3-blue w3-round">★ New: ${totalNew}</span>`;
+
+    const graphDiv = document.getElementById('sr-retention-graph');
+    if (graphDiv) graphDiv.innerHTML = srBuildSparkline();
+
+    document.getElementById('modal_sr_dashboard').style.display = 'block';
+}
+
+/**
+ * Export SR cards as JSON file
+ */
+function srExportJSON() {
+    const data = { exportDate: new Date().toISOString(), pgnFile: srCurrentPgnFile, cards: srCards };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    a.download = `sr-backup-${srCurrentPgnFile}-${new Date().toJSON().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+/**
+ * Export SR cards as CSV file
+ */
+function srExportCSV() {
+    const now = Date.now(), msPerDay = 86400000;
+    const rows = [['Index','Puzzle','Repetitions','Interval (days)','Ease Factor','Next Review','Days Until Review']];
+    for (let i = 0; i < puzzleset.length; i++) {
+        const card = srCards[i];
+        const name = (puzzleset[i] && puzzleset[i].Event) || `Puzzle ${i+1}`;
+        if (card) {
+            rows.push([i+1, name, card.repetitions, card.interval, card.easeFactor.toFixed(2),
+                       new Date(card.nextReview).toLocaleDateString(),
+                       Math.round((card.nextReview - now) / msPerDay)]);
+        } else {
+            rows.push([i+1, name, 0, '—', '—', 'New', '—']);
+        }
+    }
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `sr-data-${srCurrentPgnFile}-${new Date().toJSON().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+/**
+ * Trigger file picker for JSON import
+ */
+function srImportJSON() { document.getElementById('sr-import-input').click(); }
+
+/**
+ * Handle JSON file import
+ */
+function srHandleImport(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (data.cards) {
+                srCards = data.cards;
+                srSaveCards();
+                alert('SR data imported. Restart session to apply.');
+                showSRDashboard();
+            } else { alert('Invalid SR backup file.'); }
+        } catch (err) { alert('Parse error: ' + err.message); }
+    };
+    reader.readAsText(file);
+    input.value = '';
+}
+
+/**
+ * Build a 7-day sparkline graph of SR performance
+ */
+function srBuildSparkline() {
+    const raw = localStorage.getItem(SR_HISTORY_KEY);
+    const history = raw ? JSON.parse(raw) : {};
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toJSON().slice(0, 10);
+        days.push({ label: key.slice(5), ...(history[key] || { correct: 0, incorrect: 0 }) });
+    }
+    const W = 280, H = 80, pad = 20;
+    const maxVal = Math.max(1, ...days.map(d => d.correct + d.incorrect));
+    const barW = (W - pad * 2) / days.length;
+    let svg = `<svg width="${W}" height="${H + 20}" xmlns="http://www.w3.org/2000/svg" style="font-family:sans-serif;font-size:10px">`;
+    days.forEach((d, i) => {
+        const x = pad + i * barW;
+        const cH = (d.correct / maxVal) * H;
+        const eH = (d.incorrect / maxVal) * H;
+        const tH = cH + eH;
+        if (eH > 0) svg += `<rect x="${x+1}" y="${H-tH}" width="${barW-2}" height="${eH}" fill="#e53935" opacity="0.8"/>`;
+        if (cH > 0) svg += `<rect x="${x+1}" y="${H-tH+eH}" width="${barW-2}" height="${cH}" fill="#43a047" opacity="0.8"/>`;
+        svg += `<text x="${x+barW/2}" y="${H+14}" text-anchor="middle" fill="#888">${d.label}</text>`;
+    });
+    svg += `<line x1="${pad}" y1="${H}" x2="${W-pad}" y2="${H}" stroke="#ccc" stroke-width="1"/>`;
+    svg += `</svg>`;
+    return svg;
+}
+
+
+/**
+ * Log SR puzzle result (correct or incorrect) to daily history
+ */
+function srLogResult(correct, incorrect) {
+    const today = new Date().toJSON().slice(0, 10);
+    const raw = localStorage.getItem(SR_HISTORY_KEY);
+    const history = raw ? JSON.parse(raw) : {};
+    if (!history[today]) history[today] = { correct: 0, incorrect: 0 };
+    history[today].correct   += correct;
+    history[today].incorrect += incorrect;
+    localStorage.setItem(SR_HISTORY_KEY, JSON.stringify(history));
 }

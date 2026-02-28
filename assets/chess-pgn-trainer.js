@@ -63,6 +63,11 @@ let PauseStartDateTime;
 let PauseendDateTime;
 let startDateTime = new Date();
 let pauseDateTimeTotal = 0;
+let puzzleStartTime = null;
+let puzzleTimes = [];  // { puzzleIndex, name, timeMs, hadError }
+let currentStreak = 0;
+let bestStreak = 0;
+let mistakeList = [];  // puzzle indices where error === true at completion
 
 
 
@@ -549,7 +554,12 @@ function checkAndPlayNext() {
                 // play next move if the "Play both sides" box is unchecked
                 if (!$('#playbothsides').is(':checked')) {
                         // Play the opponent's next move from the PGN
-                        game.move(moveHistory[game.history().length]);
+                        const opponentMove = game.move(moveHistory[game.history().length]);
+                        // Highlight the opponent's move
+                        if (opponentMove) {
+                                board.addMarker(MARKER_TYPE.frame, opponentMove.from);
+                                board.addMarker(MARKER_TYPE.frame, opponentMove.to);
+                        }
                 }
                 // Board sync is handled by handleMoveInput after the move
                 // animation promise resolves — do not call updateBoard here.
@@ -576,6 +586,27 @@ function checkAndPlayNext() {
         // Check if all the expected moves have been played
         if (game.history().length === moveHistory.length) {
                 puzzlecomplete = true;
+
+                // Record puzzle solve time
+                if (puzzleStartTime !== null) {
+                        puzzleTimes.push({
+                                puzzleIndex: PuzzleOrder[increment],
+                                name: puzzleset[PuzzleOrder[increment]].Event || `Puzzle ${increment + 1}`,
+                                timeMs: Date.now() - puzzleStartTime,
+                                hadError: error
+                        });
+                        puzzleStartTime = null;
+                }
+
+                // Update streak tracking
+                if (!error) {
+                        currentStreak++;
+                        if (currentStreak > bestStreak) bestStreak = currentStreak;
+                } else {
+                        currentStreak = 0;
+                        mistakeList.push(PuzzleOrder[increment]);
+                }
+                updateStreakDisplay();
 
                 // Notify game mode that a puzzle is complete
                 if (typeof handlePuzzleComplete === 'function') {
@@ -755,10 +786,15 @@ function resetGame() {
 
 
 
-        puzzlecomplete = false;
-        pauseflag = false;
-        increment = 0;
-        PuzzleOrder = [];
+		puzzlecomplete = false;
+		pauseflag = false;
+		increment = 0;
+		PuzzleOrder = [];
+		puzzleStartTime = null;
+		puzzleTimes = [];
+		currentStreak = 0;
+		bestStreak = 0;
+		mistakeList = [];
 
 
         // Destroy existing board cleanly before recreating
@@ -997,6 +1033,9 @@ function updateProgressBar(partial_value, total_value) {
  * @param {object} PGNPuzzle - The object representing a specific position and move sequence
  */
 function loadPuzzle(PGNPuzzle) {
+        // Start puzzle timer
+        puzzleStartTime = Date.now();
+
         // Save progress when a new puzzle is loaded
         saveCurrentGameProgress();
 
@@ -1427,6 +1466,19 @@ function generateStats() {
         stats.avgtime = AvgTimehhmmss;
         stats.errorrate = ErrorRate;
 
+        // Add slowest puzzles if available
+        if (puzzleTimes.length > 0) {
+                const sorted = [...puzzleTimes].sort((a, b) => b.timeMs - a.timeMs);
+                stats.slowestPuzzles = sorted.slice(0, 5).map(p => ({
+                        name: p.name,
+                        time: new Date(p.timeMs).toISOString().slice(14, 19),
+                        hadError: p.hadError
+                }));
+        }
+
+        // Add best streak
+        stats.bestStreak = bestStreak;
+
 }
 
 /**
@@ -1452,6 +1504,43 @@ function showStats() {
         $('#avgTime').text(`Average time/puzzle (hh:mm:ss): ${stats.avgtime}`);
         $('#errors').text(`Number of errors: ${stats.errors}`);
         $('#errorRate').text(`Error Rate: ${ErrorRate1Dec.toFixed(1)}%`);
+
+        // Display best streak if >= 2
+        if (stats.bestStreak && stats.bestStreak >= 2) {
+                const streakEl = document.getElementById('streakResult');
+                if (streakEl) {
+                        streakEl.textContent = 'Best Streak: ' + stats.bestStreak;
+                        streakEl.style.display = 'block';
+                }
+        }
+
+        // Display slowest puzzles if available
+        if (stats.slowestPuzzles && stats.slowestPuzzles.length > 0) {
+                const listEl = document.getElementById('slowest-puzzles-list');
+                if (listEl) {
+                        listEl.innerHTML = '';
+                        stats.slowestPuzzles.forEach(p => {
+                                const li = document.createElement('li');
+                                const errorMark = p.hadError ? ' [ERROR]' : '';
+                                li.textContent = p.name + ' - ' + p.time + errorMark;
+                                listEl.appendChild(li);
+                        });
+                        const headingEl = document.getElementById('slowest-puzzles-heading');
+                        if (headingEl) headingEl.style.display = 'block';
+                        if (listEl) listEl.style.display = 'block';
+                }
+        }
+
+        // Display mistake review button
+        const btn = document.getElementById('btn_review_mistakes');
+        if (btn) {
+                if (mistakeList.length > 0) {
+                        btn.textContent = `Review ${mistakeList.length} Mistake${mistakeList.length > 1 ? 's' : ''}`;
+                        btn.style.display = 'block';
+                } else {
+                        btn.style.display = 'none';
+                }
+        }
 
         // Display the modal
         showresults();
@@ -1517,3 +1606,53 @@ $(() => {
                 },
         });
 });
+
+/**
+ * Update the streak display on the screen
+ */
+function updateStreakDisplay() {
+let el = document.getElementById('streak-display');
+if (!el) {
+el = document.createElement('div');
+el.id = 'streak-display';
+el.className = 'w3-container w3-center w3-margin-bottom w3-small';
+const pb = document.getElementById('progressbar_landscape');
+if (pb && pb.parentNode) pb.parentNode.insertBefore(el, pb.nextSibling);
+}
+if (currentStreak >= 2) {
+el.innerHTML = 'Streak: <strong>' + currentStreak + '</strong> &nbsp;|&nbsp; Best: <strong>' + bestStreak + '</strong>';
+el.style.display = 'block';
+} else if (bestStreak > 0) {
+el.innerHTML = 'Best streak this session: <strong>' + bestStreak + '</strong>';
+el.style.display = 'block';
+} else {
+el.style.display = 'none';
+}
+}
+
+/**
+ * Start a mistake review session with only puzzles that had errors
+ */
+function startMistakeReview() {
+const saved = [...mistakeList];
+if (!saved.length) return;
+document.getElementById('resmodal').style.display = 'none';
+if (typeof setGameMode === 'function') setGameMode('standard');
+resetGame();
+PuzzleOrder = saved;
+increment = 0;
+setDisplayAndDisabled(
+['#btn_starttest_landscape','#btn_starttest_portrait',
+ '#btn_restart_landscape','#btn_restart_portrait',
+ '#btn_showresults','#btn_review_mistakes'], 'none');
+setDisplayAndDisabled(
+['#btn_pause_landscape','#btn_pause_portrait',
+ '#btn_hint_landscape','#btn_hint_portrait'], 'block', false);
+setCheckboxSelectability(false);
+clearMessages();
+errorcount = 0;
+mistakeList = [];
+startDateTime = new Date();
+pauseDateTimeTotal = 0;
+loadPuzzle(puzzleset[PuzzleOrder[0]]);
+}

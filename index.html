@@ -5,6 +5,11 @@
         <title>Chess PGN Trainer</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-16">
         <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+        <link rel="manifest" href="./manifest.json">
+        <meta name="theme-color" content="#3f51b5">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="PGN Trainer">
+        <link rel="apple-touch-icon" href="img/icon-192.png">
 
         <!-- Needed external libraries -->
 
@@ -146,6 +151,7 @@
                 </div>
 
                 <div style="position: absolute;bottom: 0; left:0; padding-left: 8px; padding-bottom: 8px;">
+                        <a id="btn_sr_dashboard" class="w3-bar-item w3-button" onclick="showSRDashboard();" style="display:none;">📊 SR Dashboard</a>
                         <a class="w3-bar-item w3-button" onclick="showSettings();">Settings &#x26ED;</a>
                         <a href="https://github.com/rodpolako/Chess-PGN-Trainer" class="w3-bar-item w3-button"
                                 target="_blank">Github Page <img id='img_logo' src="./img/github-mark.svg" height="12px"
@@ -191,8 +197,15 @@
                                                         <div id="errorRate"></div>
                                                         <div id="elapsedTime"></div>
                                                         <div id="avgTime"></div>
+                                                        <p id="streakResult" style="display:none;"></p>
+                                                        <h4 id="slowest-puzzles-heading" style="display:none; margin-top:20px;">Slowest Puzzles</h4>
+                                                        <ol id="slowest-puzzles-list" style="display:none; text-align:left; max-width:400px; margin:0 auto;"></ol>
                                                 </div>
                                                 </p>
+                                                <button id="btn_review_mistakes" class="w3-button w3-orange w3-round w3-margin-top"
+                                                        style="display:none" onclick="startMistakeReview()">
+                                                  Review Mistakes
+                                                </button>
                                                 <a class="w3-bar-item w3-button" onclick="outputStats2Clipboard();">Copy results to
                                                         clipboard</a>
                                                 <a class="w3-bar-item w3-button" onclick="outputStats2CSV();">Download to CSV</a>
@@ -314,6 +327,35 @@
                                                                         </label></td>
                                                         </tr>
 
+                                                        <tr id="sr-params-row" style="display:none">
+                                                          <td colspan="2">
+                                                            <strong>Spaced Repetition Parameters</strong>
+                                                            <table class="w3-table w3-small w3-margin-top">
+                                                              <tr>
+                                                                <td>Initial Ease Factor</td>
+                                                                <td><input type="number" id="sr-initial-ease" min="1.3" max="3.5" step="0.1"
+                                                                           value="2.5" style="width:70px"
+                                                                           onchange="srUpdateParam('initialEase',this.value)">
+                                                                    <span class="w3-text-grey"> (default 2.5)</span></td>
+                                                              </tr>
+                                                              <tr>
+                                                                <td>Minimum Ease Factor</td>
+                                                                <td><input type="number" id="sr-min-ease" min="1.0" max="2.0" step="0.1"
+                                                                           value="1.3" style="width:70px"
+                                                                           onchange="srUpdateParam('minEase',this.value)">
+                                                                    <span class="w3-text-grey"> (default 1.3)</span></td>
+                                                              </tr>
+                                                              <tr>
+                                                                <td>Retry Offset</td>
+                                                                <td><input type="number" id="sr-reinsert-after" min="1" max="10" step="1"
+                                                                           value="4" style="width:70px"
+                                                                           onchange="srUpdateParam('reinsertAfter',this.value)">
+                                                                    <span class="w3-text-grey"> puzzles before retry (default 4)</span></td>
+                                                              </tr>
+                                                            </table>
+                                                          </td>
+                                                        </tr>
+
                                                 </table>
 
                                                 <a class="w3-bar-item w3-button" onclick="resetSettings();">Reset</a>
@@ -356,6 +398,36 @@
         </div>
         </div>
 
+         <!-- SR Dashboard Modal -->
+        <div id="modal_sr_dashboard" class="w3-modal" style="display:none">
+          <div class="w3-modal-content w3-card-4" style="max-width:800px">
+            <header class="w3-container w3-indigo">
+              <span onclick="document.getElementById('modal_sr_dashboard').style.display='none'"
+                    class="w3-button w3-display-topright">✕</span>
+              <h3>SR Dashboard</h3>
+            </header>
+            <div class="w3-container w3-padding">
+              <div id="sr-dashboard-summary" class="w3-margin-bottom"></div>
+              <div id="sr-retention-graph" class="w3-center w3-margin-bottom"></div>
+              <div style="max-height:400px;overflow-y:auto">
+                <table class="w3-table w3-striped w3-bordered w3-small">
+                  <thead><tr class="w3-indigo">
+                    <th>#</th><th>Puzzle</th><th>Reps</th>
+                    <th>Interval</th><th>Ease</th><th>Next Review</th><th>Status</th>
+                  </tr></thead>
+                  <tbody id="sr-dashboard-tbody"></tbody>
+                </table>
+              </div>
+              <div class="w3-margin-top">
+                <button class="w3-button w3-green w3-round w3-small" onclick="srExportJSON()">⬇ Export JSON</button>
+                <button class="w3-button w3-blue w3-round w3-small w3-margin-left" onclick="srExportCSV()">⬇ Export CSV</button>
+                <button class="w3-button w3-orange w3-round w3-small w3-margin-left" onclick="srImportJSON()">⬆ Import JSON</button>
+                <input type="file" id="sr-import-input" accept=".json" style="display:none" onchange="srHandleImport(this)">
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Custom code for this project (needs to be here AFTER elements are built & labelled)-->
         <!--
              cm-chessboard requires ES modules. All app scripts are loaded via
@@ -363,6 +435,15 @@
              See MIGRATION.md for the one-time asset download step.
         -->
         <script type="module" src="./assets/app.js"></script>
-</body>
 
+        <!-- Service Worker Registration for PWA Offline Support -->
+        <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () =>
+                navigator.serviceWorker.register('./service-worker.js')
+                    .catch(err => console.warn('SW registration failed:', err))
+            );
+        }
+        </script>
+</body>
 </html>
