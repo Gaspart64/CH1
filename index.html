@@ -66,6 +66,7 @@
                 </div>
                 <p>
     <button type="button" id="openPGN_button" class="w3-button w3-round-large w3-indigo w3-hover-blue">Open PGN File</button>
+    <input type="file" id="pgn_file_input" accept=".pgn" style="display:none" onchange="handlePGNFileUpload(event)">
     
     <!-- Dropdown to select a PGN file -->
     <select id="openPGN" onchange="loadPGNFile()">
