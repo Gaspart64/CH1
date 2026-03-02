@@ -1563,23 +1563,18 @@ function showStats() {
 $(() => {
 
         // Buttons
-        $('#openPGN_button').click(() => {
-                // Check if user wants to upload a file or select from dropdown
+        document.getElementById('openPGN_button').addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 const fileInput = document.getElementById('pgn_file_input');
-                const dropdown = document.getElementById('openPGN');
-                
-                // Show a simple dialog to choose between upload or select
-                const choice = confirm('Upload a PGN file? (OK for upload, Cancel to select from list)');
-                if (choice) {
+                if (fileInput) {
                         fileInput.click();
-                } else {
-                        dropdown.click();
                 }
-        });
+        }, false);
 
-        $('#btn_reset').on('click', resetGame);
+        document.getElementById('btn_reset').addEventListener('click', resetGame, false);
 
-        $('#btn_showresults').on('click', showresults);
+        document.getElementById('btn_showresults').addEventListener('click', showresults, false);
 
         $('#btn_hint_landscape').on('click', showHint);
         $('#btn_hint_portrait').on('click', showHint);
@@ -1668,40 +1663,3 @@ loadPuzzle(puzzleset[PuzzleOrder[0]]);
 }
 
 
-/**
- * Handle PGN file upload from user's device
- */
-function handlePGNFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const pgnContent = e.target.result;
-            // Store the PGN content in a temporary variable
-            window.uploadedPGNContent = pgnContent;
-            window.uploadedPGNFileName = file.name;
-            
-            // Parse the PGN content
-            parsePGN(pgnContent);
-            
-            // Update the dropdown to show the uploaded file
-            const dropdown = document.getElementById('openPGN');
-            const option = document.createElement('option');
-            option.value = 'uploaded';
-            option.textContent = `📤 ${file.name}`;
-            option.selected = true;
-            dropdown.appendChild(option);
-            
-            alert(`✓ Loaded: ${file.name}\n${puzzleset.length} puzzles found`);
-        } catch (err) {
-            alert(`Error parsing PGN file: ${err.message}`);
-            console.error('PGN Parse Error:', err);
-        }
-    };
-    reader.readAsText(file);
-    
-    // Reset the file input so the same file can be uploaded again
-    event.target.value = '';
-}

@@ -368,3 +368,102 @@ CSS from pawn promotion example
   .slider.round:before {
 	border-radius: 50%;
   }
+
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+	body {
+		font-size: 14px;
+		overflow-x: hidden;
+	}
+	
+	button {
+		padding: 10px 15px;
+		font-size: 14px;
+		min-height: 44px;
+		min-width: 44px;
+	}
+	
+	select, input[type="text"], input[type="number"] {
+		font-size: 16px;
+		padding: 10px;
+		min-height: 44px;
+	}
+	
+	#openPGN_button {
+		width: 100%;
+		margin-bottom: 10px;
+	}
+	
+	#openPGN {
+		width: 100%;
+		margin-bottom: 10px;
+	}
+	
+	#game-mode-select-manual {
+		width: 100%;
+		margin-bottom: 10px;
+	}
+	
+	.w3-sidebar {
+		width: 100% !important;
+		max-width: 100% !important;
+	}
+	
+	.w3-modal {
+		padding: 10px;
+	}
+	
+	.w3-modal-content {
+		width: 95% !important;
+		max-height: 90vh;
+		overflow-y: auto;
+	}
+	
+	input[type="checkbox"] {
+		width: 20px;
+		height: 20px;
+		cursor: pointer;
+	}
+	
+	label {
+		cursor: pointer;
+		display: inline-block;
+		padding: 8px;
+	}
+}
+
+/* Touch-friendly interface */
+@media (hover: none) and (pointer: coarse) {
+	button, a, select, input[type="checkbox"] {
+		-webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+	}
+	
+	button:active, a:active {
+		background-color: rgba(63, 81, 181, 0.2) !important;
+	}
+}
+
+/* Prevent zoom on input focus (iOS) */
+@media (max-width: 768px) {
+	input, select, textarea {
+		font-size: 16px !important;
+	}
+}
+
+/* Improve button accessibility on mobile */
+button {
+	-webkit-appearance: none;
+	appearance: none;
+	border-radius: 4px;
+}
+
+/* Fix for notched phones (iPhone X+) */
+@supports (padding: max(0px)) {
+	body {
+		padding-left: max(12px, env(safe-area-inset-left));
+		padding-right: max(12px, env(safe-area-inset-right));
+		padding-top: max(12px, env(safe-area-inset-top));
+		padding-bottom: max(12px, env(safe-area-inset-bottom));
+	}
+}
