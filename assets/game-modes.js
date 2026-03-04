@@ -16,7 +16,8 @@ const GAME_MODES = {
     HASTE:      'haste',
     COUNTDOWN:  'countdown',
     SPEEDRUN:   'speedrun',
-    INFINITY:   'infinity'
+    INFINITY:   'infinity',
+    WOODPECKER: 'woodpecker'
 };
 
 // Game mode configurations
@@ -60,6 +61,11 @@ const MODE_CONFIGS = {
         name: 'Spaced Repetition',
         description: 'Puzzles you struggle with appear more often. Progress is saved across sessions.',
         hasTimer: false, hasLives: false, hasHints: false, hasLevels: false
+    },
+    [GAME_MODES.WOODPECKER]: {
+        name: 'Woodpecker',
+        description: 'Complete the full set. Each cycle must be faster than the last.',
+        hasTimer: true, hasLives: false, hasHints: false, hasLevels: false
     }
 };
 
@@ -84,6 +90,11 @@ let modeState = {
 // Repetition-mode tracking
 let repetitionSetStartIndex = 0;
 let repetitionSetHadError   = false;
+
+// Woodpecker mode tracking
+let wpData = null;          // loaded wp_data for current PGN
+let wpCurrentPgn = null;    // name of current Woodpecker PGN
+const WP_STORAGE_PREFIX = 'wp_data_';
 
 // ---------------------------------------------------------------------------
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1006,4 +1017,167 @@ function srLogResult(correct, incorrect) {
     history[today].correct   += correct;
     history[today].incorrect += incorrect;
     localStorage.setItem(SR_HISTORY_KEY, JSON.stringify(history));
+}
+
+
+// ---------------------------------------------------------------------------
+// WOODPECKER METHOD MODE - Storage Functions
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the localStorage key for a Woodpecker PGN file
+ */
+function wpStorageKey(pgnName) {
+    return WP_STORAGE_PREFIX + pgnName;
+}
+
+/**
+ * Load Woodpecker data for a PGN file from localStorage
+ */
+function wpLoad(pgnName) {
+    wpCurrentPgn = pgnName;
+    const raw = localStorage.getItem(wpStorageKey(pgnName));
+    wpData = raw ? JSON.parse(raw) : { cycleHistory: [], currentCycle: null };
+    return wpData;
+}
+
+/**
+ * Save current Woodpecker data to localStorage
+ */
+function wpSave() {
+    if (!wpCurrentPgn) return;
+    localStorage.setItem(wpStorageKey(wpCurrentPgn), JSON.stringify(wpData));
+}
+
+/**
+ * Get the time (in ms) of the last completed cycle
+ */
+function wpGetLastCycleMs() {
+    if (!wpData || wpData.cycleHistory.length === 0) return null;
+    return wpData.cycleHistory[wpData.cycleHistory.length - 1].totalMs;
+}
+
+/**
+ * Get the current cycle number (next cycle to start)
+ */
+function wpGetCycleNumber() {
+    if (!wpData) return 1;
+    return wpData.cycleHistory.length + 1;
+}
+
+/**
+ * Start a new Woodpecker cycle
+ */
+function wpStartCycle(pgnName, puzzleCount) {
+    wpLoad(pgnName);
+    if (!wpData.currentCycle) {
+        wpData.currentCycle = {
+            cycleNumber: wpGetCycleNumber(),
+            startedAt: Date.now(),
+            puzzleCount: puzzleCount,
+            mistakesThisCycle: [],
+            lastPuzzleIndex: 0
+        };
+        wpSave();
+    }
+    updateWpUI();
+}
+
+/**
+ * Record a mistake in the current Woodpecker cycle
+ */
+function wpRecordMistake(puzzleIndex) {
+    if (!wpData || !wpData.currentCycle) return;
+    if (!wpData.currentCycle.mistakesThisCycle.includes(puzzleIndex)) {
+        wpData.currentCycle.mistakesThisCycle.push(puzzleIndex);
+        wpSave();
+    }
+}
+
+/**
+ * Update the last puzzle index in the current cycle (for resume support)
+ */
+function wpUpdateLastPuzzleIndex(index) {
+    if (!wpData || !wpData.currentCycle) return;
+    wpData.currentCycle.lastPuzzleIndex = index;
+    wpSave();
+}
+
+/**
+ * Complete the current Woodpecker cycle and return cycle data
+ */
+function wpCompleteCycle() {
+    if (!wpData || !wpData.currentCycle) return null;
+    const elapsed = Date.now() - wpData.currentCycle.startedAt;
+    const completedCycle = {
+        cycleNumber: wpData.currentCycle.cycleNumber,
+        totalMs: elapsed,
+        puzzleCount: wpData.currentCycle.puzzleCount,
+        mistakeCount: wpData.currentCycle.mistakesThisCycle.length,
+        completedAt: new Date().toISOString().split('T')[0],
+        mistakeIndexes: wpData.currentCycle.mistakesThisCycle
+    };
+    wpData.cycleHistory.push(completedCycle);
+    wpData.currentCycle = null;
+    wpSave();
+    return completedCycle;
+}
+
+/**
+ * Check if there's an in-progress cycle and offer to resume
+ */
+function wpCheckResume(pgnName, puzzleCount) {
+    wpLoad(pgnName);
+    if (wpData.currentCycle) {
+        const elapsed = msToHMS(Date.now() - wpData.currentCycle.startedAt);
+        const confirmed = confirm(
+            `You have an in-progress Cycle ${wpData.currentCycle.cycleNumber} ` +
+            `(elapsed: ${elapsed}, at puzzle ${wpData.currentCycle.lastPuzzleIndex + 1}/${puzzleCount}). Resume it?`
+        );
+        if (confirmed) {
+            return wpData.currentCycle.lastPuzzleIndex;
+        } else {
+            wpData.currentCycle = null;
+            wpSave();
+        }
+    }
+    return 0;
+}
+
+/**
+ * Convert milliseconds to HH:MM:SS format
+ */
+function msToHMS(ms) {
+    const s = Math.floor(ms / 1000);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return [h, m, sec].map(v => String(v).padStart(2, '0')).join(':');
+}
+
+/**
+ * Update Woodpecker UI display
+ */
+function updateWpUI() {
+    const display = document.getElementById('wp-status-display');
+    if (!display) return;
+    const isWp = currentGameMode === GAME_MODES.WOODPECKER;
+    display.style.display = isWp ? 'block' : 'none';
+    if (!isWp || !wpData) return;
+
+    const cycleEl = document.getElementById('wp-cycle-number');
+    if (cycleEl) cycleEl.textContent = wpGetCycleNumber();
+
+    const lastMs = wpGetLastCycleMs();
+    const prevRow = document.getElementById('wp-prev-time-row');
+    const targetEl = document.getElementById('wp-target-time');
+    if (lastMs && prevRow && targetEl) {
+        prevRow.style.display = 'block';
+        targetEl.textContent = msToHMS(lastMs);
+    }
+
+    const mistakeEl = document.getElementById('wp-mistake-count');
+    if (mistakeEl && wpData.currentCycle) {
+        mistakeEl.textContent = wpData.currentCycle.mistakesThisCycle.length;
+    }
 }
