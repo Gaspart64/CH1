@@ -462,6 +462,20 @@ function resetModeState() {
     repetitionSetStartIndex = 0;
     repetitionSetHadError   = false;
 
+    // Initialize Woodpecker mode if selected
+    if (currentGameMode === GAME_MODES.WOODPECKER) {
+        if (typeof puzzleset !== 'undefined' && puzzleset.length > 0) {
+            const pgnName = currentPgnFile || 'default';
+            const resumeIndex = typeof wpCheckResume === 'function' ? wpCheckResume(pgnName, puzzleset.length) : 0;
+            if (typeof wpStartCycle === 'function') {
+                wpStartCycle(pgnName, puzzleset.length);
+            }
+            if (resumeIndex > 0) {
+                increment = resumeIndex - 1;
+            }
+        }
+    }
+
     updateModeUI();
 }
 
@@ -476,6 +490,7 @@ function updateModeUI() {
     updateLevelDisplay();
     toggleModeElements(MODE_CONFIGS[currentGameMode]);
     srUpdateStatsDisplay();
+    updateWpUI();
     // Show/hide SR parameters row based on mode
     const srRow = document.getElementById('sr-params-row');
     if (srRow) srRow.style.display = currentGameMode === GAME_MODES.INFINITY ? 'table-row' : 'none';
@@ -666,6 +681,14 @@ function handleIncorrectMove() {
         repetitionSetHadError = true;
         return;
     }
+    if (currentGameMode === GAME_MODES.WOODPECKER) {
+        // Record mistake but DO NOT end session — Woodpecker continues regardless
+        if (wpData && wpData.currentCycle && typeof getCurrentPuzzleIndex === 'function') {
+            const idx = getCurrentPuzzleIndex();
+            wpRecordMistake(idx);
+        }
+        return;
+    }
     if (currentGameMode === GAME_MODES.INFINITY) {
         srOnError();
         return;
@@ -730,6 +753,11 @@ function handlePuzzleStart() {
 // ---------------------------------------------------------------------------
 
 function shouldContinueToNextPuzzle() {
+    if (currentGameMode === GAME_MODES.WOODPECKER) {
+        // Woodpecker always advances regardless of mistakes
+        return increment + 1 < puzzleset.length;
+    }
+
     if (currentGameMode === GAME_MODES.INFINITY) {
         const hasMore = srAdvance();
         if (!hasMore) {
@@ -1180,4 +1208,50 @@ function updateWpUI() {
     if (mistakeEl && wpData.currentCycle) {
         mistakeEl.textContent = wpData.currentCycle.mistakesThisCycle.length;
     }
+}
+
+
+/**
+ * Build a cycle history bar chart as inline SVG
+ */
+function wpBuildCycleChart(history) {
+    if (!history || history.length === 0) return '';
+    const W = 300, H = 80, pad = 4;
+    const maxMs = Math.max(...history.map(c => c.totalMs));
+    const barW = Math.floor((W - pad * (history.length + 1)) / history.length);
+
+    const bars = history.map((c, i) => {
+        const barH = Math.round((c.totalMs / maxMs) * (H - 20));
+        const x = pad + i * (barW + pad);
+        const y = H - barH - 16;
+        const color = i === 0 ? '#888' : c.totalMs < history[i - 1].totalMs ? '#4caf50' : '#e53935';
+        return `
+            <rect x="${x}" y="${y}" width="${barW}" height="${barH}" fill="${color}" rx="2"/>
+            <text x="${x + barW / 2}" y="${H - 2}" text-anchor="middle"
+                  font-size="9" fill="#aaa">${c.cycleNumber}</text>
+        `;
+    }).join('');
+
+    return `<svg width="${W}" height="${H}" style="display:block;margin:auto;">
+        ${bars}
+        <text x="${W/2}" y="${H}" text-anchor="middle" font-size="9" fill="#888">Cycle</text>
+    </svg>`;
+}
+
+/**
+ * Populate the flagged puzzles list in the results modal
+ */
+function wpPopulateFlaggedList(mistakeIndexes) {
+    const section = document.getElementById('wp-flagged-section');
+    const list = document.getElementById('wp-flagged-list');
+    if (!section || !list || !mistakeIndexes || mistakeIndexes.length === 0) {
+        if (section) section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+    list.innerHTML = mistakeIndexes.map(idx => {
+        const puzzle = puzzleList && puzzleList[idx];
+        const name = puzzle ? (puzzle.name || `Puzzle ${idx + 1}`) : `Puzzle ${idx + 1}`;
+        return `<li>${name}</li>`;
+    }).join('');
 }

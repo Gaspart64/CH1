@@ -91,6 +91,7 @@
         <option value="countdown">Countdown Mode</option>
         <option value="speedrun">Speedrun Mode</option>
         <option value="infinity">Infinity Mode</option>
+        <option value="woodpecker">🪵 Woodpecker</option>
     </select>
 
     <button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue">Reset</button>
@@ -120,6 +121,16 @@
 
                                 <div class="w3-border">
                                         <div id="progressbar_landscape" class="w3-indigo" style="height:24px;width:0%"></div>
+                                </div>
+
+                                <div id="wp-status-display" style="display:none;">
+                                        <div class="w3-container w3-center w3-small w3-padding">
+                                                <div>🪵 Cycle <strong id="wp-cycle-number">1</strong></div>
+                                                <div id="wp-prev-time-row" style="display:none;">
+                                                        Target: <strong id="wp-target-time">--:--:--</strong>
+                                                </div>
+                                                <div>Mistakes: <strong id="wp-mistake-count">0</strong></div>
+                                        </div>
                                 </div>
 
                                 <div class="w3-container w3-center">
@@ -204,6 +215,11 @@
                                                         <p id="streakResult" style="display:none;"></p>
                                                         <h4 id="slowest-puzzles-heading" style="display:none; margin-top:20px;">Slowest Puzzles</h4>
                                                         <ol id="slowest-puzzles-list" style="display:none; text-align:left; max-width:400px; margin:0 auto;"></ol>
+                                                        <div id="wp-results-slot"></div>
+                                                        <div id="wp-flagged-section" style="display:none;">
+                                                                <h4>Flagged Puzzles (solve these before starting Cycle N+1)</h4>
+                                                                <ul id="wp-flagged-list"></ul>
+                                                        </div>
                                                 </div>
                                                 </p>
                                                 <button id="btn_review_mistakes" class="w3-button w3-orange w3-round w3-margin-top"

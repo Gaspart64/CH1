@@ -1542,6 +1542,49 @@ function showStats() {
                 }
         }
 
+        // Handle Woodpecker mode results
+        if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'woodpecker') {
+                if (typeof wpCompleteCycle === 'function') {
+                        const cycle = wpCompleteCycle();
+                        if (cycle && typeof wpData !== 'undefined' && wpData) {
+                                const history = wpData.cycleHistory;
+                                const lastMs = history.length >= 2 ? history[history.length - 2].totalMs : null;
+                                const improvement = lastMs ? lastMs - cycle.totalMs : null;
+                                const faster = improvement > 0;
+
+                                const chartSvg = typeof wpBuildCycleChart === 'function' ? wpBuildCycleChart(history) : '';
+
+                                const extraHtml = `
+                                        <div style="padding: 12px 0;">
+                                                <div style="font-size:1.3rem; font-weight:bold; text-align:center; margin-bottom:8px;">
+                                                        🪵 Cycle ${cycle.cycleNumber} Complete
+                                                </div>
+                                                <div>Time: <strong>${typeof msToHMS === 'function' ? msToHMS(cycle.totalMs) : 'N/A'}</strong></div>
+                                                <div>Mistakes: <strong>${cycle.mistakeCount}</strong> / ${cycle.puzzleCount}</div>
+                                                ${improvement !== null
+                                                        ? `<div style="color:${faster ? 'green' : 'red'}">
+                                                            ${faster ? '\u25b2 ' : '\u25bc '}${typeof msToHMS === 'function' ? msToHMS(Math.abs(improvement)) : 'N/A'} vs last cycle
+                                                           </div>`
+                                                        : ''}
+                                                <div style="margin-top:12px;">${chartSvg}</div>
+                                                ${cycle.mistakeCount > 0
+                                                        ? `<div style="margin-top:10px; font-size:0.9rem;">
+                                                            ⚠️ ${cycle.mistakeCount} puzzle(s) flagged for review — see list below.
+                                                           </div>`
+                                                        : '<div style="color:green; margin-top:8px;">✅ Perfect cycle!</div>'}
+                                        </div>
+                                `;
+
+                                const slot = document.getElementById('wp-results-slot');
+                                if (slot) slot.innerHTML = extraHtml;
+
+                                if (typeof wpPopulateFlaggedList === 'function') {
+                                        wpPopulateFlaggedList(cycle.mistakeIndexes);
+                                }
+                        }
+                }
+        }
+
         // Display the modal
         showresults();
 
