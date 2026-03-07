@@ -48,8 +48,20 @@ async function loadScript(src) {
 
 (async () => {
     try {
-        await loadScript('./assets/storage.js');
-        await loadScript('./assets/game-modes.js');
+		// Load IndexedDB layer first so ChessDB is available to other scripts
+		await loadScript('./assets/database.js');
+
+		// Open the database connection early to hide latency on first use
+		if (window.ChessDB && typeof window.ChessDB.open === 'function') {
+			await window.ChessDB.open();
+			// Run one-time migration from legacy localStorage data if needed
+			if (typeof window.ChessDB.migrateFromLocalStorage === 'function') {
+				window.ChessDB.migrateFromLocalStorage().catch(console.error);
+			}
+		}
+
+		await loadScript('./assets/storage.js');
+		await loadScript('./assets/game-modes.js');
         await loadScript('./assets/chess-pgn-trainer.js');
         await loadScript('./assets/piece-list.js');
 

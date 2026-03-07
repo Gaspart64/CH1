@@ -3,3 +3,13 @@ node_modules/
 .local/
 *.log
 .DS_Store
+
+# Local data and test files
+IndexedDB/
+IndexedDB2/
+test_*.js
+capture_modal.js
+modal_screenshot.png
+test_slowest_feature.pgn
+Chess PGN Trainer - Complete Implementation Summary.md
+MANUS_TASKS.md

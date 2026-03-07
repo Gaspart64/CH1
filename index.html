@@ -32,7 +32,8 @@
 
         <!-- JQuery UI (needed for showing the pawn promotion dialog) -->
         <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css"
-                integrity="sha384-vIQIPaHJRqkO8xhnLxSZ0rHF6LyiWXbLF3grsa9pv9yDFyOPGrE1teHOuRNMJoZs" crossorigin="anonymous">
+                integrity="sha384-vIQIPaHJRqkO8xhnLxSZ0rHF6LyiWXbLF3grsa9pv9yDFyOPGrE1teHOuRNMJoZs"
+                crossorigin="anonymous">
 
         <!-- <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script> -->
         <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"
@@ -48,9 +49,7 @@
                 crossorigin="anonymous"></script>
 
         <!-- PGN Parser library -->
-        <script src="https://cdn.jsdelivr.net/npm/@mliebelt/pgn-parser"
-                
-                crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@mliebelt/pgn-parser" crossorigin="anonymous"></script>
 
         <!-- Color Picker library -->
         <script type="text/javascript" src="./assets/jquery.wheelcolorpicker.js"></script>
@@ -68,34 +67,37 @@
                         <h3>Chess PGN Trainer</h3>
                 </div>
                 <p>
-    <button type="button" id="openPGN_button" class="w3-button w3-round-large w3-indigo w3-hover-blue">Open PGN File</button>
-    <input type="file" id="pgn_file_input" accept=".pgn" style="display:none" onchange="handlePGNFileUpload(event)">
-    
-    <!-- Dropdown to select a PGN file -->
-    <select id="openPGN" onchange="loadPGNFile()">
-        <option value="">Select a PGN file...</option>
-        <option value="./PGN/1.pgn">Chessimo 1</option>
-        <option value="./PGN/2.pgn">Chessimo 2</option>
-        <option value="./PGN/3.pgn">Chessimo 3</option>
-        <option value="./PGN/4.pgn">Chessimo 4</option>
-        <option value="./PGN/5.pgn">Chessimo 5</option>
-        <option value="./PGN/MorphyWhite15.pgn">Morphy as white</option>
-        <!-- Options will be dynamically added here, either statically or via API -->
-    </select>
-    
-    <select id="game-mode-select-manual" onchange="if(typeof setGameMode === 'function') setGameMode(this.value)">
-        <option value="standard">Standard Mode</option>
-        <option value="repetition">Repetition Mode</option>
-        <option value="three">Three Mode</option>
-        <option value="haste">Haste Mode</option>
-        <option value="countdown">Countdown Mode</option>
-        <option value="speedrun">Speedrun Mode</option>
-        <option value="infinity">Infinity Mode</option>
-        <option value="woodpecker">🪵 Woodpecker</option>
-    </select>
+                        <button type="button" id="openPGN_button"
+                                class="w3-button w3-round-large w3-indigo w3-hover-blue">Open PGN File</button>
+                        <input type="file" id="pgn_file_input" accept=".pgn" style="display:none"
+                                onchange="handlePGNFileUpload(event)">
 
-    <button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue">Reset</button>
-</p>
+                        <!-- Dropdown to select a PGN file -->
+                        <select id="openPGN" onchange="loadPGNFile()">
+                                <option value="">Select a PGN file...</option>
+                                <option value="./PGN/1.pgn">Chessimo 1</option>
+                                <option value="./PGN/2.pgn">Chessimo 2</option>
+                                <option value="./PGN/3.pgn">Chessimo 3</option>
+                                <option value="./PGN/4.pgn">Chessimo 4</option>
+                                <option value="./PGN/pgn1.pgn">TEST</option>
+                                <option value="./PGN/MorphyWhite15.pgn">Morphy as white</option>
+                                <!-- Options will be dynamically added here, either statically or via API -->
+                        </select>
+
+                        <select id="game-mode-select-manual"
+                                onchange="if(typeof setGameMode === 'function') setGameMode(this.value)">
+                                <option value="standard">Standard Mode</option>
+                                <option value="repetition">Repetition Mode</option>
+                                <option value="three">Three Mode</option>
+                                <option value="haste">Haste Mode</option>
+                                <option value="countdown">Countdown Mode</option>
+                                <option value="speedrun">Speedrun Mode</option>
+                                <option value="infinity">Infinity Mode</option>
+                                <option value="woodpecker">🪵 Woodpecker</option>
+                        </select>
+
+                        <button id="btn_reset" class="w3-button w3-round-large w3-indigo w3-hover-blue">Reset</button>
+                </p>
 
                 <input class="w3-check" type="checkbox" id="playbothsides" onchange="confirmOnlyOneOption();"><label
                         for="playbothsides"> Play both
@@ -103,7 +105,8 @@
                 <input class="w3-check" type="checkbox" id="playoppositeside" onchange="confirmOnlyOneOption();"><label
                         for="playoppositeside"> Play
                         opposite side</label><br>
-                <input class="w3-check" type="checkbox" id="randomizeSet"><label for="randomizeSet"> Randomize</label><br>
+                <input class="w3-check" type="checkbox" id="randomizeSet"><label for="randomizeSet">
+                        Randomize</label><br>
                 <input class="w3-check" type="checkbox" id="flipped"><label for="flipped"> Flipped</label><br>
                 <input class="w3-check" type="checkbox" id="analysisboard"><label for="analysisboard"> Analysis
                         Board</label><br>
@@ -120,7 +123,8 @@
                                 </div>
 
                                 <div class="w3-border">
-                                        <div id="progressbar_landscape" class="w3-indigo" style="height:24px;width:0%"></div>
+                                        <div id="progressbar_landscape" class="w3-indigo" style="height:24px;width:0%">
+                                        </div>
                                 </div>
 
                                 <div id="wp-status-display" style="display:none;">
@@ -139,16 +143,20 @@
                                 <p></p>
 
                                 <div class="w3-bar">
-                                        <button id="btn_hint_landscape" class="w3-button w3-round-large w3-indigo w3-hover-blue"
-                                                disabled="true" style="display: none">Hint</button>
+                                        <button id="btn_hint_landscape"
+                                                class="w3-button w3-round-large w3-indigo w3-hover-blue" disabled="true"
+                                                style="display: none">Hint</button>
                                 </div>
 
                                 <div class="w3-bar">
-                                        <button id="btn_starttest_landscape" class="w3-button w3-round-large w3-indigo w3-hover-blue"
+                                        <button id="btn_starttest_landscape"
+                                                class="w3-button w3-round-large w3-indigo w3-hover-blue"
                                                 disabled="true">Start</button>
-                                        <button id="btn_pause_landscape" class="w3-button w3-round-large w3-indigo w3-hover-blue"
+                                        <button id="btn_pause_landscape"
+                                                class="w3-button w3-round-large w3-indigo w3-hover-blue"
                                                 style="display: none">Pause</button>
-                                        <button id="btn_restart_landscape" class="w3-button w3-round-large w3-indigo w3-hover-blue"
+                                        <button id="btn_restart_landscape"
+                                                class="w3-button w3-round-large w3-indigo w3-hover-blue"
                                                 style="display: none">Restart</button>
                                 </div>
                         </div>
@@ -156,8 +164,8 @@
 
                 <div class="w3-container w3-center">
                         <div class="w3-bar">
-                                <button id="btn_showresults" class="w3-button w3-round-large w3-indigo w3-hover-blue" disabled="true"
-                                        style="display: none">Show Results</button>
+                                <button id="btn_showresults" class="w3-button w3-round-large w3-indigo w3-hover-blue"
+                                        disabled="true" style="display: none">Show Results</button>
                         </div>
                 </div>
 
@@ -166,7 +174,10 @@
                 </div>
 
                 <div style="position: absolute;bottom: 0; left:0; padding-left: 8px; padding-bottom: 8px;">
-                        <a id="btn_sr_dashboard" class="w3-bar-item w3-button" onclick="showSRDashboard();" style="display:none;">📊 SR Dashboard</a>
+                        <a id="btn_sr_dashboard" class="w3-bar-item w3-button" onclick="showSRDashboard();"
+                                style="display:none;">📊 SR Dashboard</a>
+                        <a id="btn_wp_dashboard" class="w3-bar-item w3-button" onclick="showWoodpeckerDashboard();"
+                                style="display:none;">📊 WP Stats</a>
                         <a class="w3-bar-item w3-button" onclick="showSettings();">Settings &#x26ED;</a>
                         <a href="https://github.com/rodpolako/Chess-PGN-Trainer" class="w3-bar-item w3-button"
                                 target="_blank">Github Page <img id='img_logo' src="./img/github-mark.svg" height="12px"
@@ -174,27 +185,35 @@
                 </div>
         </div>
 
-        <div class="w3-main">
+        <div class="w3-main" style="display: flex; flex-direction: column; height: 100dvh; overflow: hidden;">
 
-                <div class="w3-container w3-indigo portraitmode light-mode" id="title_header">
+                <div class="w3-container w3-indigo portraitmode light-mode" id="title_header" style="flex-shrink: 0;">
                         <div>
                                 <h3><button class="w3-button w3-large w3-hide-large" onclick="w3_open()"
-                                                style="float: right; padding-top: 4px;">&#9776;</button><span id='Title'>Chess PGN
+                                                style="float: right; padding-top: 4px;">&#9776;</button><span
+                                                id='Title'>Chess PGN
                                                 Trainer</span></h3>
                         </div>
                 </div>
 
-                <div class="w3-container w3-center" style="border: 4px; display: flexbox;">
+                <div class="w3-container w3-center"
+                        style="border: 4px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-evenly; min-height: 0;">
 
                         <!-- Resume Game Modal -->
-                        <div id="resume-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999;">
-                                <div style="background:#fff; border-radius:10px; padding:32px 36px; max-width:380px; width:90%; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.3); position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);">
+                        <div id="resume-modal"
+                                style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999;">
+                                <div
+                                        style="background:#fff; border-radius:10px; padding:32px 36px; max-width:380px; width:90%; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.3); position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);">
                                         <div style="font-size:2.5em; margin-bottom:12px;">♟️</div>
                                         <h2 style="margin:0 0 8px 0; font-size:1.4em; color:#333;">Resume Game?</h2>
-                                        <p style="color:#666; margin:0 0 24px 0; font-size:0.95em;">You have a game in progress. Would you like to continue where you left off?</p>
+                                        <p style="color:#666; margin:0 0 24px 0; font-size:0.95em;">You have a game in
+                                                progress. Would you like to continue where you left off?</p>
                                         <div style="display:flex; gap:12px; justify-content:center;">
-                                                <button onclick="handleResumeChoice(true)" style="background:#3d6b9e; color:#fff; border:none; border-radius:6px; padding:10px 28px; font-size:1em; cursor:pointer;">Resume</button>
-                                                <button onclick="handleResumeChoice(false)" style="background:#e0e0e0; color:#333; border:none; border-radius:6px; padding:10px 28px; font-size:1em; cursor:pointer;">Start New</button>
+                                                <button onclick="handleResumeChoice(true)"
+                                                        style="background:#3d6b9e; color:#fff; border:none; border-radius:6px; padding:10px 28px; font-size:1em; cursor:pointer;">Resume</button>
+                                                <button onclick="handleResumeChoice(false)"
+                                                        style="background:#e0e0e0; color:#333; border:none; border-radius:6px; padding:10px 28px; font-size:1em; cursor:pointer;">Start
+                                                        New</button>
                                         </div>
                                 </div>
                         </div>
@@ -213,22 +232,40 @@
                                                         <div id="elapsedTime"></div>
                                                         <div id="avgTime"></div>
                                                         <p id="streakResult" style="display:none;"></p>
-                                                        <h4 id="slowest-puzzles-heading" style="display:none; margin-top:20px;">Slowest Puzzles</h4>
-                                                        <ol id="slowest-puzzles-list" style="display:none; text-align:left; max-width:400px; margin:0 auto;"></ol>
+                                                        <h4 id="slowest-puzzles-heading"
+                                                                style="display:none; margin-top:20px;">Slowest Puzzles
+                                                        </h4>
+                                                        <ol id="slowest-puzzles-list"
+                                                                style="display:none; text-align:left; max-width:400px; margin:0 auto;">
+                                                        </ol>
                                                         <div id="wp-results-slot"></div>
                                                         <div id="wp-flagged-section" style="display:none;">
-                                                                <h4>Flagged Puzzles (solve these before starting Cycle N+1)</h4>
+                                                                <h4>Flagged Puzzles (solve these before starting Cycle
+                                                                        N+1)</h4>
                                                                 <ul id="wp-flagged-list"></ul>
                                                         </div>
                                                 </div>
                                                 </p>
-                                                <button id="btn_review_mistakes" class="w3-button w3-orange w3-round w3-margin-top"
-                                                        style="display:none" onclick="startMistakeReview()">
-                                                  Review Mistakes
-                                                </button>
-                                                <a class="w3-bar-item w3-button" onclick="outputStats2Clipboard();">Copy results to
+                                                <div
+                                                        style="display: flex; flex-direction: column; gap: 8px; align-items: stretch; width: 100%; margin-top: 16px; margin-bottom: 8px;">
+                                                        <button id="btn_review_mistakes"
+                                                                class="w3-button w3-orange w3-round"
+                                                                style="display:none; width: 100%;"
+                                                                onclick="startMistakeReview()">
+                                                                Review Mistakes
+                                                        </button>
+                                                        <button id="btn_review_slowest"
+                                                                class="w3-button w3-deep-purple w3-round"
+                                                                style="display:none; width: 100%;"
+                                                                onclick="startSlowestReview()">
+                                                                Review Slowest 5 Puzzles
+                                                        </button>
+                                                </div>
+                                                <a class="w3-bar-item w3-button" onclick="outputStats2Clipboard();">Copy
+                                                        results to
                                                         clipboard</a>
-                                                <a class="w3-bar-item w3-button" onclick="outputStats2CSV();">Download to CSV</a>
+                                                <a class="w3-bar-item w3-button" onclick="outputStats2CSV();">Download
+                                                        to CSV</a>
                                         </div>
                                 </div>
                         </div>
@@ -240,21 +277,30 @@
                                                 <h3>Resume Game?</h3>
                                         </header>
                                         <div class="w3-container w3-center" style="padding: 16px;">
-                                                <p>A saved game was found. Would you like to resume or start a new game?</p>
+                                                <p>A saved game was found. Would you like to resume or start a new game?
+                                                </p>
                                                 <div class="w3-bar">
-                                                        <button onclick="handleResumeChoice(true)" class="w3-button w3-round-large w3-indigo w3-hover-blue">Resume</button>
-                                                        <button onclick="handleResumeChoice(false)" class="w3-button w3-round-large w3-red w3-hover-orange">Start New</button>
+                                                        <button onclick="handleResumeChoice(true)"
+                                                                class="w3-button w3-round-large w3-indigo w3-hover-blue">Resume</button>
+                                                        <button onclick="handleResumeChoice(false)"
+                                                                class="w3-button w3-round-large w3-red w3-hover-orange">Start
+                                                                New</button>
                                                 </div>
                                         </div>
                                 </div>
                         </div>
 
                         <!-- Main board window -->
-                        <div class="w3-container w3-center" style="padding:4px; display: flexbox;">
+                        <div class="w3-container w3-center"
+                                style="padding:4px; display: flex; flex-direction: column; flex-grow: 1; align-items: center; justify-content: center; min-height: 0;">
 
                                 <!-- The boards -->
-                                <div id="blankBoard" class="chessboard" style="max-width: 100%; display: none; margin: 0 auto;"></div>
-                                <div id="myBoard" class="chessboard" style="max-width: 100%; display: block; margin: 0 auto;"></div>
+                                <div id="blankBoard" class="chessboard"
+                                        style="max-width: 100%; max-height: 100%; aspect-ratio: 1/1; display: none; margin: 0 auto; flex-shrink: 1;">
+                                </div>
+                                <div id="myBoard" class="chessboard"
+                                        style="max-width: 100%; max-height: 100%; aspect-ratio: 1/1; display: block; margin: 0 auto; flex-shrink: 1;">
+                                </div>
 
                                 <!-- The move indicator -->
                                 <div id="moveturn" style="text-align: center;"></div>
@@ -285,7 +331,8 @@
 
                                                 <table style="width: 100%;margin: 4px;">
                                                         <tr>
-                                                                <td colspan="2" style="text-align: left;"><label for="Light-Color">Square Color</label>
+                                                                <td colspan="2" style="text-align: left;"><label
+                                                                                for="Light-Color">Square Color</label>
                                                                 </td>
                                                         </tr>
                                                         <tr>
@@ -293,11 +340,15 @@
                                                                 <td>Dark</td>
                                                         </tr>
                                                         <tr>
-                                                                <td><input id='Light-Color' class="light-mode-control" type="text" maxlength="7"
-                                                                                size="7" data-wheelcolorpicker onchange="changecolor();" /></td>
+                                                                <td><input id='Light-Color' class="light-mode-control"
+                                                                                type="text" maxlength="7" size="7"
+                                                                                data-wheelcolorpicker
+                                                                                onchange="changecolor();" /></td>
 
-                                                                <td><input id='Dark-Color' class="light-mode-control" type="text" maxlength="7" size="7"
-                                                                                data-wheelcolorpicker onchange="changecolor();" />
+                                                                <td><input id='Dark-Color' class="light-mode-control"
+                                                                                type="text" maxlength="7" size="7"
+                                                                                data-wheelcolorpicker
+                                                                                onchange="changecolor();" />
                                                                 </td>
                                                         </tr>
 
@@ -306,11 +357,13 @@
                                                         </tr>
 
                                                         <tr>
-                                                                <td style="text-align: left; width: 150px;"><label for="piece-select">Piece
+                                                                <td style="text-align: left; width: 150px;"><label
+                                                                                for="piece-select">Piece
                                                                                 Style</label> </td>
 
                                                                 <td>
-                                                                        <select name="pieces" class="light-mode-control" id="piece-select"
+                                                                        <select name="pieces" class="light-mode-control"
+                                                                                id="piece-select"
                                                                                 onchange="changePieces();">
 
                                                                         </select>
@@ -324,7 +377,8 @@
                                                         <tr>
                                                                 <td>Dark mode</td>
                                                                 <td><label class="switch">
-                                                                                <input type="checkbox" id="chk_darkmode" onchange="toggleDarkMode();">
+                                                                                <input type="checkbox" id="chk_darkmode"
+                                                                                        onchange="toggleDarkMode();">
                                                                                 <span class="slider round"></span>
                                                                         </label></td>
                                                         </tr>
@@ -332,7 +386,8 @@
                                                         <tr>
                                                                 <td>Auto copy results to clipboard</td>
                                                                 <td><label class="switch">
-                                                                                <input type="checkbox" id="chk_clipboard"
+                                                                                <input type="checkbox"
+                                                                                        id="chk_clipboard"
                                                                                         onchange="toggleSetting('#chk_clipboard','copy2clipboard');">
                                                                                 <span class="slider round"></span>
                                                                         </label></td>
@@ -341,39 +396,67 @@
                                                         <tr>
                                                                 <td>Add headers to CSV file</td>
                                                                 <td><label class="switch">
-                                                                                <input type="checkbox" id="chk_csvheaders"
+                                                                                <input type="checkbox"
+                                                                                        id="chk_csvheaders"
                                                                                         onchange="toggleSetting('#chk_csvheaders','csvheaders');">
                                                                                 <span class="slider round"></span>
                                                                         </label></td>
                                                         </tr>
 
                                                         <tr id="sr-params-row" style="display:none">
-                                                          <td colspan="2">
-                                                            <strong>Spaced Repetition Parameters</strong>
-                                                            <table class="w3-table w3-small w3-margin-top">
-                                                              <tr>
-                                                                <td>Initial Ease Factor</td>
-                                                                <td><input type="number" id="sr-initial-ease" min="1.3" max="3.5" step="0.1"
-                                                                           value="2.5" style="width:70px"
-                                                                           onchange="srUpdateParam('initialEase',this.value)">
-                                                                    <span class="w3-text-grey"> (default 2.5)</span></td>
-                                                              </tr>
-                                                              <tr>
-                                                                <td>Minimum Ease Factor</td>
-                                                                <td><input type="number" id="sr-min-ease" min="1.0" max="2.0" step="0.1"
-                                                                           value="1.3" style="width:70px"
-                                                                           onchange="srUpdateParam('minEase',this.value)">
-                                                                    <span class="w3-text-grey"> (default 1.3)</span></td>
-                                                              </tr>
-                                                              <tr>
-                                                                <td>Retry Offset</td>
-                                                                <td><input type="number" id="sr-reinsert-after" min="1" max="10" step="1"
-                                                                           value="4" style="width:70px"
-                                                                           onchange="srUpdateParam('reinsertAfter',this.value)">
-                                                                    <span class="w3-text-grey"> puzzles before retry (default 4)</span></td>
-                                                              </tr>
-                                                            </table>
-                                                          </td>
+                                                                <td colspan="2">
+                                                                        <strong>Spaced Repetition Parameters</strong>
+                                                                        <table class="w3-table w3-small w3-margin-top">
+                                                                                <tr>
+                                                                                        <td>Initial Ease Factor</td>
+                                                                                        <td><input type="number"
+                                                                                                        id="sr-initial-ease"
+                                                                                                        min="1.3"
+                                                                                                        max="3.5"
+                                                                                                        step="0.1"
+                                                                                                        value="2.5"
+                                                                                                        style="width:70px"
+                                                                                                        onchange="srUpdateParam('initialEase',this.value)">
+                                                                                                <span
+                                                                                                        class="w3-text-grey">
+                                                                                                        (default
+                                                                                                        2.5)</span>
+                                                                                        </td>
+                                                                                </tr>
+                                                                                <tr>
+                                                                                        <td>Minimum Ease Factor</td>
+                                                                                        <td><input type="number"
+                                                                                                        id="sr-min-ease"
+                                                                                                        min="1.0"
+                                                                                                        max="2.0"
+                                                                                                        step="0.1"
+                                                                                                        value="1.3"
+                                                                                                        style="width:70px"
+                                                                                                        onchange="srUpdateParam('minEase',this.value)">
+                                                                                                <span
+                                                                                                        class="w3-text-grey">
+                                                                                                        (default
+                                                                                                        1.3)</span>
+                                                                                        </td>
+                                                                                </tr>
+                                                                                <tr>
+                                                                                        <td>Retry Offset</td>
+                                                                                        <td><input type="number"
+                                                                                                        id="sr-reinsert-after"
+                                                                                                        min="1" max="10"
+                                                                                                        step="1"
+                                                                                                        value="4"
+                                                                                                        style="width:70px"
+                                                                                                        onchange="srUpdateParam('reinsertAfter',this.value)">
+                                                                                                <span
+                                                                                                        class="w3-text-grey">
+                                                                                                        puzzles before
+                                                                                                        retry (default
+                                                                                                        4)</span>
+                                                                                        </td>
+                                                                                </tr>
+                                                                        </table>
+                                                                </td>
                                                         </tr>
 
                                                 </table>
@@ -386,31 +469,36 @@
 
 
                         <!-- Layout when screen is in Portrait mode (like cell phone)-->
-                        <div class="portraitmode">
+                        <div class="portraitmode"
+                                style="padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); padding-top: 8px;">
                                 <div>Puzzle <span id="puzzleNumber_portrait" class="puzzlenumbers"></span> of <span
                                                 id="puzzleNumbertotal_portrait" class="puzzlenumbers"></span>
                                 </div>
 
                                 <div class="w3-border">
-                                        <div id="progressbar_portrait" class="w3-indigo" style="height:24px;width:0%"></div>
+                                        <div id="progressbar_portrait" class="w3-indigo" style="height:24px;width:0%">
+                                        </div>
                                 </div>
 
-                                <div class="w3-container w3-center">
+                                <div class="w3-container w3-center" style="margin-bottom: 8px;">
                                         Name: <br> <span id="puzzlename_portrait" style="font-weight: bold;"></span>
                                 </div>
-                                <p></p>
 
                                 <div class="w3-bar">
-                                        <button id="btn_hint_portrait" class="w3-button w3-round-large w3-indigo w3-hover-blue"
-                                                disabled="true" style="display: none">Hint</button>
+                                        <button id="btn_hint_portrait"
+                                                class="w3-button w3-round-large w3-indigo w3-hover-blue" disabled="true"
+                                                style="display: none">Hint</button>
                                 </div>
 
                                 <div class="w3-bar">
-                                        <button id="btn_starttest_portrait" class="w3-button w3-round-large w3-indigo w3-hover-blue"
+                                        <button id="btn_starttest_portrait"
+                                                class="w3-button w3-round-large w3-indigo w3-hover-blue"
                                                 disabled="true">Start</button>
-                                        <button id="btn_pause_portrait" class="w3-button w3-round-large w3-indigo w3-hover-blue"
+                                        <button id="btn_pause_portrait"
+                                                class="w3-button w3-round-large w3-indigo w3-hover-blue"
                                                 style="display: none">Pause</button>
-                                        <button id="btn_restart_portrait" class="w3-button w3-round-large w3-indigo w3-hover-blue"
+                                        <button id="btn_restart_portrait"
+                                                class="w3-button w3-round-large w3-indigo w3-hover-blue"
                                                 style="display: none">Restart</button>
                                 </div>
                         </div>
@@ -418,34 +506,139 @@
         </div>
         </div>
 
-         <!-- SR Dashboard Modal -->
+        <!-- SR Dashboard Modal (IndexedDB-enhanced) -->
         <div id="modal_sr_dashboard" class="w3-modal" style="display:none">
-          <div class="w3-modal-content w3-card-4" style="max-width:800px">
-            <header class="w3-container w3-indigo">
-              <span onclick="document.getElementById('modal_sr_dashboard').style.display='none'"
-                    class="w3-button w3-display-topright">✕</span>
-              <h3>SR Dashboard</h3>
-            </header>
-            <div class="w3-container w3-padding">
-              <div id="sr-dashboard-summary" class="w3-margin-bottom"></div>
-              <div id="sr-retention-graph" class="w3-center w3-margin-bottom"></div>
-              <div style="max-height:400px;overflow-y:auto">
-                <table class="w3-table w3-striped w3-bordered w3-small">
-                  <thead><tr class="w3-indigo">
-                    <th>#</th><th>Puzzle</th><th>Reps</th>
-                    <th>Interval</th><th>Ease</th><th>Next Review</th><th>Status</th>
-                  </tr></thead>
-                  <tbody id="sr-dashboard-tbody"></tbody>
-                </table>
-              </div>
-              <div class="w3-margin-top">
-                <button class="w3-button w3-green w3-round w3-small" onclick="srExportJSON()">⬇ Export JSON</button>
-                <button class="w3-button w3-blue w3-round w3-small w3-margin-left" onclick="srExportCSV()">⬇ Export CSV</button>
-                <button class="w3-button w3-orange w3-round w3-small w3-margin-left" onclick="srImportJSON()">⬆ Import JSON</button>
-                <input type="file" id="sr-import-input" accept=".json" style="display:none" onchange="srHandleImport(this)">
-              </div>
-            </div>
-          </div>
+                <div class="w3-modal-content w3-card-4" style="max-width:820px">
+                        <header class="w3-container w3-indigo">
+                                <span onclick="document.getElementById('modal_sr_dashboard').style.display='none'"
+                                        class="w3-button w3-display-topright">✕</span>
+                                <h3>Spaced Repetition Dashboard</h3>
+                        </header>
+                        <div class="w3-container w3-padding">
+
+                                <!-- Summary badges -->
+                                <div id="sr-dashboard-summary" class="w3-margin-bottom"></div>
+
+                                <!-- Retention graph + controls -->
+                                <div class="w3-row w3-margin-bottom"
+                                        style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                        <label style="font-weight:normal; margin:0">PGN:</label>
+                                        <select id="sr-graph-pgn-select" onchange="srRefreshGraph()"
+                                                style="padding:4px 8px; border-radius:4px; border:1px solid #ccc;">
+                                                <option value="__all__">All files</option>
+                                                <!-- options populated dynamically by showSRDashboard() -->
+                                        </select>
+
+                                        <label style="font-weight:normal; margin:0">Days:</label>
+                                        <select id="sr-graph-days-select" onchange="srRefreshGraph()"
+                                                style="padding:4px 8px; border-radius:4px; border:1px solid #ccc;">
+                                                <option value="7">7</option>
+                                                <option value="14">14</option>
+                                                <option value="30" selected>30</option>
+                                                <option value="60">60</option>
+                                                <option value="90">90</option>
+                                        </select>
+                                </div>
+
+                                <!-- Graph renders here -->
+                                <div id="sr-retention-graph" class="w3-center w3-margin-bottom"
+                                        style="overflow-x:auto; background:#fafafa; border-radius:6px; padding:12px;">
+                                        <em style="color:#aaa">Loading graph…</em>
+                                </div>
+
+                                <!-- Card table -->
+                                <div style="max-height:360px; overflow-y:auto">
+                                        <table class="w3-table w3-striped w3-bordered w3-small">
+                                                <thead>
+                                                        <tr class="w3-indigo">
+                                                                <th>#</th>
+                                                                <th>Puzzle</th>
+                                                                <th>Reps</th>
+                                                                <th>Interval</th>
+                                                                <th>Ease</th>
+                                                                <th>Next Review</th>
+                                                                <th>Status</th>
+                                                        </tr>
+                                                </thead>
+                                                <tbody id="sr-dashboard-tbody"></tbody>
+                                        </table>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="w3-margin-top" style="display:flex; gap:8px; flex-wrap:wrap;">
+                                        <button class="w3-button w3-green  w3-round w3-small" onclick="srExportJSON()">⬇
+                                                Export JSON</button>
+                                        <button class="w3-button w3-blue   w3-round w3-small" onclick="srExportCSV()">⬇
+                                                Export CSV</button>
+                                        <button class="w3-button w3-orange w3-round w3-small" onclick="srImportJSON()">⬆
+                                                Import JSON</button>
+                                        <input type="file" id="sr-import-input" accept=".json" style="display:none"
+                                                onchange="srHandleImport(this)">
+                                </div>
+
+                        </div>
+                </div>
+        </div>
+
+        <!-- Woodpecker Dashboard Modal -->
+        <div id="modal_wp_dashboard" class="w3-modal" style="display:none">
+                <div class="w3-modal-content w3-card-4" style="max-width:680px">
+
+                        <header class="w3-container" style="background:#5d4037; color:#fff;">
+                                <span onclick="document.getElementById('modal_wp_dashboard').style.display='none'"
+                                        class="w3-button w3-display-topright" style="color:#fff;">✕</span>
+                                <h3>🪵 Woodpecker Stats</h3>
+                        </header>
+
+                        <div class="w3-container w3-padding">
+
+                                <!-- Active cycle status -->
+                                <div id="wp-current-info" class="w3-panel w3-pale-yellow w3-border w3-small"
+                                        style="border-radius:6px; padding:10px 14px;">
+                                        <em style="color:#aaa">No active cycle.</em>
+                                </div>
+
+                                <!-- Performance chart -->
+                                <h4 style="margin:16px 0 4px 0;">Cycle Performance</h4>
+                                <div id="wp-cycle-chart" class="w3-center w3-margin-bottom"
+                                        style="overflow-x:auto; background:#fafafa; border-radius:6px; padding:12px;">
+                                        <em style="color:#aaa">No completed cycles yet.</em>
+                                </div>
+
+                                <!-- History table -->
+                                <h4 style="margin:16px 0 4px 0;">Cycle History</h4>
+                                <div style="max-height:300px; overflow-y:auto;">
+                                        <table class="w3-table w3-striped w3-bordered w3-small">
+                                                <thead>
+                                                        <tr style="background:#5d4037; color:#fff;">
+                                                                <th>Cycle</th>
+                                                                <th>Date</th>
+                                                                <th>Time</th>
+                                                                <th>vs. Prev</th>
+                                                                <th>Mistakes</th>
+                                                        </tr>
+                                                </thead>
+                                                <tbody id="wp-history-tbody">
+                                                        <tr>
+                                                                <td colspan="5" style="text-align:center;color:#aaa">No
+                                                                        cycles recorded.</td>
+                                                        </tr>
+                                                </tbody>
+                                        </table>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="w3-margin-top" style="display:flex; gap:8px; flex-wrap:wrap;">
+                                        <button class="w3-button w3-green w3-round w3-small" onclick="wpExportJSON()">⬇
+                                                Export JSON</button>
+                                        <button class="w3-button w3-red   w3-round w3-small w3-right"
+                                                onclick="if(confirm('Reset ALL Woodpecker data for this PGN?')) wpResetData()">
+                                                🗑 Reset Data
+                                        </button>
+                                </div>
+
+                        </div>
+                </div>
         </div>
 
         <!-- Custom code for this project (needs to be here AFTER elements are built & labelled)-->
@@ -459,12 +652,13 @@
 
         <!-- Service Worker Registration for PWA Offline Support -->
         <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () =>
-                navigator.serviceWorker.register('./service-worker.js')
-                    .catch(err => console.warn('SW registration failed:', err))
-            );
-        }
+                if ('serviceWorker' in navigator) {
+                        window.addEventListener('load', () =>
+                                navigator.serviceWorker.register('./service-worker.js')
+                                        .catch(err => console.warn('SW registration failed:', err))
+                        );
+                }
         </script>
 </body>
+
 </html>

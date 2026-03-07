@@ -156,11 +156,19 @@ function srLoadCards() {
 
 function srSaveCards() {
     localStorage.setItem(srGetStorageKey(), JSON.stringify(srCards));
+    // Also persist to IndexedDB when available (fire-and-forget)
+    if (window.ChessDB && typeof ChessDB.srSaveAllCards === 'function' && srCurrentPgnFile) {
+        ChessDB.srSaveAllCards(srCurrentPgnFile, srCards).catch(console.error);
+    }
 }
 
 function srClearCards() {
     localStorage.removeItem(srGetStorageKey());
     srCards = {};
+    // Clear from IndexedDB as well
+    if (window.ChessDB && typeof ChessDB.srClearCards === 'function' && srCurrentPgnFile) {
+        ChessDB.srClearCards(srCurrentPgnFile).catch(console.error);
+    }
 }
 
 // ── Card initialisation ──────────────────────────────────────────────────────
@@ -465,7 +473,7 @@ function resetModeState() {
     // Initialize Woodpecker mode if selected
     if (currentGameMode === GAME_MODES.WOODPECKER) {
         if (typeof puzzleset !== 'undefined' && puzzleset.length > 0) {
-            const pgnName = currentPgnFile || 'default';
+			const pgnName = ($('#openPGN').val() || 'default').replace(/[^a-zA-Z0-9]/g, '_');
             const resumeIndex = typeof wpCheckResume === 'function' ? wpCheckResume(pgnName, puzzleset.length) : 0;
             if (typeof wpStartCycle === 'function') {
                 wpStartCycle(pgnName, puzzleset.length);
@@ -746,6 +754,16 @@ function handlePuzzleStart() {
     if (currentGameMode === GAME_MODES.INFINITY) {
         srOnPuzzleStart();
     }
+
+	if (currentGameMode === GAME_MODES.WOODPECKER && typeof wpUpdateLastPuzzleIndex === 'function') {
+		const idx = typeof getCurrentPuzzleIndex === 'function'
+			? getCurrentPuzzleIndex()
+			: (typeof PuzzleOrder !== 'undefined' && PuzzleOrder.length > 0 ? PuzzleOrder[increment] : increment);
+		if (typeof idx === 'number') {
+			wpUpdateLastPuzzleIndex(idx);
+			updateWpUI();
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -798,7 +816,17 @@ function shouldContinueToNextPuzzle() {
         }
     }
 
-    return increment + 1 < puzzleset.length;
+	// Standard and other modes.
+	// During a Mistake Review session we only want to walk the subset
+	// stored in PuzzleOrder (indices in the original puzzleset).
+	if (typeof isMistakeReviewActive !== 'undefined' && isMistakeReviewActive) {
+		const total = (typeof PuzzleOrder !== 'undefined' && Array.isArray(PuzzleOrder))
+			? PuzzleOrder.length
+			: puzzleset.length;
+		return increment + 1 < total;
+	}
+
+	return increment + 1 < puzzleset.length;
 }
 
 // ---------------------------------------------------------------------------
@@ -838,6 +866,23 @@ function formatTime(seconds) {
 function getCurrentGameMode() { return currentGameMode; }
 function getModeState()       { return modeState; }
 function isHintAvailable()    { return !MODE_CONFIGS[currentGameMode].hasHints || modeState.hintsRemaining > 0; }
+
+/**
+ * Get the current puzzle index within puzzleset for the active puzzle.
+ * Uses PuzzleOrder when available, falling back to increment.
+ *
+ * @returns {number} Index into puzzleset for the current puzzle.
+ */
+function getCurrentPuzzleIndex() {
+	if (typeof PuzzleOrder !== 'undefined' && Array.isArray(PuzzleOrder) &&
+		typeof increment !== 'undefined') {
+		const idx = PuzzleOrder[increment];
+		if (typeof idx === 'number') {
+			return idx;
+		}
+	}
+	return typeof increment === 'number' ? increment : 0;
+}
 
 // ---------------------------------------------------------------------------
 // Module export
@@ -1045,6 +1090,12 @@ function srLogResult(correct, incorrect) {
     history[today].correct   += correct;
     history[today].incorrect += incorrect;
     localStorage.setItem(SR_HISTORY_KEY, JSON.stringify(history));
+
+    // Mirror daily history into IndexedDB for long-term retention graphs
+    if (window.ChessDB && typeof ChessDB.srLogDay === 'function') {
+        const pgnKey = srCurrentPgnFile || 'legacy';
+        ChessDB.srLogDay(pgnKey, today, correct, incorrect).catch(console.error);
+    }
 }
 
 
@@ -1075,6 +1126,23 @@ function wpLoad(pgnName) {
 function wpSave() {
     if (!wpCurrentPgn) return;
     localStorage.setItem(wpStorageKey(wpCurrentPgn), JSON.stringify(wpData));
+
+    // Mirror Woodpecker current + history into IndexedDB when available
+    if (window.ChessDB) {
+        const pgnKey = wpCurrentPgn;
+        try {
+            if (wpData && wpData.currentCycle && typeof ChessDB.wpSaveCurrent === 'function') {
+                ChessDB.wpSaveCurrent(pgnKey, wpData.currentCycle).catch(console.error);
+            }
+            if (wpData && Array.isArray(wpData.cycleHistory) && typeof ChessDB.wpSaveCompletedCycle === 'function') {
+                wpData.cycleHistory.forEach(cycle => {
+                    ChessDB.wpSaveCompletedCycle(pgnKey, cycle).catch(console.error);
+                });
+            }
+        } catch (e) {
+            console.error('[Woodpecker] Failed to mirror data to IndexedDB', e);
+        }
+    }
 }
 
 /**
@@ -1148,6 +1216,18 @@ function wpCompleteCycle() {
     wpData.cycleHistory.push(completedCycle);
     wpData.currentCycle = null;
     wpSave();
+
+    // Also append to IndexedDB history and clear current entry if available
+    if (window.ChessDB && typeof ChessDB.wpSaveCompletedCycle === 'function') {
+        const pgnKey = wpCurrentPgn;
+        ChessDB.wpSaveCompletedCycle(pgnKey, completedCycle)
+            .then(() => {
+                if (typeof ChessDB.wpClearCurrent === 'function') {
+                    return ChessDB.wpClearCurrent(pgnKey);
+                }
+            })
+            .catch(console.error);
+    }
     return completedCycle;
 }
 
@@ -1250,8 +1330,14 @@ function wpPopulateFlaggedList(mistakeIndexes) {
     }
     section.style.display = 'block';
     list.innerHTML = mistakeIndexes.map(idx => {
-        const puzzle = puzzleList && puzzleList[idx];
-        const name = puzzle ? (puzzle.name || `Puzzle ${idx + 1}`) : `Puzzle ${idx + 1}`;
+		let name = `Puzzle ${idx + 1}`;
+		if (typeof puzzleset !== 'undefined' && puzzleset[idx]) {
+			const puzzle = puzzleset[idx];
+			if (puzzle && puzzle.Event) {
+				// Strip basic HTML tags for display in plain list.
+				name = puzzle.Event.replace(/<br\s*\/?>/gi, ' ').replace(/<\/?[^>]+(>|$)/g, '');
+			}
+		}
         return `<li>${name}</li>`;
     }).join('');
 }
