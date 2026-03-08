@@ -36,7 +36,6 @@ let pieceThemePath;
 let game;
 let config;
 let PieceList;
-let AnalysisLink = false;
 
 // Game & Performance variables
 let moveCfg;
@@ -82,7 +81,7 @@ let persistentSlowestPuzzles = []; // Persists across review sessions
 $('#versionnumber').text(`version ${version}`);
 
 // Collection of checkboxes used in the app
-let checkboxlist = ['#playbothsides', '#playoppositeside', '#randomizeSet', '#flipped', '#analysisboard'];
+let checkboxlist = ['#playbothsides', '#playoppositeside', '#randomizeSet', '#flipped'];
 
 // Collection of text elements
 let messagelist = ['#messagecomplete', '#puzzlename_landscape', '#puzzlename_portrait', '#errors', '#errorRate', '#elapsedTime', '#avgTime'];
@@ -785,7 +784,6 @@ function resetGame() {
         pauseDateTimeTotal = 0;
         error = false;
         setcomplete = false;
-        AnalysisLink = false;
 
 
 
@@ -1094,17 +1092,8 @@ function loadPuzzle(PGNPuzzle) {
 
         board.setOrientation(boardOrientation);
 
-        if ($('#analysisboard').is(':checked')) { AnalysisLink = true; } else { AnalysisLink = false; }
-
-        // Output a link to a lichess analysis board for this puzzle if there is one (can extract FEN from there if needed)
-        if (PGNPuzzle.FEN) {
-                var lichessURL = '<A HREF="https://lichess.org/analysis/' + PGNPuzzle.FEN.replace(/ /g, "_") + '" target="_blank">Analysis</A>';
-
-                if (AnalysisLink) {
-                        PGNPuzzle.Event = PGNPuzzle.Event + "<br><center>" + lichessURL;
-                }
-
-        }
+        // Store the FEN so openAnalysis() can use it at any time
+        window._currentAnalysisFEN = PGNPuzzle.FEN || null;
 
         // Update the screen with the value of the PGN Event tag (if any)
         $('#puzzlename_landscape').html(PGNPuzzle.Event);
@@ -1387,7 +1376,6 @@ function parsePGN(PGNData) {
                         if (tags.PGNTrainerOppositeSide === '1') { $("#playoppositeside").prop("checked", true); }
                         if (tags.PGNTrainerRandomize === '1') { $("#randomizeSet").prop("checked", true); }
                         if (tags.PGNTrainerFlipped === '1') { $("#flipped").prop("checked", true); }
-                        if (tags.PGNTrainerAnalysisLink === '1') { $("#analysisboard").prop("checked", true); }
 
                         // Make sure that both "Play both sides" and "Play opposite side" are not selected (if yes, clear both)
                         confirmOnlyOneOption();
@@ -1809,4 +1797,30 @@ function startSlowestReview() {
         loadPuzzle(puzzleset[PuzzleOrder[0]]);
 }
 
+/**
+ * openAnalysis()
+ * Opens the currently displayed puzzle position in Lichess's analysis board.
+ * The FEN is stored in window._currentAnalysisFEN each time loadPuzzle() runs.
+ * Uses the Lichess URL format: https://lichess.org/analysis/6k1/P1r2ppq/7p/8/3Q4/8/5PPP/6K1_w_-_-_0_1
+ */
+function openAnalysis() {
+        let fen = window._currentAnalysisFEN;
 
+        // Fallback: ask chess.js for the live FEN if the stored one is missing
+        if (!fen && typeof game !== 'undefined' && game && game.fen) {
+                fen = game.fen();
+        }
+
+        if (!fen) {
+                alert('No position available to analyse yet.');
+                return;
+        }
+
+        // Convert standard FEN to Lichess URL format
+        // Standard FEN: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        // Lichess format: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR_w_KQkq_-_0_1"
+        // Replace all spaces with underscores (no encoding needed)
+        const lichessFen = fen.replace(/ /g, '_');
+        const url = 'https://lichess.org/analysis/' + lichessFen;
+        window.open(url, '_blank', 'noopener,noreferrer');
+}

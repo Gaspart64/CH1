@@ -108,8 +108,6 @@
                 <input class="w3-check" type="checkbox" id="randomizeSet"><label for="randomizeSet">
                         Randomize</label><br>
                 <input class="w3-check" type="checkbox" id="flipped"><label for="flipped"> Flipped</label><br>
-                <input class="w3-check" type="checkbox" id="analysisboard"><label for="analysisboard"> Analysis
-                        Board</label><br>
                 <p></p>
 
                 <!-- Layout when screen is in Landscape mode (like tablet or normal desktop) 
@@ -122,9 +120,20 @@
                                                 id="puzzleNumbertotal_landscape" class="puzzlenumbers"></span>
                                 </div>
 
-                                <div class="w3-border">
-                                        <div id="progressbar_landscape" class="w3-indigo" style="height:24px;width:0%">
+                                <!-- Progress bar + analyse button in a flex row -->
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                        <div class="w3-border" style="flex: 1;">
+                                                <div id="progressbar_landscape" class="w3-indigo"
+                                                        style="height:24px;width:0%">
+                                                </div>
                                         </div>
+                                        <button id="btn_analyze_landscape" title="Analyse on Lichess"
+                                                onclick="openAnalysis()" style="flex-shrink: 0; background: rgba(0,0,0,0.15); border: none;
+                                                       border-radius: 6px; width: 32px; height: 24px; font-size: 15px;
+                                                       line-height: 24px; text-align: center; cursor: pointer;
+                                                       transition: background 0.2s;">
+                                                🔍
+                                        </button>
                                 </div>
 
                                 <div id="wp-status-display" style="display:none;">
@@ -291,7 +300,7 @@
                         </div>
 
                         <!-- Main board window -->
-                        <div class="w3-container w3-center"
+                        <div id="board-wrapper" class="w3-container w3-center"
                                 style="padding:4px; display: flex; flex-direction: column; flex-grow: 1; align-items: center; justify-content: center; min-height: 0;">
 
                                 <!-- The boards -->
@@ -475,9 +484,20 @@
                                                 id="puzzleNumbertotal_portrait" class="puzzlenumbers"></span>
                                 </div>
 
-                                <div class="w3-border">
-                                        <div id="progressbar_portrait" class="w3-indigo" style="height:24px;width:0%">
+                                <!-- Progress bar + analyse button in a flex row -->
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                        <div class="w3-border" style="flex: 1;">
+                                                <div id="progressbar_portrait" class="w3-indigo"
+                                                        style="height:24px;width:0%">
+                                                </div>
                                         </div>
+                                        <button id="btn_analyze" title="Analyse on Lichess" onclick="openAnalysis()"
+                                                style="flex-shrink: 0; background: rgba(0,0,0,0.15); border: none;
+                                                       border-radius: 6px; width: 32px; height: 24px; font-size: 15px;
+                                                       line-height: 24px; text-align: center; cursor: pointer;
+                                                       transition: background 0.2s;">
+                                                🔍
+                                        </button>
                                 </div>
 
                                 <div class="w3-container w3-center" style="margin-bottom: 8px;">
