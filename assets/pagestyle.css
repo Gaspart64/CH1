@@ -521,61 +521,132 @@ label {
 #wp-status-display div { color: var(--lc-text-dim); }
 #wp-status-display strong { color: var(--lc-gold); }
 
-/* ── Mode-specific live displays ──────────────────────────── */
-#mode-timer {
+/* ── #mode-hud — shared HUD container ────────────────────── */
+/*
+ * #mode-hud is placed in the portrait panel (index.html).
+ * JS appends #mode-timer, #mode-lives, #mode-hints, #mode-level,
+ * #sr-stats, #streak-display into it.
+ *
+ * In PORTRAIT: renders as a horizontal flex row of compact pills.
+ * In LANDSCAPE: #mode-hud sits inside .portraitmode which is hidden,
+ *   but game-modes.js falls back to .landscapemode .w3-container.w3-center
+ *   if #mode-hud is not found — so landscape still works with the old target.
+ *   If you add id="mode-hud" to the landscape sidebar too (see PATCH_NOTES.md),
+ *   CSS below will style it as a vertical stack there.
+ */
+#mode-hud {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 0 2px;
+}
+#mode-hud:empty { display: none; }
+
+/* ── Individual HUD cards ─────────────────────────────────── */
+#mode-timer,
+#mode-lives,
+#mode-hints,
+#mode-level {
   background: var(--lc-surface2);
   border: 1px solid var(--lc-border);
   border-radius: var(--lc-radius);
-  padding: 6px 12px;
+  padding: 4px 12px;
   text-align: center;
-  margin: 6px 0;
+  margin: 0 !important;       /* override w3 margins */
+  display: flex !important;   /* always show when JS sets display:block */
+  flex-direction: column;
+  align-items: center;
+  min-width: 68px;
 }
-#mode-timer div { font-size: 0.7rem; color: var(--lc-text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Hide when JS explicitly sets display:none */
+#mode-timer[style*="display: none"],
+#mode-lives[style*="display: none"],
+#mode-hints[style*="display: none"],
+#mode-level[style*="display: none"] {
+  display: none !important;
+}
+
+/* Label line inside each card */
+#mode-timer > div,
+#mode-lives > div,
+#mode-hints > div,
+#mode-level > div,
+.mode-hud-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--lc-text-dim);
+  line-height: 1.2;
+}
+
+/* Timer value */
+#mode-timer { min-width: 88px; }
 #timer-display {
-  font-size: 1.6rem !important;
+  font-size: 1.4rem !important;
   font-weight: 700;
   font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
   color: var(--lc-accent) !important;
   line-height: 1.2;
 }
 
-#mode-lives, #mode-hints {
-  background: var(--lc-surface2);
-  border: 1px solid var(--lc-border);
-  border-radius: var(--lc-radius);
-  padding: 4px 10px;
-  text-align: center;
-  margin: 4px 0;
-  font-size: 1.1rem;
-}
-#mode-lives div, #mode-hints div { font-size: 0.7rem; color: var(--lc-text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+/* Lives & hints values */
+#lives-display { font-size: 1rem !important; color: var(--lc-red) !important; line-height: 1.3; }
+#hints-display { font-size: 1rem !important; color: var(--lc-gold) !important; line-height: 1.3; }
 
-#mode-level {
-  text-align: center;
-  margin: 4px 0;
-  font-size: 0.8rem;
-  color: var(--lc-text-dim);
+/* Level value */
+#level-display {
+  font-size: 0.88rem !important;
+  font-weight: 700;
+  color: var(--lc-accent) !important;
+  line-height: 1.3;
 }
-#level-display { color: var(--lc-accent) !important; font-weight: 700; }
 
-/* SR stats bar */
+/* SR stats — full width pill */
 #sr-stats {
   background: var(--lc-surface2);
   border: 1px solid var(--lc-border);
   border-radius: var(--lc-radius);
-  padding: 5px 8px;
+  padding: 4px 10px;
   font-size: 0.72rem;
-  margin: 4px 0;
+  margin: 0 !important;
+  display: flex !important;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  text-align: center;
 }
+#sr-stats[style*="display: none"] { display: none !important; }
 
 /* Streak display */
 #streak-display {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--lc-text-dim);
   text-align: center;
   padding: 2px 0;
+  width: 100%;
 }
 #streak-display strong { color: var(--lc-gold); }
+
+/* ── Landscape: when #mode-hud is in the sidebar, stack vertically ─ */
+@media all and (orientation: landscape) {
+  #mode-hud {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  #mode-timer,
+  #mode-lives,
+  #mode-hints,
+  #mode-level { min-width: 0; width: 100%; }
+  #sr-stats { flex-direction: column; gap: 2px; }
+}
 
 /* ── Modals ───────────────────────────────────────────────── */
 .w3-modal {
