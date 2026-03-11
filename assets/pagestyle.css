@@ -271,7 +271,11 @@ label {
 #title_header {
   background: var(--lc-surface) !important;
   border-bottom: 1px solid var(--lc-border) !important;
-  padding: 0 !important;
+  /* Push content below the Dynamic Island / notch on iPhone */
+  padding-top: env(safe-area-inset-top, 0px) !important;
+  padding-left: env(safe-area-inset-left, 0px) !important;
+  padding-right: env(safe-area-inset-right, 0px) !important;
+  padding-bottom: 0 !important;
 }
 
 #title_header h3 {
