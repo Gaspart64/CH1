@@ -92,55 +92,41 @@ let repetitionSetStartIndex = 0;
 let repetitionSetHadError   = false;
 
 // Woodpecker mode tracking
-let wpData = null;          // loaded wp_data for current PGN
-let wpCurrentPgn = null;    // name of current Woodpecker PGN
+let wpData = null;
+let wpCurrentPgn = null;
 const WP_STORAGE_PREFIX = 'wp_data_';
+
+// ---------------------------------------------------------------------------
+// Helper: get the shared HUD container (works in both portrait & landscape)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the #mode-hud element which lives inside #mode-hud-anchor in index.html.
+ * Falls back to the landscape sidebar container for backward compatibility.
+ */
+function getModeHudContainer() {
+    const hud = document.getElementById('mode-hud');
+    if (hud) return hud;
+    // fallback
+    return document.querySelector('.landscapemode .w3-container.w3-center');
+}
 
 // ---------------------------------------------------------------------------
 // ═══════════════════════════════════════════════════════════════════════════
 //  SPACED REPETITION (SM-2) — Infinity Mode
 // ═══════════════════════════════════════════════════════════════════════════
-//
-//  Each puzzle has a "card" stored in localStorage under the key
-//  'sr_cards_<pgnFile>'.  A card looks like:
-//
-//    {
-//      index:       <number>   -- index into puzzleset[]
-//      interval:    <days>     -- current review interval (starts 1)
-//      easeFactor:  <float>    -- SM-2 ease factor (starts 2.5, min 1.3)
-//      repetitions: <number>   -- consecutive correct solves
-//      nextReview:  <ms>       -- Date.now() value when due next
-//      due:         <boolean>  -- convenience flag set at queue-build time
-//    }
-//
-//  The session queue (srQueue) is an ordered list of puzzle indices built
-//  fresh each time the user presses Start.  It is stored in PuzzleOrder so
-//  the rest of chess-pgn-trainer.js works without modification.
-//
-//  Per-puzzle error tracking uses srCurrentPuzzleHadError (reset each puzzle).
-//
-//  Within-session retry: failed puzzles are reinserted ~4 positions ahead in
-//  the live queue (srQueue), not immediately next and not at the very front.
-//  Cross-session: on clean solve the SM-2 card is updated and saved.
-//  If the session ends while a puzzle is still failing, its card already has
-//  nextReview in the past so it comes back first next session.
-// ---------------------------------------------------------------------------
 
 const SR_STORAGE_PREFIX  = 'sr_cards_';
 let SR_INITIAL_EASE   = 2.5;
 let SR_MIN_EASE       = 1.3;
-let SR_REINSERT_AFTER  = 4;   // reinsert failed card this many puzzles later
+let SR_REINSERT_AFTER  = 4;
 const SR_PARAMS_KEY = 'sr_params';
 const SR_HISTORY_KEY = 'sr_history';
 
-let srCards                 = {};   // puzzleIndex → SM-2 card, persisted to localStorage
-let srCurrentPgnFile        = '';   // key suffix for localStorage
-let srCurrentPuzzleHadError = false;// true if any wrong move on the current puzzle
-let srQueue                 = [];   // live ordered list of puzzle indices for this session
-// srQueue is the source of truth within a session; PuzzleOrder is kept in sync.
-// Failed puzzles are spliced back into srQueue at position (currentPos + SR_REINSERT_AFTER).
-// srPendingRetry tracks which puzzles are currently awaiting a retry in srQueue,
-// so we don't apply SM-2 until they're solved cleanly.
+let srCards                 = {};
+let srCurrentPgnFile        = '';
+let srCurrentPuzzleHadError = false;
+let srQueue                 = [];
 let srPendingRetry          = new Set();
 
 // ── Persistence ─────────────────────────────────────────────────────────────
@@ -156,7 +142,6 @@ function srLoadCards() {
 
 function srSaveCards() {
     localStorage.setItem(srGetStorageKey(), JSON.stringify(srCards));
-    // Also persist to IndexedDB when available (fire-and-forget)
     if (window.ChessDB && typeof ChessDB.srSaveAllCards === 'function' && srCurrentPgnFile) {
         ChessDB.srSaveAllCards(srCurrentPgnFile, srCards).catch(console.error);
     }
@@ -165,7 +150,6 @@ function srSaveCards() {
 function srClearCards() {
     localStorage.removeItem(srGetStorageKey());
     srCards = {};
-    // Clear from IndexedDB as well
     if (window.ChessDB && typeof ChessDB.srClearCards === 'function' && srCurrentPgnFile) {
         ChessDB.srClearCards(srCurrentPgnFile).catch(console.error);
     }
@@ -180,7 +164,7 @@ function srGetCard(puzzleIndex) {
             interval:    1,
             easeFactor:  SR_INITIAL_EASE,
             repetitions: 0,
-            nextReview:  Date.now(),  // new cards are immediately due
+            nextReview:  Date.now(),
             due:         true
         };
     }
@@ -188,10 +172,6 @@ function srGetCard(puzzleIndex) {
 }
 
 // ── SM-2 update ──────────────────────────────────────────────────────────────
-//  Only called on a CLEAN solve (no errors, or cleaned up after retry).
-//  quality 4 = first-time clean; quality 1 = eventually cleaned after errors.
-//  Failed cards pending retry keep nextReview in the past so they're overdue
-//  if the session ends before they're solved.
 
 function srApplySM2(card, quality) {
     card.easeFactor = Math.max(
@@ -202,8 +182,6 @@ function srApplySM2(card, quality) {
     const msPerDay = 24 * 60 * 60 * 1000;
 
     if (quality < 3) {
-        // Shouldn't happen in normal flow (we only call SM-2 on clean solve)
-        // but guard just in case.
         card.repetitions = 0;
         card.interval    = 1;
         card.nextReview  = Date.now() - 1;
@@ -220,8 +198,6 @@ function srApplySM2(card, quality) {
 }
 
 // ── Initial queue builder ────────────────────────────────────────────────────
-//  Builds the queue at session start from card history.
-//  Order: overdue (most overdue first) → new (never seen) → future (not yet due).
 
 function srBuildInitialQueue(totalPuzzles) {
     const now    = Date.now();
@@ -279,25 +255,18 @@ function srOnPuzzleComplete() {
     const wasInRetry   = srPendingRetry.has(puzzleIndex);
 
     if (srCurrentPuzzleHadError) {
-        // Failed this attempt.
-        // Log the failure
         srLogResult(0, 1);
-        
-        // 1. Mark the card as overdue right now so it survives a session close.
+
         const card = srGetCard(puzzleIndex);
         card.nextReview = Date.now() - 1;
         card.due        = true;
         srSaveCards();
 
-        // 2. Add to pending retry set so we know it needs a clean solve.
         srPendingRetry.add(puzzleIndex);
 
-        // 3. Reinsert into srQueue ~SR_REINSERT_AFTER positions ahead.
-        //    We insert AFTER increment because increment hasn't been bumped yet
-        //    (caller does += 1 after this returns via srAdvance → no-op path).
         const insertAt = Math.min(
             increment + SR_REINSERT_AFTER,
-            srQueue.length   // append at end if queue is short
+            srQueue.length
         );
         srQueue.splice(insertAt, 0, puzzleIndex);
         PuzzleOrder = srQueue;
@@ -307,17 +276,13 @@ function srOnPuzzleComplete() {
         return;
     }
 
-    // Clean solve.
-    // Log the success
     srLogResult(1, 0);
-    
-    // Determine quality: penalised (1) if this was a retry, full (4) if first-time clean.
+
     const quality = wasInRetry ? 1 : 4;
     const card    = srGetCard(puzzleIndex);
     srApplySM2(card, quality);
     srSaveCards();
 
-    // Remove from pending retry — it's been mastered for this session.
     srPendingRetry.delete(puzzleIndex);
 
     srCurrentPuzzleHadError = false;
@@ -325,32 +290,26 @@ function srOnPuzzleComplete() {
 }
 
 // ── Queue advance ─────────────────────────────────────────────────────────────
-//  Called by shouldContinueToNextPuzzle after every puzzle.
-//  Returns true if there is a next puzzle to load, false if the session is done.
 
 function srAdvance() {
     const nextIncrement = increment + 1;
 
     if (nextIncrement < srQueue.length) {
-        // Queue still has items ahead — continue normally.
         return true;
     }
 
-    // Reached the end of the queue. Check if there's anything left to do.
     const now       = Date.now();
     const hasPending = srPendingRetry.size > 0;
     const hasDueOrNew = [...Array(puzzleset.length).keys()].some(i => {
-        if (srPendingRetry.has(i)) return false; // already counted
+        if (srPendingRetry.has(i)) return false;
         const card = srCards[i];
-        return !card || card.nextReview <= now;  // new or overdue
+        return !card || card.nextReview <= now;
     });
 
     if (!hasPending && !hasDueOrNew) {
-        // Nothing left due or pending — session is genuinely complete.
         return false;
     }
 
-    // There are still pending retries or due cards — rebuild queue and continue.
     const retryList = [...srPendingRetry];
     const baseQueue = srBuildInitialQueue(puzzleset.length);
     const retrySet  = new Set(retryList);
@@ -358,7 +317,7 @@ function srAdvance() {
 
     srQueue     = [...retryList, ...remainder];
     PuzzleOrder = srQueue;
-    increment   = -1;  // caller does += 1, lands on 0
+    increment   = -1;
     return true;
 }
 
@@ -370,8 +329,8 @@ function srUpdateStatsDisplay() {
         statsDiv = document.createElement('div');
         statsDiv.id = 'sr-stats';
         statsDiv.className = 'w3-container w3-center w3-margin-bottom w3-small';
-        const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-        if (landscapeDiv) landscapeDiv.appendChild(statsDiv);
+        const container = getModeHudContainer();
+        if (container) container.appendChild(statsDiv);
     }
 
     if (currentGameMode !== GAME_MODES.INFINITY) {
@@ -380,28 +339,28 @@ function srUpdateStatsDisplay() {
     }
 
     const now    = Date.now();
-    let due      = srPendingRetry.size;  // currently failing this session
+    let due      = srPendingRetry.size;
     let learned  = 0;
     let newCount = 0;
 
     for (let i = 0; i < puzzleset.length; i++) {
-        if (srPendingRetry.has(i)) continue;  // already counted above
+        if (srPendingRetry.has(i)) continue;
         const card = srCards[i];
         if (!card) {
             newCount++;
         } else if (card.nextReview <= now) {
-            due++;      // overdue from a previous session
+            due++;
         } else if (card.repetitions > 0) {
-            learned++;  // at least one clean solve, scheduled for future
+            learned++;
         } else {
-            newCount++; // seen but no clean solve yet, not currently pending
+            newCount++;
         }
     }
 
     statsDiv.innerHTML =
-        `<span style="color:#e53935;">⏰ Due: ${due}</span> &nbsp;|&nbsp; ` +
-        `<span style="color:#43a047;">✓ Learned: ${learned}</span> &nbsp;|&nbsp; ` +
-        `<span style="color:#1e88e5;">★ New: ${newCount}</span>`;
+        `<span style="color:#c14a4a;">⏰ Due: ${due}</span> &nbsp;|&nbsp; ` +
+        `<span style="color:#759900;">✓ Learned: ${learned}</span> &nbsp;|&nbsp; ` +
+        `<span style="color:#3692e7;">★ New: ${newCount}</span>`;
     statsDiv.style.display = 'block';
 }
 
@@ -415,7 +374,6 @@ function initializeGameModes() {
         select.addEventListener('change', handleModeChange);
     }
     srLoadParams();
-    // Sync input values to loaded params
     document.getElementById('sr-initial-ease').value   = SR_INITIAL_EASE;
     document.getElementById('sr-min-ease').value        = SR_MIN_EASE;
     document.getElementById('sr-reinsert-after').value  = SR_REINSERT_AFTER;
@@ -470,10 +428,9 @@ function resetModeState() {
     repetitionSetStartIndex = 0;
     repetitionSetHadError   = false;
 
-    // Initialize Woodpecker mode if selected
     if (currentGameMode === GAME_MODES.WOODPECKER) {
         if (typeof puzzleset !== 'undefined' && puzzleset.length > 0) {
-			const pgnName = ($('#openPGN').val() || 'default').replace(/[^a-zA-Z0-9]/g, '_');
+            const pgnName = ($('#openPGN').val() || 'default').replace(/[^a-zA-Z0-9]/g, '_');
             const resumeIndex = typeof wpCheckResume === 'function' ? wpCheckResume(pgnName, puzzleset.length) : 0;
             if (typeof wpStartCycle === 'function') {
                 wpStartCycle(pgnName, puzzleset.length);
@@ -499,7 +456,6 @@ function updateModeUI() {
     toggleModeElements(MODE_CONFIGS[currentGameMode]);
     srUpdateStatsDisplay();
     updateWpUI();
-    // Show/hide SR parameters row based on mode
     const srRow = document.getElementById('sr-params-row');
     if (srRow) srRow.style.display = currentGameMode === GAME_MODES.INFINITY ? 'table-row' : 'none';
 }
@@ -513,15 +469,22 @@ function updateTimerDisplay() {
             timerDiv.id = 'mode-timer';
             timerDiv.className = 'w3-container w3-center w3-margin-bottom';
             const label = document.createElement('div');
-            label.textContent = 'Time: ';
-            label.className = 'w3-text-indigo';
+            label.className = 'mode-hud-label';
             const display = document.createElement('span');
             display.id = 'timer-display';
             display.className = 'w3-text-red w3-large';
             timerDiv.appendChild(label);
             timerDiv.appendChild(display);
-            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-            if (landscapeDiv) landscapeDiv.appendChild(timerDiv);
+            const container = getModeHudContainer();
+            if (container) container.appendChild(timerDiv);
+        }
+        // Update label text based on mode
+        const label = timerDiv.querySelector('.mode-hud-label');
+        if (label) {
+            if (currentGameMode === GAME_MODES.SPEEDRUN) label.textContent = 'Elapsed';
+            else if (currentGameMode === GAME_MODES.HASTE) label.textContent = 'Time';
+            else if (currentGameMode === GAME_MODES.COUNTDOWN) label.textContent = 'Time Left';
+            else label.textContent = 'Time';
         }
         const display = document.getElementById('timer-display');
         if (display) display.textContent = formatTime(modeState.timeRemaining);
@@ -540,15 +503,15 @@ function updateLivesDisplay() {
             livesDiv.id = 'mode-lives';
             livesDiv.className = 'w3-container w3-center w3-margin-bottom';
             const label = document.createElement('div');
-            label.textContent = 'Lives: ';
-            label.className = 'w3-text-indigo';
+            label.className = 'mode-hud-label';
+            label.textContent = 'Lives';
             const display = document.createElement('span');
             display.id = 'lives-display';
             display.className = 'w3-text-red w3-large';
             livesDiv.appendChild(label);
             livesDiv.appendChild(display);
-            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-            if (landscapeDiv) landscapeDiv.appendChild(livesDiv);
+            const container = getModeHudContainer();
+            if (container) container.appendChild(livesDiv);
         }
         const display = document.getElementById('lives-display');
         if (display) display.textContent = '❤️'.repeat(modeState.livesRemaining);
@@ -567,15 +530,15 @@ function updateHintsDisplay() {
             hintsDiv.id = 'mode-hints';
             hintsDiv.className = 'w3-container w3-center w3-margin-bottom';
             const label = document.createElement('div');
-            label.textContent = 'Hints: ';
-            label.className = 'w3-text-indigo';
+            label.className = 'mode-hud-label';
+            label.textContent = 'Hints';
             const display = document.createElement('span');
             display.id = 'hints-display';
             display.className = 'w3-text-blue w3-large';
             hintsDiv.appendChild(label);
             hintsDiv.appendChild(display);
-            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-            if (landscapeDiv) landscapeDiv.appendChild(hintsDiv);
+            const container = getModeHudContainer();
+            if (container) container.appendChild(hintsDiv);
         }
         const display = document.getElementById('hints-display');
         if (display) display.textContent = '💡'.repeat(modeState.hintsRemaining);
@@ -594,15 +557,15 @@ function updateLevelDisplay() {
             levelDiv.id = 'mode-level';
             levelDiv.className = 'w3-container w3-center w3-margin-bottom';
             const label = document.createElement('div');
-            label.textContent = 'Level: ';
-            label.className = 'w3-text-indigo';
+            label.className = 'mode-hud-label';
+            label.textContent = 'Level';
             const display = document.createElement('span');
             display.id = 'level-display';
             display.className = 'w3-text-green w3-large';
             levelDiv.appendChild(label);
             levelDiv.appendChild(display);
-            const landscapeDiv = document.querySelector('.landscapemode .w3-container.w3-center');
-            if (landscapeDiv) landscapeDiv.appendChild(levelDiv);
+            const container = getModeHudContainer();
+            if (container) container.appendChild(levelDiv);
         }
         const display = document.getElementById('level-display');
         if (display) {
@@ -625,7 +588,6 @@ function toggleModeElements(config) {
             button.style.display = 'none';
         }
     });
-    // Show/hide SR Dashboard button based on mode
     const srBtn = document.getElementById('btn_sr_dashboard');
     if (srBtn) srBtn.style.display = currentGameMode === GAME_MODES.INFINITY ? 'block' : 'none';
 }
@@ -675,7 +637,7 @@ function handleTimeUp() {
 
 function handleCorrectMove() {
     if (currentGameMode === GAME_MODES.REPETITION) return;
-    if (currentGameMode === GAME_MODES.INFINITY)   return;  // handled at puzzle level
+    if (currentGameMode === GAME_MODES.INFINITY)   return;
 
     modeState.totalSolved++;
     if (currentGameMode === GAME_MODES.HASTE) {
@@ -690,7 +652,6 @@ function handleIncorrectMove() {
         return;
     }
     if (currentGameMode === GAME_MODES.WOODPECKER) {
-        // Record mistake but DO NOT end session — Woodpecker continues regardless
         if (wpData && wpData.currentCycle && typeof getCurrentPuzzleIndex === 'function') {
             const idx = getCurrentPuzzleIndex();
             wpRecordMistake(idx);
@@ -730,7 +691,6 @@ function handlePuzzleComplete() {
 
 function handleHintUsed() {
     if (currentGameMode === GAME_MODES.INFINITY) {
-        // Treat hint as an error for spaced repetition scoring
         srOnError();
     }
     if (MODE_CONFIGS[currentGameMode].hasHints) {
@@ -747,7 +707,6 @@ function handleHintUsed() {
 
 // ---------------------------------------------------------------------------
 // Puzzle start notification
-// Called from loadPuzzle() in chess-pgn-trainer.js via the hook below.
 // ---------------------------------------------------------------------------
 
 function handlePuzzleStart() {
@@ -755,15 +714,15 @@ function handlePuzzleStart() {
         srOnPuzzleStart();
     }
 
-	if (currentGameMode === GAME_MODES.WOODPECKER && typeof wpUpdateLastPuzzleIndex === 'function') {
-		const idx = typeof getCurrentPuzzleIndex === 'function'
-			? getCurrentPuzzleIndex()
-			: (typeof PuzzleOrder !== 'undefined' && PuzzleOrder.length > 0 ? PuzzleOrder[increment] : increment);
-		if (typeof idx === 'number') {
-			wpUpdateLastPuzzleIndex(idx);
-			updateWpUI();
-		}
-	}
+    if (currentGameMode === GAME_MODES.WOODPECKER && typeof wpUpdateLastPuzzleIndex === 'function') {
+        const idx = typeof getCurrentPuzzleIndex === 'function'
+            ? getCurrentPuzzleIndex()
+            : (typeof PuzzleOrder !== 'undefined' && PuzzleOrder.length > 0 ? PuzzleOrder[increment] : increment);
+        if (typeof idx === 'number') {
+            wpUpdateLastPuzzleIndex(idx);
+            updateWpUI();
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -772,14 +731,12 @@ function handlePuzzleStart() {
 
 function shouldContinueToNextPuzzle() {
     if (currentGameMode === GAME_MODES.WOODPECKER) {
-        // Woodpecker always advances regardless of mistakes
         return increment + 1 < puzzleset.length;
     }
 
     if (currentGameMode === GAME_MODES.INFINITY) {
         const hasMore = srAdvance();
         if (!hasMore) {
-            // All due and pending puzzles solved — show completion message.
             setTimeout(() => {
                 alert('Session complete! All due puzzles have been solved. Come back tomorrow for your next review.');
             }, 50);
@@ -816,22 +773,18 @@ function shouldContinueToNextPuzzle() {
         }
     }
 
-	// Standard and other modes.
-	// During a Mistake Review session we only want to walk the subset
-	// stored in PuzzleOrder (indices in the original puzzleset).
-	if (typeof isMistakeReviewActive !== 'undefined' && isMistakeReviewActive) {
-		const total = (typeof PuzzleOrder !== 'undefined' && Array.isArray(PuzzleOrder))
-			? PuzzleOrder.length
-			: puzzleset.length;
-		return increment + 1 < total;
-	}
+    if (typeof isMistakeReviewActive !== 'undefined' && isMistakeReviewActive) {
+        const total = (typeof PuzzleOrder !== 'undefined' && Array.isArray(PuzzleOrder))
+            ? PuzzleOrder.length
+            : puzzleset.length;
+        return increment + 1 < total;
+    }
 
-	return increment + 1 < puzzleset.length;
+    return increment + 1 < puzzleset.length;
 }
 
 // ---------------------------------------------------------------------------
-// Hook called by startTest() in chess-pgn-trainer.js
-// Allows Infinity mode to override PuzzleOrder before the first puzzle loads.
+// Hook called by startTest()
 // ---------------------------------------------------------------------------
 
 function onStartTest() {
@@ -867,21 +820,13 @@ function getCurrentGameMode() { return currentGameMode; }
 function getModeState()       { return modeState; }
 function isHintAvailable()    { return !MODE_CONFIGS[currentGameMode].hasHints || modeState.hintsRemaining > 0; }
 
-/**
- * Get the current puzzle index within puzzleset for the active puzzle.
- * Uses PuzzleOrder when available, falling back to increment.
- *
- * @returns {number} Index into puzzleset for the current puzzle.
- */
 function getCurrentPuzzleIndex() {
-	if (typeof PuzzleOrder !== 'undefined' && Array.isArray(PuzzleOrder) &&
-		typeof increment !== 'undefined') {
-		const idx = PuzzleOrder[increment];
-		if (typeof idx === 'number') {
-			return idx;
-		}
-	}
-	return typeof increment === 'number' ? increment : 0;
+    if (typeof PuzzleOrder !== 'undefined' && Array.isArray(PuzzleOrder) &&
+        typeof increment !== 'undefined') {
+        const idx = PuzzleOrder[increment];
+        if (typeof idx === 'number') return idx;
+    }
+    return typeof increment === 'number' ? increment : 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -904,9 +849,6 @@ if (typeof module !== 'undefined' && module.exports) {
 
 // ── SR Parameter Management ──────────────────────────────────────────────────
 
-/**
- * Load SR parameters from localStorage
- */
 function srLoadParams() {
     const raw = localStorage.getItem(SR_PARAMS_KEY);
     if (!raw) return;
@@ -916,18 +858,12 @@ function srLoadParams() {
     if (p.reinsertAfter) SR_REINSERT_AFTER = p.reinsertAfter;
 }
 
-/**
- * Save SR parameters to localStorage
- */
 function srSaveParams() {
     localStorage.setItem(SR_PARAMS_KEY, JSON.stringify({
         initialEase: SR_INITIAL_EASE, minEase: SR_MIN_EASE, reinsertAfter: SR_REINSERT_AFTER
     }));
 }
 
-/**
- * Update a single SR parameter with validation and persistence
- */
 function srUpdateParam(param, value) {
     const v = parseFloat(value);
     if (isNaN(v)) return;
@@ -937,12 +873,8 @@ function srUpdateParam(param, value) {
     srSaveParams();
 }
 
-
 // ── SR Dashboard & Export/Import ──────────────────────────────────────────────
 
-/**
- * Display the SR Dashboard with card statistics and export/import options
- */
 function showSRDashboard() {
     const tbody = document.getElementById('sr-dashboard-tbody');
     const summary = document.getElementById('sr-dashboard-summary');
@@ -983,9 +915,6 @@ function showSRDashboard() {
     document.getElementById('modal_sr_dashboard').style.display = 'block';
 }
 
-/**
- * Export SR cards as JSON file
- */
 function srExportJSON() {
     const data = { exportDate: new Date().toISOString(), pgnFile: srCurrentPgnFile, cards: srCards };
     const a = document.createElement('a');
@@ -995,9 +924,6 @@ function srExportJSON() {
     URL.revokeObjectURL(a.href);
 }
 
-/**
- * Export SR cards as CSV file
- */
 function srExportCSV() {
     const now = Date.now(), msPerDay = 86400000;
     const rows = [['Index','Puzzle','Repetitions','Interval (days)','Ease Factor','Next Review','Days Until Review']];
@@ -1020,14 +946,8 @@ function srExportCSV() {
     URL.revokeObjectURL(a.href);
 }
 
-/**
- * Trigger file picker for JSON import
- */
 function srImportJSON() { document.getElementById('sr-import-input').click(); }
 
-/**
- * Handle JSON file import
- */
 function srHandleImport(input) {
     const file = input.files[0];
     if (!file) return;
@@ -1047,9 +967,6 @@ function srHandleImport(input) {
     input.value = '';
 }
 
-/**
- * Build a 7-day sparkline graph of SR performance
- */
 function srBuildSparkline() {
     const raw = localStorage.getItem(SR_HISTORY_KEY);
     const history = raw ? JSON.parse(raw) : {};
@@ -1069,19 +986,15 @@ function srBuildSparkline() {
         const cH = (d.correct / maxVal) * H;
         const eH = (d.incorrect / maxVal) * H;
         const tH = cH + eH;
-        if (eH > 0) svg += `<rect x="${x+1}" y="${H-tH}" width="${barW-2}" height="${eH}" fill="#e53935" opacity="0.8"/>`;
-        if (cH > 0) svg += `<rect x="${x+1}" y="${H-tH+eH}" width="${barW-2}" height="${cH}" fill="#43a047" opacity="0.8"/>`;
-        svg += `<text x="${x+barW/2}" y="${H+14}" text-anchor="middle" fill="#888">${d.label}</text>`;
+        if (eH > 0) svg += `<rect x="${x+1}" y="${H-tH}" width="${barW-2}" height="${eH}" fill="#c14a4a" opacity="0.8"/>`;
+        if (cH > 0) svg += `<rect x="${x+1}" y="${H-tH+eH}" width="${barW-2}" height="${cH}" fill="#759900" opacity="0.8"/>`;
+        svg += `<text x="${x+barW/2}" y="${H+14}" text-anchor="middle" fill="#7c7c7c">${d.label}</text>`;
     });
-    svg += `<line x1="${pad}" y1="${H}" x2="${W-pad}" y2="${H}" stroke="#ccc" stroke-width="1"/>`;
+    svg += `<line x1="${pad}" y1="${H}" x2="${W-pad}" y2="${H}" stroke="#4a4846" stroke-width="1"/>`;
     svg += `</svg>`;
     return svg;
 }
 
-
-/**
- * Log SR puzzle result (correct or incorrect) to daily history
- */
 function srLogResult(correct, incorrect) {
     const today = new Date().toJSON().slice(0, 10);
     const raw = localStorage.getItem(SR_HISTORY_KEY);
@@ -1091,28 +1004,18 @@ function srLogResult(correct, incorrect) {
     history[today].incorrect += incorrect;
     localStorage.setItem(SR_HISTORY_KEY, JSON.stringify(history));
 
-    // Mirror daily history into IndexedDB for long-term retention graphs
     if (window.ChessDB && typeof ChessDB.srLogDay === 'function') {
         const pgnKey = srCurrentPgnFile || 'legacy';
         ChessDB.srLogDay(pgnKey, today, correct, incorrect).catch(console.error);
     }
 }
 
-
 // ---------------------------------------------------------------------------
-// WOODPECKER METHOD MODE - Storage Functions
+// WOODPECKER METHOD MODE
 // ---------------------------------------------------------------------------
 
-/**
- * Get the localStorage key for a Woodpecker PGN file
- */
-function wpStorageKey(pgnName) {
-    return WP_STORAGE_PREFIX + pgnName;
-}
+function wpStorageKey(pgnName) { return WP_STORAGE_PREFIX + pgnName; }
 
-/**
- * Load Woodpecker data for a PGN file from localStorage
- */
 function wpLoad(pgnName) {
     wpCurrentPgn = pgnName;
     const raw = localStorage.getItem(wpStorageKey(pgnName));
@@ -1120,14 +1023,9 @@ function wpLoad(pgnName) {
     return wpData;
 }
 
-/**
- * Save current Woodpecker data to localStorage
- */
 function wpSave() {
     if (!wpCurrentPgn) return;
     localStorage.setItem(wpStorageKey(wpCurrentPgn), JSON.stringify(wpData));
-
-    // Mirror Woodpecker current + history into IndexedDB when available
     if (window.ChessDB) {
         const pgnKey = wpCurrentPgn;
         try {
@@ -1139,31 +1037,20 @@ function wpSave() {
                     ChessDB.wpSaveCompletedCycle(pgnKey, cycle).catch(console.error);
                 });
             }
-        } catch (e) {
-            console.error('[Woodpecker] Failed to mirror data to IndexedDB', e);
-        }
+        } catch (e) { console.error('[Woodpecker] Failed to mirror data to IndexedDB', e); }
     }
 }
 
-/**
- * Get the time (in ms) of the last completed cycle
- */
 function wpGetLastCycleMs() {
     if (!wpData || wpData.cycleHistory.length === 0) return null;
     return wpData.cycleHistory[wpData.cycleHistory.length - 1].totalMs;
 }
 
-/**
- * Get the current cycle number (next cycle to start)
- */
 function wpGetCycleNumber() {
     if (!wpData) return 1;
     return wpData.cycleHistory.length + 1;
 }
 
-/**
- * Start a new Woodpecker cycle
- */
 function wpStartCycle(pgnName, puzzleCount) {
     wpLoad(pgnName);
     if (!wpData.currentCycle) {
@@ -1179,9 +1066,6 @@ function wpStartCycle(pgnName, puzzleCount) {
     updateWpUI();
 }
 
-/**
- * Record a mistake in the current Woodpecker cycle
- */
 function wpRecordMistake(puzzleIndex) {
     if (!wpData || !wpData.currentCycle) return;
     if (!wpData.currentCycle.mistakesThisCycle.includes(puzzleIndex)) {
@@ -1190,18 +1074,12 @@ function wpRecordMistake(puzzleIndex) {
     }
 }
 
-/**
- * Update the last puzzle index in the current cycle (for resume support)
- */
 function wpUpdateLastPuzzleIndex(index) {
     if (!wpData || !wpData.currentCycle) return;
     wpData.currentCycle.lastPuzzleIndex = index;
     wpSave();
 }
 
-/**
- * Complete the current Woodpecker cycle and return cycle data
- */
 function wpCompleteCycle() {
     if (!wpData || !wpData.currentCycle) return null;
     const elapsed = Date.now() - wpData.currentCycle.startedAt;
@@ -1217,23 +1095,15 @@ function wpCompleteCycle() {
     wpData.currentCycle = null;
     wpSave();
 
-    // Also append to IndexedDB history and clear current entry if available
     if (window.ChessDB && typeof ChessDB.wpSaveCompletedCycle === 'function') {
         const pgnKey = wpCurrentPgn;
         ChessDB.wpSaveCompletedCycle(pgnKey, completedCycle)
-            .then(() => {
-                if (typeof ChessDB.wpClearCurrent === 'function') {
-                    return ChessDB.wpClearCurrent(pgnKey);
-                }
-            })
+            .then(() => { if (typeof ChessDB.wpClearCurrent === 'function') return ChessDB.wpClearCurrent(pgnKey); })
             .catch(console.error);
     }
     return completedCycle;
 }
 
-/**
- * Check if there's an in-progress cycle and offer to resume
- */
 function wpCheckResume(pgnName, puzzleCount) {
     wpLoad(pgnName);
     if (wpData.currentCycle) {
@@ -1242,19 +1112,12 @@ function wpCheckResume(pgnName, puzzleCount) {
             `You have an in-progress Cycle ${wpData.currentCycle.cycleNumber} ` +
             `(elapsed: ${elapsed}, at puzzle ${wpData.currentCycle.lastPuzzleIndex + 1}/${puzzleCount}). Resume it?`
         );
-        if (confirmed) {
-            return wpData.currentCycle.lastPuzzleIndex;
-        } else {
-            wpData.currentCycle = null;
-            wpSave();
-        }
+        if (confirmed) return wpData.currentCycle.lastPuzzleIndex;
+        else { wpData.currentCycle = null; wpSave(); }
     }
     return 0;
 }
 
-/**
- * Convert milliseconds to HH:MM:SS format
- */
 function msToHMS(ms) {
     const s = Math.floor(ms / 1000);
     const h = Math.floor(s / 3600);
@@ -1263,9 +1126,6 @@ function msToHMS(ms) {
     return [h, m, sec].map(v => String(v).padStart(2, '0')).join(':');
 }
 
-/**
- * Update Woodpecker UI display
- */
 function updateWpUI() {
     const display = document.getElementById('wp-status-display');
     if (!display) return;
@@ -1290,10 +1150,6 @@ function updateWpUI() {
     }
 }
 
-
-/**
- * Build a cycle history bar chart as inline SVG
- */
 function wpBuildCycleChart(history) {
     if (!history || history.length === 0) return '';
     const W = 300, H = 80, pad = 4;
@@ -1304,23 +1160,20 @@ function wpBuildCycleChart(history) {
         const barH = Math.round((c.totalMs / maxMs) * (H - 20));
         const x = pad + i * (barW + pad);
         const y = H - barH - 16;
-        const color = i === 0 ? '#888' : c.totalMs < history[i - 1].totalMs ? '#4caf50' : '#e53935';
+        const color = i === 0 ? '#888' : c.totalMs < history[i - 1].totalMs ? '#759900' : '#c14a4a';
         return `
             <rect x="${x}" y="${y}" width="${barW}" height="${barH}" fill="${color}" rx="2"/>
             <text x="${x + barW / 2}" y="${H - 2}" text-anchor="middle"
-                  font-size="9" fill="#aaa">${c.cycleNumber}</text>
+                  font-size="9" fill="#7c7c7c">${c.cycleNumber}</text>
         `;
     }).join('');
 
     return `<svg width="${W}" height="${H}" style="display:block;margin:auto;">
         ${bars}
-        <text x="${W/2}" y="${H}" text-anchor="middle" font-size="9" fill="#888">Cycle</text>
+        <text x="${W/2}" y="${H}" text-anchor="middle" font-size="9" fill="#7c7c7c">Cycle</text>
     </svg>`;
 }
 
-/**
- * Populate the flagged puzzles list in the results modal
- */
 function wpPopulateFlaggedList(mistakeIndexes) {
     const section = document.getElementById('wp-flagged-section');
     const list = document.getElementById('wp-flagged-list');
@@ -1330,14 +1183,13 @@ function wpPopulateFlaggedList(mistakeIndexes) {
     }
     section.style.display = 'block';
     list.innerHTML = mistakeIndexes.map(idx => {
-		let name = `Puzzle ${idx + 1}`;
-		if (typeof puzzleset !== 'undefined' && puzzleset[idx]) {
-			const puzzle = puzzleset[idx];
-			if (puzzle && puzzle.Event) {
-				// Strip basic HTML tags for display in plain list.
-				name = puzzle.Event.replace(/<br\s*\/?>/gi, ' ').replace(/<\/?[^>]+(>|$)/g, '');
-			}
-		}
+        let name = `Puzzle ${idx + 1}`;
+        if (typeof puzzleset !== 'undefined' && puzzleset[idx]) {
+            const puzzle = puzzleset[idx];
+            if (puzzle && puzzle.Event) {
+                name = puzzle.Event.replace(/<br\s*\/?>/gi, ' ').replace(/<\/?[^>]+(>|$)/g, '');
+            }
+        }
         return `<li>${name}</li>`;
     }).join('');
 }
