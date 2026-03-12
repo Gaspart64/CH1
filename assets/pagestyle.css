@@ -86,7 +86,8 @@ body {
   font-size: 1rem;
   font-weight: 700;
   margin: 0;
-  padding: 16px;
+  /* Top padding clears the Dynamic Island / status bar */
+  padding: max(16px, env(safe-area-inset-top, 16px)) 16px 16px 16px;
   border-bottom: 1px solid var(--lc-border);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -98,7 +99,8 @@ body {
   background: none !important;
   border: none;
   font-size: 1.2rem;
-  padding: 12px 16px;
+  /* Match the safe-area-aware top padding of the h3 it floats inside */
+  padding: max(12px, env(safe-area-inset-top, 12px)) 16px 12px 16px;
   float: right;
 }
 #mySidebar .w3-button.w3-large:hover { color: var(--lc-white); }
@@ -1030,4 +1032,20 @@ select:focus-visible,
 input:focus-visible {
   outline: 2px solid var(--lc-accent);
   outline-offset: 2px;
+}
+
+/* ── Fill the safe-area zone above the header with the same colour ─
+ * Without this a dark gap from body background shows between the
+ * status bar and the header on iPhone (Dynamic Island devices).     */
+#title_header::before {
+  content: '';
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--lc-surface);
+  z-index: 1000;
+  pointer-events: none;
 }
