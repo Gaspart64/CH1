@@ -562,6 +562,11 @@ function checkAndPlayNext() {
                                 board.addMarker(MARKER_TYPE.frame, opponentMove.from);
                                 board.addMarker(MARKER_TYPE.frame, opponentMove.to);
                         }
+
+                        // In Brutal Mode, each opponent move also resets the 7-second player timer
+                        if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'brutal') {
+                                if (typeof brutalStartMoveTimer === 'function') brutalStartMoveTimer();
+                        }
                 }
                 // Board sync is handled by handleMoveInput after the move
                 // animation promise resolves — do not call updateBoard here.
@@ -620,7 +625,9 @@ function checkAndPlayNext() {
                 // longer than puzzleset.length due to reinserted retries.
                 const isInfinityMode = typeof getCurrentGameMode === 'function' &&
                         getCurrentGameMode() === 'infinity';
-                if (!isInfinityMode && increment + 1 === PuzzleOrder.length) {
+                const isBrutalMode = typeof getCurrentGameMode === 'function' &&
+                        getCurrentGameMode() === 'brutal';
+                if (!isInfinityMode && !isBrutalMode && increment + 1 === PuzzleOrder.length) {
                         setcomplete = true;
                 }
 

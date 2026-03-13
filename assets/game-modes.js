@@ -17,7 +17,8 @@ const GAME_MODES = {
     COUNTDOWN:  'countdown',
     SPEEDRUN:   'speedrun',
     INFINITY:   'infinity',
-    WOODPECKER: 'woodpecker'
+    WOODPECKER: 'woodpecker',
+    BRUTAL: 'brutal'
 };
 
 // Game mode configurations
@@ -66,6 +67,14 @@ const MODE_CONFIGS = {
         name: 'Woodpecker',
         description: 'Complete the full set. Each cycle must be faster than the last.',
         hasTimer: true, hasLives: false, hasHints: false, hasLevels: false
+    },
+    [GAME_MODES.BRUTAL]: {
+        name: 'Brutal Mode',
+        description: 'Solve every puzzle in a row without a single mistake or 7-second timeout. Any failure resets your streak to zero.',
+        hasTimer: false,
+        hasLives: false,
+        hasHints: false,
+        hasLevels: false
     }
 };
 
@@ -96,6 +105,18 @@ let wpData = null;
 let wpCurrentPgn = null;
 const WP_STORAGE_PREFIX = 'wp_data_';
 
+// ── Brutal Mode state ─────────────────────────────────────────────────────
+let brutalStreakCount   = 0;    // consecutive correct puzzle solves since last reset
+let brutalNumPuzzles   = 0;    // total puzzles in loaded PGN (set on onStartTest)
+let brutalCleared      = false; // one-way latch: true once streak reaches brutalNumPuzzles
+let brutalLapStartTime = 0;    // Date.now() when current lap started
+let brutalLapTimes     = [];   // array of lap elapsed-ms values, oldest first
+let brutalMoveTimer    = null;  // setTimeout handle for per-move 7-second clock
+let brutalClockInterval = null; // setInterval handle for the running lap display
+
+const BRUTAL_TIMEOUT_MS   = 7000;
+const BRUTAL_HINT_DELAY_MS = 750;
+
 // ---------------------------------------------------------------------------
 // Helper: get the shared HUD container (works in both portrait & landscape)
 // ---------------------------------------------------------------------------
@@ -109,6 +130,224 @@ function getModeHudContainer() {
     if (hud) return hud;
     // fallback
     return document.querySelector('.landscapemode .w3-container.w3-center');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BRUTAL MODE
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Start (or restart) the 7-second per-move countdown.
+ * Called on every puzzle load and every correct move.
+ * When it fires: reset streak, then 750ms later show the hint button.
+ */
+function brutalStartMoveTimer() {
+    brutalClearMoveTimer();
+    brutalMoveTimer = setTimeout(() => {
+        brutalOnTooSlow();
+        setTimeout(() => brutalShowHintButton(), BRUTAL_HINT_DELAY_MS);
+    }, BRUTAL_TIMEOUT_MS);
+}
+
+/**
+ * Cancel the per-move countdown and hide the hint button.
+ * Called on puzzle load, wrong move, and mode reset.
+ */
+function brutalClearMoveTimer() {
+    if (brutalMoveTimer) {
+        clearTimeout(brutalMoveTimer);
+        brutalMoveTimer = null;
+    }
+    brutalHideHintButton();
+}
+
+/**
+ * Called when the 7-second move timer fires.
+ * Resets streak to zero. Hint button appears 750ms after this.
+ */
+function brutalOnTooSlow() {
+    if (currentGameMode !== GAME_MODES.BRUTAL) return;
+    brutalStreakCount = 0;
+    brutalUpdateStreakDisplay();
+    brutalUpdateProgressBar();
+}
+
+/**
+ * Make the Brutal-Mode-specific hint button visible.
+ * This is NOT the main #btn_hint_landscape / #btn_hint_portrait —
+ * those stay hidden. Only #brutal-hint-btn is used.
+ */
+function brutalShowHintButton() {
+    if (currentGameMode !== GAME_MODES.BRUTAL) return;
+    const btn = document.getElementById('brutal-hint-btn');
+    if (btn) btn.style.display = 'inline-block';
+}
+
+/** Hide the Brutal Mode hint button. */
+function brutalHideHintButton() {
+    const btn = document.getElementById('brutal-hint-btn');
+    if (btn) btn.style.display = 'none';
+}
+
+/**
+ * Called when the player clicks the Brutal Mode hint button.
+ * Delegates to the existing showHint() in chess-pgn-trainer.js,
+ * which sets error=true and counts the hint as an error.
+ * Streak is already 0 at this point (reset on timeout).
+ */
+function brutalDoHint() {
+    if (typeof showHint === 'function') showHint();
+    brutalHideHintButton();
+}
+
+/**
+ * Update the streak counter display in the HUD.
+ */
+function brutalUpdateStreakDisplay() {
+    const el = document.getElementById('brutal-streak-display');
+    if (el) el.textContent = brutalStreakCount + ' / ' + brutalNumPuzzles;
+}
+
+/**
+ * Update the progress bar to reflect the current streak as a percentage.
+ * On reset (streak=0): transition is disabled so the drop is instant.
+ * On clear: bar turns green and freezes at 100%.
+ */
+function brutalUpdateProgressBar() {
+    if (brutalNumPuzzles === 0) return;
+    const pct = brutalCleared ? 100 : Math.floor(100 * brutalStreakCount / brutalNumPuzzles);
+    const pctStr = pct + '%';
+    const isReset = (brutalStreakCount === 0 && !brutalCleared);
+
+    ['progressbar_landscape', 'progressbar_portrait'].forEach(id => {
+        const bar = document.getElementById(id);
+        if (!bar) return;
+        bar.style.transition = isReset ? 'none' : 'width 0.3s ease';
+        bar.style.width = pctStr;
+        bar.style.backgroundColor = brutalCleared ? '#63F706' : '';
+    });
+}
+
+/**
+ * Build the Brutal Mode HUD and inject it into the mode HUD container.
+ * Idempotent — does nothing if the HUD already exists.
+ */
+function brutalGetOrCreateHud() {
+    if (document.getElementById('brutal-hud')) return;
+
+    const hud = document.createElement('div');
+    hud.id = 'brutal-hud';
+    hud.style.cssText = 'width:100%; text-align:center; padding:4px 0 2px;';
+
+    hud.innerHTML = `
+        <div style="font-size:0.85rem; margin-bottom:3px;">
+            Streak: <span id="brutal-streak-display"
+                style="font-weight:700; color:var(--lc-gold); font-variant-numeric:tabular-nums;">
+                0 / 0
+            </span>
+        </div>
+        <div style="font-size:0.72rem; color:var(--lc-text-dim); margin-bottom:3px;">
+            Lap: <span id="brutal-lap-clock" style="font-variant-numeric:tabular-nums;">0:00</span>
+        </div>
+        <button id="brutal-hint-btn"
+            style="display:none; padding:4px 12px; font-size:0.78rem; cursor:pointer;
+                   background:var(--lc-surface2); color:var(--lc-gold);
+                   border:1px solid var(--lc-gold); border-radius:var(--lc-radius,4px);"
+            onclick="brutalDoHint()">
+            Show Hint
+        </button>
+        <div id="brutal-laps-list"
+            style="font-size:0.72rem; color:var(--lc-text-dim); margin-top:4px; line-height:1.6;">
+        </div>
+    `;
+
+    const container = getModeHudContainer();
+    if (container) container.appendChild(hud);
+}
+
+/** Remove the Brutal Mode HUD entirely (called on reset). */
+function brutalRemoveHud() {
+    const hud = document.getElementById('brutal-hud');
+    if (hud) hud.remove();
+}
+
+/** Update the running lap clock display (called every 500ms). */
+function brutalTickLapClock() {
+    if (currentGameMode !== GAME_MODES.BRUTAL || !brutalLapStartTime) return;
+    const elapsed = Date.now() - brutalLapStartTime;
+    const s = Math.floor(elapsed / 1000);
+    const m = Math.floor(s / 60);
+    const ss = String(s % 60).padStart(2, '0');
+    const el = document.getElementById('brutal-lap-clock');
+    if (el) el.textContent = m + ':' + ss;
+}
+
+/** Start the 500ms interval that drives the lap clock display. */
+function brutalStartLapClock() {
+    if (brutalClockInterval) clearInterval(brutalClockInterval);
+    brutalClockInterval = setInterval(brutalTickLapClock, 500);
+}
+
+/** Stop the lap clock interval. */
+function brutalStopLapClock() {
+    if (brutalClockInterval) {
+        clearInterval(brutalClockInterval);
+        brutalClockInterval = null;
+    }
+}
+
+/**
+ * Rebuild the list of completed lap times in the HUD.
+ * Most recent lap is shown at the top.
+ */
+function brutalUpdateLapsList() {
+    const el = document.getElementById('brutal-laps-list');
+    if (!el || brutalLapTimes.length === 0) return;
+    el.innerHTML = brutalLapTimes.slice().reverse().map(ms => {
+        const s = Math.floor(ms / 1000);
+        const m = Math.floor(s / 60);
+        const ss = String(s % 60).padStart(2, '0');
+        return `<div>${m}:${ss}</div>`;
+    }).join('');
+}
+
+/**
+ * Handle a completed lap (puzzle index wrapped back to 0).
+ * Records the lap time, reshuffles the puzzle order (if randomize is on),
+ * and guarantees the first puzzle of the new lap is not the same FEN as
+ * the last puzzle of the completed lap.
+ */
+function brutalCompleteLap() {
+    const lapMs = Date.now() - brutalLapStartTime;
+    brutalLapTimes.push(lapMs);
+    brutalLapStartTime = Date.now();
+    brutalUpdateLapsList();
+
+    if ($('#randomizeSet').is(':checked') && typeof puzzleset !== 'undefined' && puzzleset.length > 1) {
+        const lastFen = puzzleset[PuzzleOrder[PuzzleOrder.length - 1]]?.FEN;
+        let newOrder;
+        let attempts = 0;
+        do {
+            newOrder = shuffle([...Array(puzzleset.length).keys()]);
+            attempts++;
+        } while (attempts < 10 && lastFen && puzzleset[newOrder[0]]?.FEN === lastFen);
+        PuzzleOrder = newOrder;
+    }
+}
+
+/**
+ * Full reset of all Brutal Mode state.
+ * Called from resetModeState() when entering or leaving Brutal Mode.
+ */
+function brutalReset() {
+    brutalClearMoveTimer();
+    brutalStopLapClock();
+    brutalStreakCount   = 0;
+    brutalNumPuzzles   = 0;
+    brutalCleared      = false;
+    brutalLapTimes     = [];
+    brutalLapStartTime = 0;
+    brutalRemoveHud();
 }
 
 // ---------------------------------------------------------------------------
@@ -428,6 +667,9 @@ function resetModeState() {
     repetitionSetStartIndex = 0;
     repetitionSetHadError   = false;
 
+    // Always clean up Brutal Mode resources regardless of which mode we're entering
+    brutalReset();
+
     if (currentGameMode === GAME_MODES.WOODPECKER) {
         if (typeof puzzleset !== 'undefined' && puzzleset.length > 0) {
             const pgnName = ($('#openPGN').val() || 'default').replace(/[^a-zA-Z0-9]/g, '_');
@@ -458,6 +700,12 @@ function updateModeUI() {
     updateWpUI();
     const srRow = document.getElementById('sr-params-row');
     if (srRow) srRow.style.display = currentGameMode === GAME_MODES.INFINITY ? 'table-row' : 'none';
+
+    // Show or hide the Brutal Mode HUD
+    const brutalHud = document.getElementById('brutal-hud');
+    if (brutalHud) {
+        brutalHud.style.display = currentGameMode === GAME_MODES.BRUTAL ? 'block' : 'none';
+    }
 }
 
 function updateTimerDisplay() {
@@ -617,6 +865,8 @@ function startModeTimer() {
 }
 
 function stopModeTimer() {
+    brutalClearMoveTimer();
+    brutalStopLapClock();
     if (modeState.modeTimer) {
         clearInterval(modeState.modeTimer);
         modeState.modeTimer = null;
@@ -636,6 +886,11 @@ function handleTimeUp() {
 // ---------------------------------------------------------------------------
 
 function handleCorrectMove() {
+    if (currentGameMode === GAME_MODES.BRUTAL) {
+        // Restart the per-move timer on every correct move
+        brutalStartMoveTimer();
+        return;
+    }
     if (currentGameMode === GAME_MODES.REPETITION) return;
     if (currentGameMode === GAME_MODES.INFINITY)   return;
 
@@ -660,6 +915,13 @@ function handleIncorrectMove() {
     }
     if (currentGameMode === GAME_MODES.INFINITY) {
         srOnError();
+        return;
+    }
+    if (currentGameMode === GAME_MODES.BRUTAL) {
+        brutalStreakCount = 0;
+        brutalClearMoveTimer();
+        brutalUpdateStreakDisplay();
+        brutalUpdateProgressBar();
         return;
     }
     if (currentGameMode === GAME_MODES.THREE) {
@@ -687,9 +949,38 @@ function handlePuzzleComplete() {
         srOnPuzzleComplete();
         return;
     }
+    if (currentGameMode === GAME_MODES.BRUTAL) {
+        brutalClearMoveTimer();
+
+        // `error` is a global in chess-pgn-trainer.js — true if any wrong move
+        // was made on this puzzle. Only increment streak on a clean solve.
+        if (typeof error !== 'undefined' && !error) {
+            brutalStreakCount++;
+        }
+
+        brutalUpdateStreakDisplay();
+        brutalUpdateProgressBar();
+
+        // First-time clear: latch the flag and freeze the bar green
+        if (!brutalCleared && brutalNumPuzzles > 0 && brutalStreakCount >= brutalNumPuzzles) {
+            brutalCleared = true;
+            brutalUpdateProgressBar();
+            // Announce the clear in the puzzle name area without interrupting play
+            ['#puzzlename_landscape', '#puzzlename_portrait'].forEach(sel => {
+                const el = document.querySelector(sel);
+                if (el) el.innerHTML = '💀 Set Cleared!';
+            });
+        }
+        return;
+    }
 }
 
 function handleHintUsed() {
+    if (currentGameMode === GAME_MODES.BRUTAL) {
+        // Hint in Brutal Mode is triggered by brutalDoHint(), not this hook.
+        // brutalDoHint() calls showHint() directly. Nothing to do here.
+        return;
+    }
     if (currentGameMode === GAME_MODES.INFINITY) {
         srOnError();
     }
@@ -710,6 +1001,13 @@ function handleHintUsed() {
 // ---------------------------------------------------------------------------
 
 function handlePuzzleStart() {
+    if (currentGameMode === GAME_MODES.BRUTAL) {
+        brutalClearMoveTimer();
+        brutalStartMoveTimer();
+        brutalGetOrCreateHud();
+        brutalUpdateStreakDisplay();
+        return;
+    }
     if (currentGameMode === GAME_MODES.INFINITY) {
         srOnPuzzleStart();
     }
@@ -780,6 +1078,17 @@ function shouldContinueToNextPuzzle() {
         return increment + 1 < total;
     }
 
+    if (currentGameMode === GAME_MODES.BRUTAL) {
+        const nextIncrement = increment + 1;
+        if (nextIncrement >= puzzleset.length) {
+            // The puzzle index is about to wrap — record the lap,
+            // then reset increment to -1 so chess-pgn-trainer.js sets it to 0.
+            brutalCompleteLap();
+            increment = -1;
+        }
+        return true; // loop never ends
+    }
+
     return increment + 1 < puzzleset.length;
 }
 
@@ -790,6 +1099,17 @@ function shouldContinueToNextPuzzle() {
 function onStartTest() {
     if (currentGameMode === GAME_MODES.INFINITY) {
         srInitSession();
+    }
+    if (currentGameMode === GAME_MODES.BRUTAL) {
+        brutalStreakCount   = 0;
+        brutalNumPuzzles   = puzzleset.length;
+        brutalCleared      = false;
+        brutalLapTimes     = [];
+        brutalLapStartTime = Date.now();
+        brutalGetOrCreateHud();
+        brutalUpdateStreakDisplay();
+        brutalUpdateProgressBar();
+        brutalStartLapClock();
     }
 }
 
@@ -843,7 +1163,11 @@ if (typeof module !== 'undefined' && module.exports) {
         handlePuzzleComplete, handlePuzzleStart, handleHintUsed,
         isHintAvailable, shouldContinueToNextPuzzle,
         onStartTest, resetModeState, updateModeUI,
-        srClearCards
+        srClearCards,
+        brutalReset,
+        brutalDoHint,
+        brutalUpdateProgressBar,
+        brutalUpdateStreakDisplay
     };
 }
 

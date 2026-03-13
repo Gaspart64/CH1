@@ -1069,3 +1069,56 @@ input:focus-visible {
   z-index: 1000;
   pointer-events: none;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Brutal Mode
+   ══════════════════════════════════════════════════════════════ */
+
+#brutal-hud {
+    width: 100%;
+    text-align: center;
+    padding: 4px 0 2px;
+}
+
+#brutal-streak-display {
+    font-weight: 700;
+    color: var(--lc-gold);
+    font-variant-numeric: tabular-nums;
+    font-size: 1rem;
+}
+
+#brutal-lap-clock {
+    font-variant-numeric: tabular-nums;
+    color: var(--lc-text-dim);
+}
+
+#brutal-laps-list {
+    font-size: 0.72rem;
+    color: var(--lc-text-dim);
+    margin-top: 4px;
+    line-height: 1.6;
+}
+
+#brutal-laps-list div + div::before {
+    content: '';
+    display: block;
+    border-top: 1px solid var(--lc-border);
+    margin: 1px 0;
+}
+
+#brutal-hint-btn {
+    background: var(--lc-surface2);
+    color: var(--lc-gold);
+    border: 1px solid var(--lc-gold);
+    border-radius: var(--lc-radius);
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: background 0.15s;
+    font-family: inherit;
+}
+
+#brutal-hint-btn:hover {
+    background: rgba(215, 153, 33, 0.15);
+}
