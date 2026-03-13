@@ -108,7 +108,6 @@ body {
   float: right;
 }
 #mySidebar .w3-button.w3-large:hover { color: var(--lc-white); }
-.desktop-mode #mySidebar .w3-button.w3-large { display: none !important; }
 
 /* ── Sidebar sections ─────────────────────────────────────── */
 #mySidebar > p,
@@ -273,11 +272,13 @@ label {
   background: var(--lc-bg);
   margin-right: 0 !important;
 }
-.desktop-mode .w3-main {
-  margin-right: 280px !important;
-}
-.desktop-mode #mySidebar {
-  display: block !important;
+@media (min-width: 993px) {
+  .desktop-mode .w3-main {
+    margin-right: 280px !important;
+  }
+  .desktop-mode #mySidebar {
+    display: block !important;
+  }
 }
 
 /* ── Portrait header bar ──────────────────────────────────── */
@@ -291,8 +292,10 @@ label {
   padding-bottom: 0 !important;
 }
 
-.desktop-mode #title_header {
-  display: none !important;
+@media (min-width: 993px) {
+  .desktop-mode #title_header {
+    display: none !important;
+  }
 }
 
 #title_header h3 {
