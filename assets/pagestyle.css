@@ -63,8 +63,10 @@ body {
 }
 
 /* ── Desktop overrides ────────────────────────────────────── */
-.desktop-mode div.landscapemode { display: block !important; }
-.desktop-mode div.portraitmode { display: none !important; }
+@media (min-width: 993px) {
+  .desktop-mode div.landscapemode { display: block !important; }
+  .desktop-mode div.portraitmode { display: none !important; }
+}
 
 /* ── Dark mode (already default — legacy toggle support) ──── */
 .darkmode            { background-color: var(--lc-bg) !important; color: var(--lc-text) !important; }
