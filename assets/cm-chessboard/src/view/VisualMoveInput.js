@@ -172,7 +172,9 @@ export class VisualMoveInput {
                     })
                 } else {
                     this.view.setPieceVisibility(this.fromSquare, true)
+                    const moveStartSquare = this.fromSquare
                     this.setMoveInputState(MOVE_INPUT_STATE.reset)
+                    this.moveInputCanceledCallback(moveStartSquare, this.toSquare, "illegalMove")
                 }
                 break
 
@@ -244,6 +246,12 @@ export class VisualMoveInput {
         }
         const square = e.target.getAttribute("data-square")
         if (!square) { // pointer on square
+            if (this.moveInputState === MOVE_INPUT_STATE.clickTo) {
+                this.view.redrawPieces()
+                const moveStartSquare = this.fromSquare
+                this.setMoveInputState(MOVE_INPUT_STATE.reset)
+                this.moveInputCanceledCallback(moveStartSquare, null, MOVE_CANCELED_REASON.movedOutOfBoard)
+            }
             return
         }
         const pieceName = this.chessboard.getPiece(square)
@@ -364,7 +372,14 @@ export class VisualMoveInput {
         if (e.type === "mouseup") {
             target = e.target
         } else if (e.type === "touchend") {
-            target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+            const pointElement = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+            // On mobile, elementFromPoint often returns the SVG container instead of the actual square rect
+            // if the touch isn't meticulously centered. We fall back to the original event target if so.
+            if (pointElement && pointElement.getAttribute("data-square")) {
+                target = pointElement;
+            } else {
+                target = e.target;
+            }
         }
         if (target && target.getAttribute) {
             const square = target.getAttribute("data-square")

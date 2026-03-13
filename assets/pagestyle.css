@@ -62,6 +62,10 @@ body {
   div.portraitmode  { display: none !important; }
 }
 
+/* ── Desktop overrides ────────────────────────────────────── */
+.desktop-mode div.landscapemode { display: block !important; }
+.desktop-mode div.portraitmode { display: none !important; }
+
 /* ── Dark mode (already default — legacy toggle support) ──── */
 .darkmode            { background-color: var(--lc-bg) !important; color: var(--lc-text) !important; }
 .darkmode-control    { background-color: var(--lc-surface) !important; color: var(--lc-text) !important; }
@@ -104,6 +108,7 @@ body {
   float: right;
 }
 #mySidebar .w3-button.w3-large:hover { color: var(--lc-white); }
+.desktop-mode #mySidebar .w3-button.w3-large { display: none !important; }
 
 /* ── Sidebar sections ─────────────────────────────────────── */
 #mySidebar > p,
@@ -268,6 +273,12 @@ label {
   background: var(--lc-bg);
   margin-right: 0 !important;
 }
+.desktop-mode .w3-main {
+  margin-right: 280px !important;
+}
+.desktop-mode #mySidebar {
+  display: block !important;
+}
 
 /* ── Portrait header bar ──────────────────────────────────── */
 #title_header {
@@ -278,6 +289,10 @@ label {
   padding-left: env(safe-area-inset-left, 0px) !important;
   padding-right: env(safe-area-inset-right, 0px) !important;
   padding-bottom: 0 !important;
+}
+
+.desktop-mode #title_header {
+  display: none !important;
 }
 
 #title_header h3 {

@@ -353,6 +353,7 @@ export class ChessboardView {
         this.chessboard.state.inputBlackEnabled = false
         this.chessboard.state.moveInputCallback = null
         this.chessboard.state.invokeExtensionPoints(EXTENSION_POINT.moveInputToggled, {enabled: false})
+        this.visualMoveInput.setMoveInputState("reset")
         this.visualizeInputState()
     }
 
