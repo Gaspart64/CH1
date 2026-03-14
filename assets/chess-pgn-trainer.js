@@ -1027,6 +1027,10 @@ function shuffle(array) {
  * @param {int} total_value - The total number of puzzles (denominator)
  */
 function updateProgressBar(partial_value, total_value) {
+        // In Brutal Mode, the progress bar is managed by brutalUpdateProgressBar()
+        if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'brutal') {
+                return;
+        }
         // Do the math
         const progress = Math.round((partial_value / total_value) * 100);
 

@@ -197,7 +197,13 @@ function brutalHideHintButton() {
  */
 function brutalDoHint() {
     if (typeof showHint === 'function') showHint();
-    brutalHideHintButton();
+    // Mirror the hint text to the brutal hint button label since the
+    // standard hint buttons are hidden in Brutal Mode
+    const moveText = typeof moveHistory !== 'undefined' && typeof game !== 'undefined'
+        ? moveHistory[game.history().length] : '?';
+    const btn = document.getElementById('brutal-hint-btn');
+    if (btn) btn.textContent = moveText;
+    // Don't hide the button — leave the move visible until next puzzle loads
 }
 
 /**
@@ -965,11 +971,9 @@ function handlePuzzleComplete() {
         if (!brutalCleared && brutalNumPuzzles > 0 && brutalStreakCount >= brutalNumPuzzles) {
             brutalCleared = true;
             brutalUpdateProgressBar();
-            // Announce the clear in the puzzle name area without interrupting play
-            ['#puzzlename_landscape', '#puzzlename_portrait'].forEach(sel => {
-                const el = document.querySelector(sel);
-                if (el) el.innerHTML = '💀 Set Cleared!';
-            });
+            // Show cleared indicator in the streak display itself, not the puzzle name
+            const streakEl = document.getElementById('brutal-streak-display');
+            if (streakEl) streakEl.innerHTML = '💀 <strong>CLEARED</strong>';
         }
         return;
     }
@@ -1028,6 +1032,17 @@ function handlePuzzleStart() {
 // ---------------------------------------------------------------------------
 
 function shouldContinueToNextPuzzle() {
+    if (currentGameMode === GAME_MODES.BRUTAL) {
+        const nextIncrement = increment + 1;
+        if (nextIncrement >= puzzleset.length) {
+            // The puzzle index is about to wrap — record the lap,
+            // then reset increment to -1 so chess-pgn-trainer.js sets it to 0.
+            brutalCompleteLap();
+            increment = -1;
+        }
+        return true; // loop never ends
+    }
+
     if (currentGameMode === GAME_MODES.WOODPECKER) {
         return increment + 1 < puzzleset.length;
     }
@@ -1078,17 +1093,6 @@ function shouldContinueToNextPuzzle() {
         return increment + 1 < total;
     }
 
-    if (currentGameMode === GAME_MODES.BRUTAL) {
-        const nextIncrement = increment + 1;
-        if (nextIncrement >= puzzleset.length) {
-            // The puzzle index is about to wrap — record the lap,
-            // then reset increment to -1 so chess-pgn-trainer.js sets it to 0.
-            brutalCompleteLap();
-            increment = -1;
-        }
-        return true; // loop never ends
-    }
-
     return increment + 1 < puzzleset.length;
 }
 
@@ -1106,6 +1110,7 @@ function onStartTest() {
         brutalCleared      = false;
         brutalLapTimes     = [];
         brutalLapStartTime = Date.now();
+        modeState.isActive = true;
         brutalGetOrCreateHud();
         brutalUpdateStreakDisplay();
         brutalUpdateProgressBar();
