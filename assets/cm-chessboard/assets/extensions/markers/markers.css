@@ -87,5 +87,10 @@
   fill: black;
   opacity: 0.2;
 }
+.cm-chessboard .markers .marker.marker-last-move {
+  fill: #cdd16a;   /* Lichess last-move tint (olive-yellow) */
+  stroke: none;
+  opacity: 0.42;
+}
 
 /*# sourceMappingURL=markers.css.map */

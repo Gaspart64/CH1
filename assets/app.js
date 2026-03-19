@@ -31,6 +31,9 @@ window.Markers                      = Markers;
 window.PromotionDialog              = PromotionDialog;
 window.PROMOTION_DIALOG_RESULT_TYPE = PROMOTION_DIALOG_RESULT_TYPE;
 
+// Custom marker type for last-move highlighting (yellow square, like Lichess)
+MARKER_TYPE.lastMove = { class: 'marker-last-move', slice: 'markerSquare' };
+
 // assetsUrl must point to the folder containing 'pieces/' and 'chessboard.css'
 // Confirmed structure: assets/cm-chessboard/assets/pieces/staunty.svg
 window.CM_ASSETS_URL = './assets/cm-chessboard/assets/';

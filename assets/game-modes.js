@@ -126,9 +126,19 @@ const BRUTAL_HINT_DELAY_MS = 750;
  * Falls back to the landscape sidebar container for backward compatibility.
  */
 function getModeHudContainer() {
-    const hud = document.getElementById('mode-hud');
-    if (hud) return hud;
-    // fallback
+    // Check if the portrait container is actually visible via CSS.
+    // We check the #title_header or .portraitmode panel which are orientation-gated.
+    const portraitPanel = document.querySelector('.portraitmode');
+    if (portraitPanel && window.getComputedStyle(portraitPanel).display !== 'none') {
+        const portraitHud = document.getElementById('mode-hud');
+        if (portraitHud) return portraitHud;
+    }
+
+    // Fallback to landscape sidebar anchor
+    const landscapeHud = document.getElementById('mode-hud-landscape');
+    if (landscapeHud) return landscapeHud;
+
+    // Final fallback
     return document.querySelector('.landscapemode .w3-container.w3-center');
 }
 
@@ -239,9 +249,17 @@ function brutalUpdateProgressBar() {
  * Idempotent — does nothing if the HUD already exists.
  */
 function brutalGetOrCreateHud() {
-    if (document.getElementById('brutal-hud')) return;
+    const container = getModeHudContainer();
+    let hud = document.getElementById('brutal-hud');
 
-    const hud = document.createElement('div');
+    if (hud && hud.parentNode !== container) {
+        hud.remove();
+        hud = null;
+    }
+
+    if (hud) return;
+
+    hud = document.createElement('div');
     hud.id = 'brutal-hud';
     hud.style.cssText = 'width:100%; text-align:center; padding:4px 0 2px;';
 
@@ -267,7 +285,6 @@ function brutalGetOrCreateHud() {
         </div>
     `;
 
-    const container = getModeHudContainer();
     if (container) container.appendChild(hud);
 }
 
@@ -569,12 +586,17 @@ function srAdvance() {
 // ── Stats display ─────────────────────────────────────────────────────────────
 
 function srUpdateStatsDisplay() {
+    const container = getModeHudContainer();
     let statsDiv = document.getElementById('sr-stats');
+
+    if (statsDiv && statsDiv.parentNode !== container) {
+        statsDiv.remove();
+        statsDiv = null;
+    }
     if (!statsDiv) {
         statsDiv = document.createElement('div');
         statsDiv.id = 'sr-stats';
         statsDiv.className = 'w3-container w3-center w3-margin-bottom w3-small';
-        const container = getModeHudContainer();
         if (container) container.appendChild(statsDiv);
     }
 
@@ -583,23 +605,18 @@ function srUpdateStatsDisplay() {
         return;
     }
 
-    const now    = Date.now();
-    let due      = srPendingRetry.size;
-    let learned  = 0;
+    const now = Date.now();
+    let due = srPendingRetry.size;
+    let learned = 0;
     let newCount = 0;
 
     for (let i = 0; i < puzzleset.length; i++) {
         if (srPendingRetry.has(i)) continue;
         const card = srCards[i];
-        if (!card) {
-            newCount++;
-        } else if (card.nextReview <= now) {
-            due++;
-        } else if (card.repetitions > 0) {
-            learned++;
-        } else {
-            newCount++;
-        }
+        if (!card)                        { newCount++; }
+        else if (card.nextReview <= now)  { due++; }
+        else if (card.repetitions > 0)    { learned++; }
+        else                              { newCount++; }
     }
 
     statsDiv.innerHTML =
@@ -624,6 +641,15 @@ function initializeGameModes() {
     document.getElementById('sr-reinsert-after').value  = SR_REINSERT_AFTER;
     resetModeState();
 }
+
+// Relocate HUD on resize
+window.addEventListener('resize', () => {
+    // Throttled update
+    if (window._hudResizeTimeout) clearTimeout(window._hudResizeTimeout);
+    window._hudResizeTimeout = setTimeout(() => {
+        updateModeUI();
+    }, 100);
+});
 
 // ---------------------------------------------------------------------------
 // Mode switching
@@ -716,8 +742,16 @@ function updateModeUI() {
 
 function updateTimerDisplay() {
     const config = MODE_CONFIGS[currentGameMode];
+    const container = getModeHudContainer();
+
     let timerDiv = document.getElementById('mode-timer');
+
     if (config.hasTimer) {
+        // Recreate if missing or in the wrong container
+        if (timerDiv && timerDiv.parentNode !== container) {
+            timerDiv.remove();
+            timerDiv = null;
+        }
         if (!timerDiv) {
             timerDiv = document.createElement('div');
             timerDiv.id = 'mode-timer';
@@ -729,16 +763,14 @@ function updateTimerDisplay() {
             display.className = 'w3-text-red w3-large';
             timerDiv.appendChild(label);
             timerDiv.appendChild(display);
-            const container = getModeHudContainer();
             if (container) container.appendChild(timerDiv);
         }
-        // Update label text based on mode
         const label = timerDiv.querySelector('.mode-hud-label');
         if (label) {
-            if (currentGameMode === GAME_MODES.SPEEDRUN) label.textContent = 'Elapsed';
-            else if (currentGameMode === GAME_MODES.HASTE) label.textContent = 'Time';
+            if (currentGameMode === GAME_MODES.SPEEDRUN)       label.textContent = 'Elapsed';
+            else if (currentGameMode === GAME_MODES.HASTE)     label.textContent = 'Time';
             else if (currentGameMode === GAME_MODES.COUNTDOWN) label.textContent = 'Time Left';
-            else label.textContent = 'Time';
+            else                                                label.textContent = 'Time';
         }
         const display = document.getElementById('timer-display');
         if (display) display.textContent = formatTime(modeState.timeRemaining);
@@ -750,8 +782,15 @@ function updateTimerDisplay() {
 
 function updateLivesDisplay() {
     const config = MODE_CONFIGS[currentGameMode];
+    const container = getModeHudContainer();
+
     let livesDiv = document.getElementById('mode-lives');
+
     if (config.hasLives) {
+        if (livesDiv && livesDiv.parentNode !== container) {
+            livesDiv.remove();
+            livesDiv = null;
+        }
         if (!livesDiv) {
             livesDiv = document.createElement('div');
             livesDiv.id = 'mode-lives';
@@ -764,7 +803,6 @@ function updateLivesDisplay() {
             display.className = 'w3-text-red w3-large';
             livesDiv.appendChild(label);
             livesDiv.appendChild(display);
-            const container = getModeHudContainer();
             if (container) container.appendChild(livesDiv);
         }
         const display = document.getElementById('lives-display');
@@ -777,8 +815,15 @@ function updateLivesDisplay() {
 
 function updateHintsDisplay() {
     const config = MODE_CONFIGS[currentGameMode];
+    const container = getModeHudContainer();
+
     let hintsDiv = document.getElementById('mode-hints');
+
     if (config.hasHints) {
+        if (hintsDiv && hintsDiv.parentNode !== container) {
+            hintsDiv.remove();
+            hintsDiv = null;
+        }
         if (!hintsDiv) {
             hintsDiv = document.createElement('div');
             hintsDiv.id = 'mode-hints';
@@ -791,7 +836,6 @@ function updateHintsDisplay() {
             display.className = 'w3-text-blue w3-large';
             hintsDiv.appendChild(label);
             hintsDiv.appendChild(display);
-            const container = getModeHudContainer();
             if (container) container.appendChild(hintsDiv);
         }
         const display = document.getElementById('hints-display');
@@ -804,8 +848,15 @@ function updateHintsDisplay() {
 
 function updateLevelDisplay() {
     const config = MODE_CONFIGS[currentGameMode];
+    const container = getModeHudContainer();
+
     let levelDiv = document.getElementById('mode-level');
+
     if (config.hasLevels) {
+        if (levelDiv && levelDiv.parentNode !== container) {
+            levelDiv.remove();
+            levelDiv = null;
+        }
         if (!levelDiv) {
             levelDiv = document.createElement('div');
             levelDiv.id = 'mode-level';
@@ -818,7 +869,6 @@ function updateLevelDisplay() {
             display.className = 'w3-text-green w3-large';
             levelDiv.appendChild(label);
             levelDiv.appendChild(display);
-            const container = getModeHudContainer();
             if (container) container.appendChild(levelDiv);
         }
         const display = document.getElementById('level-display');
@@ -1456,26 +1506,49 @@ function msToHMS(ms) {
 }
 
 function updateWpUI() {
-    const display = document.getElementById('wp-status-display');
-    if (!display) return;
     const isWp = currentGameMode === GAME_MODES.WOODPECKER;
-    display.style.display = isWp ? 'block' : 'none';
-    if (!isWp || !wpData) return;
+    const container = getModeHudContainer();
+    let display = document.getElementById('wp-status-display');
 
-    const cycleEl = document.getElementById('wp-cycle-number');
-    if (cycleEl) cycleEl.textContent = wpGetCycleNumber();
+    if (isWp) {
+        if (display && display.parentNode !== container) {
+            display.remove();
+            display = null;
+        }
+        if (!display) {
+            display = document.createElement('div');
+            display.id = 'wp-status-display';
+            display.className = 'w3-container w3-center w3-small w3-padding w3-margin-bottom';
+            display.innerHTML = `
+                <div>🪵 Cycle <strong id="wp-cycle-number">1</strong></div>
+                <div id="wp-prev-time-row" style="display:none;">
+                    Target: <strong id="wp-target-time">--:--:--</strong>
+                </div>
+                <div>Mistakes: <strong id="wp-mistake-count">0</strong></div>
+            `;
+            if (container) container.appendChild(display);
+        }
+        
+        if (wpData) {
+            const cycleEl = document.getElementById('wp-cycle-number');
+            if (cycleEl) cycleEl.textContent = wpGetCycleNumber();
 
-    const lastMs = wpGetLastCycleMs();
-    const prevRow = document.getElementById('wp-prev-time-row');
-    const targetEl = document.getElementById('wp-target-time');
-    if (lastMs && prevRow && targetEl) {
-        prevRow.style.display = 'block';
-        targetEl.textContent = msToHMS(lastMs);
-    }
+            const lastMs = wpGetLastCycleMs();
+            const prevRow = document.getElementById('wp-prev-time-row');
+            const targetEl = document.getElementById('wp-target-time');
+            if (lastMs && prevRow && targetEl) {
+                prevRow.style.display = 'block';
+                targetEl.textContent = msToHMS(lastMs);
+            }
 
-    const mistakeEl = document.getElementById('wp-mistake-count');
-    if (mistakeEl && wpData.currentCycle) {
-        mistakeEl.textContent = wpData.currentCycle.mistakesThisCycle.length;
+            const mistakeEl = document.getElementById('wp-mistake-count');
+            if (mistakeEl && wpData.currentCycle) {
+                mistakeEl.textContent = wpData.currentCycle.mistakesThisCycle.length;
+            }
+        }
+        display.style.display = 'block';
+    } else if (display) {
+        display.style.display = 'none';
     }
 }
 

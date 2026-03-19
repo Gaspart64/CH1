@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pgn-trainer-v1';
+const CACHE_NAME = 'pgn-trainer-v2';
 
 const PRECACHE = [
     './', './index.html',

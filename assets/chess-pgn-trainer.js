@@ -559,8 +559,8 @@ function checkAndPlayNext() {
                         const opponentMove = game.move(moveHistory[game.history().length]);
                         // Highlight the opponent's move
                         if (opponentMove) {
-                                board.addMarker(MARKER_TYPE.frame, opponentMove.from);
-                                board.addMarker(MARKER_TYPE.frame, opponentMove.to);
+                                board.addMarker(MARKER_TYPE.lastMove, opponentMove.from);
+                                board.addMarker(MARKER_TYPE.lastMove, opponentMove.to);
                         }
 
                         // In Brutal Mode, each opponent move also resets the 7-second player timer
@@ -1049,6 +1049,10 @@ function updateProgressBar(partial_value, total_value) {
  * @param {object} PGNPuzzle - The object representing a specific position and move sequence
  */
 function loadPuzzle(PGNPuzzle) {
+        // Clear any markers left over from the previous puzzle immediately.
+        board.removeMarkers();
+        // Force clear any stuck promotion dialog overlay
+        $('.promotion-dialog-group').empty();
         // Start puzzle timer
         puzzleStartTime = Date.now();
 
@@ -1113,8 +1117,13 @@ function loadPuzzle(PGNPuzzle) {
 
         // Play the first move if player is playing second and not both sides
         if ($('#playoppositeside').is(':checked') && !$('#playbothsides').is(':checked')) {
-                game.move(moveHistory[0]);
+                const initialMove = game.move(moveHistory[0]);
                 updateBoard(true);
+                // Highlight the computer's initial move
+                if (initialMove) {
+                        board.addMarker(MARKER_TYPE.lastMove, initialMove.from);
+                        board.addMarker(MARKER_TYPE.lastMove, initialMove.to);
+                }
         }
 
         // Update the status of the game in memory with the new data
@@ -1124,8 +1133,6 @@ function loadPuzzle(PGNPuzzle) {
 
         // Enable move input for this puzzle.
         // Disable first in case it's already active from the previous puzzle.
-        // Also clear any markers left over from the previous puzzle.
-        board.removeMarkers();
         board.disableMoveInput();
         board.enableMoveInput(handleMoveInput);
 }
@@ -1168,6 +1175,9 @@ function handleMoveInput(event) {
                         // User clicked a piece — check if move is allowed first.
                         if (!isMoveAllowed()) return false;
 
+                        // Clear previous highlights and dots at the start of a new move input
+                        board.removeMarkers();
+
                         // Show legal move destinations as dots, and highlight the
                         // selected piece square with a frame — same as Lichess/Chess.com.
                         const legalMoves = game.moves({ square: event.square, verbose: true });
@@ -1209,6 +1219,7 @@ function handleMoveInput(event) {
                                                 if (!result || result.type === PROMOTION_DIALOG_RESULT_TYPE.canceled) {
                                                         // User cancelled — reset the board position
                                                         board.setPosition(game.fen(), false);
+                                                        board.disableMoveInput();
                                                         board.enableMoveInput(handleMoveInput);
                                                         return;
                                                 }
@@ -1218,6 +1229,7 @@ function handleMoveInput(event) {
                                                 board.setPosition(game.fen(), true);
                                                 checkAndPlayNext();
                                                 indicateMove();
+                                                board.disableMoveInput();
                                                 board.enableMoveInput(handleMoveInput);
                                                 $('#btn_hint_landscape').text('Hint');
                                                 $('#btn_hint_portrait').text('Hint');
@@ -1256,8 +1268,16 @@ function handleMoveInput(event) {
 
                 case INPUT_EVENT_TYPE.moveInputCanceled:
                 case INPUT_EVENT_TYPE.moveInputFinished:
-                        // Clear all dot and frame markers when the move is completed or cancelled.
+                        // Clear all temporary dot and frame markers when the move is completed or cancelled.
                         board.removeMarkers();
+                        // Re-add the highlight for the actual last move made.
+                        // This ensures the computer's response (or the player's own move) stays visible.
+                        const history = game.history({ verbose: true });
+                        if (history.length > 0) {
+                                const lastMove = history[history.length - 1];
+                                board.addMarker(MARKER_TYPE.lastMove, lastMove.from);
+                                board.addMarker(MARKER_TYPE.lastMove, lastMove.to);
+                        }
                         break;
         }
 }
@@ -1656,14 +1676,12 @@ function showStats() {
 $(() => {
 
         // Buttons
-        document.getElementById('openPGN_button').addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
+        document.getElementById('openPGN_button').addEventListener('click', function () {
                 const fileInput = document.getElementById('pgn_file_input');
                 if (fileInput) {
                         fileInput.click();
                 }
-        }, false);
+        });
 
         document.getElementById('btn_reset').addEventListener('click', resetGame, false);
 

@@ -48,6 +48,7 @@
 
         <!-- cm-chessboard CSS (local copy — see MIGRATION.md for setup) -->
         <link rel="stylesheet" href="./assets/cm-chessboard/assets/chessboard.css">
+        <link rel="stylesheet" href="./assets/cm-chessboard/assets/extensions/markers/markers.css">
 
         <!-- chess.js -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js"
@@ -84,7 +85,9 @@
                 <p>
                         <button type="button" id="openPGN_button"
                                 class="w3-button w3-round-large w3-indigo w3-hover-blue">Open PGN File</button>
-                        <input type="file" id="pgn_file_input" accept=".pgn" style="display:none"
+                        <input type="file" id="pgn_file_input"
+                                accept=".pgn,text/plain,application/octet-stream"
+                                style="display:none"
                                 onchange="handlePGNFileUpload(event)">
 
                         <!-- Dropdown to select a PGN file -->
@@ -152,15 +155,8 @@
                                         </button>
                                 </div>
 
-                                <div id="wp-status-display" style="display:none;">
-                                        <div class="w3-container w3-center w3-small w3-padding">
-                                                <div>🪵 Cycle <strong id="wp-cycle-number">1</strong></div>
-                                                <div id="wp-prev-time-row" style="display:none;">
-                                                        Target: <strong id="wp-target-time">--:--:--</strong>
-                                                </div>
-                                                <div>Mistakes: <strong id="wp-mistake-count">0</strong></div>
-                                        </div>
-                                </div>
+                                <!-- Mode HUD anchor for landscape/desktop — mirrors #mode-hud in portrait -->
+                                <div id="mode-hud-landscape" style="margin: 4px 0;"></div>
 
                                 <div class="w3-container w3-center">
                                         Name: <br> <span id="puzzlename_landscape" style="font-weight: bold;"></span>

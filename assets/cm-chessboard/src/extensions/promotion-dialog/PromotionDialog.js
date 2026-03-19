@@ -218,6 +218,7 @@ export class PromotionDialog extends Extension {
     }
 
     selectPiece(piece) {
+        this.setDisplayState(DISPLAY_STATE.hidden)
         if (this.state.callback) {
             this.state.callback({
                 type: PROMOTION_DIALOG_RESULT_TYPE.pieceSelected,
@@ -225,7 +226,6 @@ export class PromotionDialog extends Extension {
                 piece: piece
             })
         }
-        this.setDisplayState(DISPLAY_STATE.hidden)
     }
 
     promotionDialogOnCancel(event) {

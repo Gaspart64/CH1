@@ -1,3 +1,21 @@
+[Event "Tactics-01, Unit-05, Ex-001"]
+[Site ""]
+[Date "????.??.??"]
+[Round "?"]
+[White ""]
+[Black ""]
+[Result "1-0"]
+[WhiteElo "0"]
+[BlackElo "0"]
+[ECO "?"]
+[Annotator ""]
+[SetUp "1"]
+[FEN "rnbq1bnr/pppp1kP1/7p/4Q3/4pP2/8/PPPP2PP/RNB1KBNR w - - 0 1"]
+[Source ""]
+[Remark ""]
+
+1. gxh8=N# 1-0
+
 [Event "Elementary Mates"]
 [Site "63"]
 [Date "????.??.??"]
