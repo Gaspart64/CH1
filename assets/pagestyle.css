@@ -308,16 +308,16 @@ label {
 }
 
 #title_header h3 {
-  margin: 0;
-  padding: 10px 16px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--lc-white);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+    margin: 0;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--lc-white);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 #title_header h3 #Title {
@@ -345,8 +345,16 @@ label {
 
 /* ── Board area ───────────────────────────────────────────── */
 #board-wrapper {
-  padding: 0 !important;
-  background: var(--lc-bg);
+    padding: 0 !important;
+    background: var(--lc-bg);
+    position: relative;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-grow: 1 !important;
+    min-height: 0 !important;
+    width: 100% !important;
 }
 
 .chessboard {
@@ -358,40 +366,41 @@ label {
 
 #myBoard,
 #blankBoard {
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  aspect-ratio: 1 / 1;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    aspect-ratio: 1 / 1;
 }
 
 /* ── Move indicator ───────────────────────────────────────── */
 #moveturn {
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--lc-text-dim);
-  padding: 4px 0 2px;
-  text-align: center;
-  min-height: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--lc-text-dim);
+    padding: 2px 0 1px;
+    text-align: center;
+    min-height: 18px;
+    margin: 0;
 }
 
 /* ── Portrait control panel (below board) ─────────────────── */
 .portraitmode {
-  background: var(--lc-surface);
-  border-top: 1px solid var(--lc-border);
-  padding: 10px 12px !important;
-  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+    background: var(--lc-surface);
+    border-top: 1px solid var(--lc-border);
+    padding: 5px 10px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 8px)) !important;
+    flex-shrink: 0;
 }
 
 /* Puzzle counter row */
 .portraitmode > div:first-child {
-  font-size: 0.75rem;
-  color: var(--lc-text-dim);
-  letter-spacing: 0.04em;
-  text-align: center;
-  margin-bottom: 6px;
+    font-size: 0.75rem;
+    color: var(--lc-text-dim);
+    letter-spacing: 0.04em;
+    text-align: center;
+    margin-bottom: 3px;
 }
 
 .puzzlenumbers {
@@ -445,8 +454,8 @@ label {
 
 /* Puzzle name */
 .portraitmode .w3-container.w3-center {
-  background: none !important;
-  padding: 4px 0 !important;
+    background: none !important;
+    padding: 2px 0 !important;
 }
 #puzzlename_portrait,
 #puzzlename_landscape {
@@ -462,23 +471,30 @@ label {
 
 /* ── Action button row ────────────────────────────────────── */
 .w3-bar {
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-  margin-top: 6px;
-  flex-wrap: wrap;
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    margin-top: 4px;
+    flex-wrap: wrap;
 }
 
 /* Hint button */
 #btn_hint_portrait,
 #btn_hint_landscape {
-  background: var(--lc-surface2) !important;
-  color: var(--lc-text) !important;
-  border: 1px solid var(--lc-border) !important;
-  font-size: 0.78rem !important;
-  padding: 7px 12px !important;
-  min-height: 34px !important;
-  border-radius: var(--lc-radius) !important;
+    background: var(--lc-surface2) !important;
+    color: var(--lc-text) !important;
+    border: 1px solid var(--lc-border) !important;
+    font-size: 0.75rem !important;
+    padding: 6px 10px !important;
+    min-height: 30px !important;
+    border-radius: var(--lc-radius) !important;
+    display: inline-flex !important;
+    pointer-events: auto;
+}
+
+#btn_hint_portrait[style*="visibility: hidden"],
+#btn_hint_landscape[style*="visibility: hidden"] {
+    pointer-events: none;
 }
 #btn_hint_portrait:hover:not(:disabled),
 #btn_hint_landscape:hover:not(:disabled) {
@@ -492,15 +508,15 @@ label {
 #btn_starttest_landscape,
 #btn_restart_portrait,
 #btn_restart_landscape {
-  background: var(--lc-accent) !important;
-  color: #fff !important;
-  font-size: 0.82rem !important;
-  padding: 9px 20px !important;
-  min-height: 38px !important;
-  border-radius: var(--lc-radius) !important;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  font-weight: 700 !important;
+    background: var(--lc-accent) !important;
+    color: #fff !important;
+    font-size: 0.78rem !important;
+    padding: 7px 16px !important;
+    min-height: 32px !important;
+    border-radius: var(--lc-radius) !important;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 700 !important;
 }
 #btn_starttest_portrait:hover:not(:disabled),
 #btn_starttest_landscape:hover:not(:disabled),
@@ -512,13 +528,13 @@ label {
 /* Pause button */
 #btn_pause_portrait,
 #btn_pause_landscape {
-  background: var(--lc-surface2) !important;
-  color: var(--lc-text) !important;
-  border: 1px solid var(--lc-border) !important;
-  font-size: 0.82rem !important;
-  padding: 9px 16px !important;
-  min-height: 38px !important;
-  border-radius: var(--lc-radius) !important;
+    background: var(--lc-surface2) !important;
+    color: var(--lc-text) !important;
+    border: 1px solid var(--lc-border) !important;
+    font-size: 0.78rem !important;
+    padding: 7px 12px !important;
+    min-height: 32px !important;
+    border-radius: var(--lc-radius) !important;
 }
 #btn_pause_portrait:hover, #btn_pause_landscape:hover {
   background: var(--lc-border) !important;
@@ -971,16 +987,18 @@ td { font-size: 0.82rem; padding: 4px 6px; }
   .chessboard,
   #myBoard,
   #blankBoard {
-    margin: 0 !important;
-    padding: 0 !important;
+      width: min(100vw, calc(100dvh - 148px)) !important;
+      max-width: min(100vw, calc(100dvh - 148px)) !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
   }
 
   #board-wrapper { padding: 0 !important; }
 
   /* Tighter portrait controls */
   .portraitmode {
-    padding: 8px 10px !important;
-    padding-bottom: max(10px, env(safe-area-inset-bottom, 10px)) !important;
+    padding: 5px 10px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 8px)) !important;
   }
 
   /* Stacked action bar */
@@ -1141,6 +1159,12 @@ input:focus-visible {
     margin: 1px 0;
 }
 
+/* ── Brutal Mode cleared toast ────────────────────────────── */
+#brutal-cleared-toast.show {
+    transform: translateX(-50%) translateY(0%);
+}
+
+/* ── Brutal Mode hint button ──────────────────────────────── */
 #brutal-hint-btn {
     background: var(--lc-surface2);
     color: var(--lc-gold);
@@ -1149,9 +1173,8 @@ input:focus-visible {
     padding: 4px 12px;
     font-size: 0.78rem;
     cursor: pointer;
-    margin-top: 4px;
-    transition: background 0.15s;
     font-family: inherit;
+    transition: background 0.15s;
 }
 
 #brutal-hint-btn:hover {

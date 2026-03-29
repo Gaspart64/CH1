@@ -164,8 +164,8 @@ function resumeSavedGame() {
                 ['#btn_starttest_landscape', '#btn_starttest_portrait',
                         '#btn_restart_landscape', '#btn_restart_portrait', '#btn_showresults'], 'none');
         setDisplayAndDisabled(
-                ['#btn_pause_landscape', '#btn_pause_portrait',
-                        '#btn_hint_landscape', '#btn_hint_portrait'], 'block', false);
+                ['#btn_pause_landscape', '#btn_pause_portrait'], 'block', false);
+        setHintButtonVisibility(true, false);
         setCheckboxSelectability(false);
 
         return true;
@@ -515,6 +515,21 @@ function setDisplayAndDisabled(listofElements, visible, disabled) {
 }
 
 /**
+ * Show or hide hint buttons using visibility instead of display,
+ * so their reserved layout space is always maintained and the board never shifts.
+ * @param {boolean} visible - true to show, false to hide
+ * @param {boolean} disabled - true to disable the button
+ */
+function setHintButtonVisibility(visible, disabled) {
+    ['#btn_hint_landscape', '#btn_hint_portrait'].forEach(sel => {
+        const btn = document.querySelector(sel);
+        if (!btn) return;
+        btn.style.visibility = visible ? 'visible' : 'hidden';
+        if (disabled !== undefined) btn.disabled = disabled;
+    });
+}
+
+/**
  * Toggle the local file value for a specific setting based on checkbox status
  *
  * @param {string} elementname - The name of the checkbox (pre-pend with a #)
@@ -742,6 +757,9 @@ function pauseGame() {
                         $('#openPGN_button').prop('disabled', true);
                         $('#btn_hint_landscape').prop('disabled', true);
                         $('#btn_hint_portrait').prop('disabled', true);
+
+                        // Suspend Brutal Mode move timer during pause
+                        if (typeof brutalClearMoveTimer === 'function') brutalClearMoveTimer();
                         break;
 
                 case true:
@@ -766,6 +784,11 @@ function pauseGame() {
                         $('#openPGN_button').prop('disabled', false);
                         $('#btn_hint_landscape').prop('disabled', false);
                         $('#btn_hint_portrait').prop('disabled', false);
+
+                        // Resume Brutal Mode move timer on unpause
+                        if (typeof getCurrentGameMode === 'function' && getCurrentGameMode() === 'brutal') {
+                            if (typeof brutalStartMoveTimer === 'function') brutalStartMoveTimer();
+                        }
                         break;
         }
         $(window).trigger('resize');
@@ -848,8 +871,8 @@ function resetGame() {
                         '#btn_restart_landscape', '#btn_restart_portrait'], 'none', false);
 
         // Hide & disable the "Hint" and the "Show Results" buttons
-        setDisplayAndDisabled(
-                ['#btn_hint_landscape', '#btn_hint_portrait', '#btn_showresults'], 'none', true);
+        setDisplayAndDisabled(['#btn_showresults'], 'none', true);
+        setHintButtonVisibility(false, true);
 
         // Show the full board (in case the reset happened during a pause)
         $('#myBoard').css('display', 'block');
@@ -939,8 +962,8 @@ function startTest() {
 
         // Show & enable the "Hint" and "Pause" buttons
         setDisplayAndDisabled(
-                ['#btn_pause_landscape', '#btn_pause_portrait',
-                        '#btn_hint_landscape', '#btn_hint_portrait'], 'block', false);
+                ['#btn_pause_landscape', '#btn_pause_portrait'], 'block', false);
+        setHintButtonVisibility(true, false);
 
         // Disable changing options
         setCheckboxSelectability(false);
@@ -990,7 +1013,9 @@ function startTest() {
         }
 
         // Now just need to send the desired puzzle to the board.
-        loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+        if (increment >= 0 && typeof PuzzleOrder[increment] !== 'undefined') {
+                loadPuzzle(puzzleset[PuzzleOrder[increment]]);
+        }
 }
 
 /**
@@ -1550,7 +1575,7 @@ function showStats() {
         setDisplayAndDisabled(['#btn_showresults'], 'block', false);
 
         // Hide & disable the "hint" button
-        setDisplayAndDisabled(['#btn_hint_landscape', '#btn_hint_portrait'], 'none', true);
+        setHintButtonVisibility(false, true);
 
         // Update the results modal with the details
         $('#messagecomplete').html('<h2>Set Complete</h2>');
@@ -1772,8 +1797,8 @@ function startMistakeReview() {
                         '#btn_restart_landscape', '#btn_restart_portrait',
                         '#btn_showresults', '#btn_review_mistakes', '#btn_review_slowest'], 'none');
         setDisplayAndDisabled(
-                ['#btn_pause_landscape', '#btn_pause_portrait',
-                        '#btn_hint_landscape', '#btn_hint_portrait'], 'block', false);
+                ['#btn_pause_landscape', '#btn_pause_portrait'], 'block', false);
+        setHintButtonVisibility(true, false);
         setCheckboxSelectability(false);
         clearMessages();
         errorcount = 0;
@@ -1815,8 +1840,8 @@ function startSlowestReview() {
                         '#btn_restart_landscape', '#btn_restart_portrait',
                         '#btn_showresults', '#btn_review_mistakes', '#btn_review_slowest'], 'none');
         setDisplayAndDisabled(
-                ['#btn_pause_landscape', '#btn_pause_portrait',
-                        '#btn_hint_landscape', '#btn_hint_portrait'], 'block', false);
+                ['#btn_pause_landscape', '#btn_pause_portrait'], 'block', false);
+        setHintButtonVisibility(true, false);
         setCheckboxSelectability(false);
         clearMessages();
         errorcount = 0;

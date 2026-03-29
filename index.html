@@ -110,7 +110,7 @@
                                 <option value="haste">Haste Mode</option>
                                 <option value="countdown">Countdown Mode</option>
                                 <option value="speedrun">Speedrun Mode</option>
-                                <option value="infinity">Infinity Mode</option>
+                                <option value="infinity">Spaced Repetition Mode</option>
                                 <option value="woodpecker">🪵 Woodpecker</option>
                                 <option value="brutal">💀 Brutal Mode</option>
                         </select>
@@ -163,10 +163,10 @@
                                 </div>
                                 <p></p>
 
-                                <div class="w3-bar">
+                                <div class="w3-bar" style="min-height: 38px;">
                                         <button id="btn_hint_landscape"
                                                 class="w3-button w3-round-large w3-indigo w3-hover-blue" disabled="true"
-                                                style="display: none">Hint</button>
+                                                style="visibility: hidden;">Hint</button>
                                 </div>
 
                                 <div class="w3-bar">
@@ -219,7 +219,7 @@
                 </div>
 
                 <div class="w3-container w3-center"
-                        style="border: 4px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-evenly; min-height: 0;">
+                        style="border: 4px; display: flex; flex-direction: column; flex-grow: 1; justify-content: flex-start; min-height: 0; padding: 0;">
 
                         <!-- Resume Game Modal -->
                         <div id="resume-modal"
@@ -315,6 +315,20 @@
                         <!-- Main board window -->
                         <div id="board-wrapper" class="w3-container w3-center"
                                 style="padding:4px; display: flex; flex-direction: column; flex-grow: 1; align-items: center; justify-content: center; min-height: 0;">
+
+                                <!-- Brutal Mode completion toast -->
+                                <div id="brutal-cleared-toast"
+                                     style="display:none; position:absolute; top:0; left:50%;
+                                            transform:translateX(-50%) translateY(-100%);
+                                            z-index:200; pointer-events:none;
+                                            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);">
+                                    <div style="background:#63F706; color:#1a1a1a; font-weight:700;
+                                                font-size:0.9rem; letter-spacing:0.06em; text-transform:uppercase;
+                                                padding:8px 24px; border-radius:0 0 8px 8px;
+                                                box-shadow:0 4px 16px rgba(0,0,0,0.4); white-space:nowrap;">
+                                        <span id="brutal-cleared-label">💀 SET CLEARED</span>
+                                    </div>
+                                </div>
 
                                 <!-- The boards -->
                                 <div id="blankBoard" class="chessboard"
@@ -518,10 +532,10 @@
                                         Name: <br> <span id="puzzlename_portrait" style="font-weight: bold;"></span>
                                 </div>
 
-                                <div class="w3-bar">
+                                <div class="w3-bar" style="min-height: 38px;">
                                         <button id="btn_hint_portrait"
                                                 class="w3-button w3-round-large w3-indigo w3-hover-blue" disabled="true"
-                                                style="display: none">Hint</button>
+                                                style="visibility: hidden;">Hint</button>
                                 </div>
 
                                 <div class="w3-bar">

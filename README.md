@@ -16,7 +16,7 @@ A feature-rich chess puzzle trainer built on top of [Chess-PGN-Trainer](https://
   - [Haste Mode](#haste-mode)
   - [Countdown Mode](#countdown-mode)
   - [Speedrun Mode](#speedrun-mode)
-  - [Infinity Mode (Spaced Repetition)](#infinity-mode-spaced-repetition)
+  - [Spaced Repetition Mode](#spaced-repetition-mode)
 - [Core Features](#core-features)
   - [Click-to-Move](#click-to-move)
   - [Legal Move Hints](#legal-move-hints)
@@ -166,9 +166,9 @@ No time limit — the timer counts **up** from zero. Complete all puzzles in the
 
 ---
 
-### Infinity Mode (Spaced Repetition)
+### Spaced Repetition Mode
 
-The most sophisticated mode. Rather than working through puzzles in fixed order, Infinity Mode uses the **SM-2 spaced repetition algorithm** to schedule each puzzle based on your performance history. Puzzles you struggle with appear more frequently; puzzles you know well are reviewed less often.
+The most sophisticated mode. Rather than working through puzzles in fixed order, Spaced Repetition Mode uses the **SM-2 spaced repetition algorithm** to schedule each puzzle based on your performance history. Puzzles you struggle with appear more frequently; puzzles you know well are reviewed less often.
 
 See the full [Spaced Repetition System](#spaced-repetition-system) section below for a detailed explanation.
 
@@ -244,14 +244,14 @@ At the end of a session the app displays:
 
 ### How It Works
 
-Infinity Mode maintains a **card** for each puzzle in the loaded PGN. A card records:
+Spaced Repetition Mode maintains a **card** for each puzzle in the loaded PGN. A card records:
 
 - `repetitions` — how many times the puzzle has been solved cleanly
 - `interval` — current review interval in days
 - `easeFactor` — SM-2 ease factor (starts at 2.5, minimum 1.3)
 - `nextReview` — timestamp (ms) when the puzzle is next due
 
-At the start of each Infinity Mode session, puzzles are sorted into a queue:
+At the start of each Spaced Repetition Mode session, puzzles are sorted into a queue:
 
 1. **New cards** (never seen) — appear first
 2. **Overdue cards** (due date in the past) — sorted by how overdue they are, most overdue first

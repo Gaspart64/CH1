@@ -126,20 +126,15 @@ const BRUTAL_HINT_DELAY_MS = 750;
  * Falls back to the landscape sidebar container for backward compatibility.
  */
 function getModeHudContainer() {
-    // Check if the portrait container is actually visible via CSS.
-    // We check the #title_header or .portraitmode panel which are orientation-gated.
-    const portraitPanel = document.querySelector('.portraitmode');
-    if (portraitPanel && window.getComputedStyle(portraitPanel).display !== 'none') {
-        const portraitHud = document.getElementById('mode-hud');
-        if (portraitHud) return portraitHud;
+    // If the landscape board panel is visible (i.e., display != 'none'),
+    // we are in landscape orientation. Use the dedicated anchor.
+    const boardBg = document.getElementById('board_background');
+    if (boardBg && window.getComputedStyle(boardBg).display !== 'none') {
+        const anchor = document.getElementById('mode-hud-landscape');
+        if (anchor) return anchor;
     }
-
-    // Fallback to landscape sidebar anchor
-    const landscapeHud = document.getElementById('mode-hud-landscape');
-    if (landscapeHud) return landscapeHud;
-
-    // Final fallback
-    return document.querySelector('.landscapemode .w3-container.w3-center');
+    // Otherwise, we are in portrait. Fall back to the original container.
+    return document.getElementById('mode-hud');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -257,35 +252,35 @@ function brutalGetOrCreateHud() {
         hud = null;
     }
 
-    if (hud) return;
+    if (!hud) {
+        hud = document.createElement('div');
+        hud.id = 'brutal-hud';
+        hud.style.cssText = 'width:100%; text-align:center; padding:4px 0 2px;';
 
-    hud = document.createElement('div');
-    hud.id = 'brutal-hud';
-    hud.style.cssText = 'width:100%; text-align:center; padding:4px 0 2px;';
+        hud.innerHTML = `
+            <div style="font-size:0.85rem; margin-bottom:3px;">
+                Streak: <span id="brutal-streak-display"
+                    style="font-weight:700; color:var(--lc-gold); font-variant-numeric:tabular-nums;">
+                    0 / 0
+                </span>
+            </div>
+            <div style="font-size:0.72rem; color:var(--lc-text-dim); margin-bottom:3px;">
+                Lap: <span id="brutal-lap-clock" style="font-variant-numeric:tabular-nums;">0:00</span>
+            </div>
+            <button id="brutal-hint-btn"
+                style="display:none; padding:4px 12px; font-size:0.78rem; cursor:pointer;
+                       background:var(--lc-surface2); color:var(--lc-gold);
+                       border:1px solid var(--lc-gold); border-radius:var(--lc-radius,4px);"
+                onclick="brutalDoHint()">
+                Show Hint
+            </button>
+            <div id="brutal-laps-list"
+                style="font-size:0.72rem; color:var(--lc-text-dim); margin-top:4px; line-height:1.6;">
+            </div>
+        `;
 
-    hud.innerHTML = `
-        <div style="font-size:0.85rem; margin-bottom:3px;">
-            Streak: <span id="brutal-streak-display"
-                style="font-weight:700; color:var(--lc-gold); font-variant-numeric:tabular-nums;">
-                0 / 0
-            </span>
-        </div>
-        <div style="font-size:0.72rem; color:var(--lc-text-dim); margin-bottom:3px;">
-            Lap: <span id="brutal-lap-clock" style="font-variant-numeric:tabular-nums;">0:00</span>
-        </div>
-        <button id="brutal-hint-btn"
-            style="display:none; padding:4px 12px; font-size:0.78rem; cursor:pointer;
-                   background:var(--lc-surface2); color:var(--lc-gold);
-                   border:1px solid var(--lc-gold); border-radius:var(--lc-radius,4px);"
-            onclick="brutalDoHint()">
-            Show Hint
-        </button>
-        <div id="brutal-laps-list"
-            style="font-size:0.72rem; color:var(--lc-text-dim); margin-top:4px; line-height:1.6;">
-        </div>
-    `;
-
-    if (container) container.appendChild(hud);
+        if (container) container.appendChild(hud);
+    }
 }
 
 /** Remove the Brutal Mode HUD entirely (called on reset). */
@@ -343,6 +338,7 @@ function brutalUpdateLapsList() {
 function brutalCompleteLap() {
     const lapMs = Date.now() - brutalLapStartTime;
     brutalLapTimes.push(lapMs);
+    if (brutalLapTimes.length > 5) brutalLapTimes.shift();
     brutalLapStartTime = Date.now();
     brutalUpdateLapsList();
 
@@ -371,6 +367,7 @@ function brutalReset() {
     brutalLapTimes     = [];
     brutalLapStartTime = 0;
     brutalRemoveHud();
+    brutalUpdateProgressBar();
 }
 
 // ---------------------------------------------------------------------------
@@ -647,7 +644,8 @@ window.addEventListener('resize', () => {
     // Throttled update
     if (window._hudResizeTimeout) clearTimeout(window._hudResizeTimeout);
     window._hudResizeTimeout = setTimeout(() => {
-        updateModeUI();
+        if (typeof updateModeUI === 'function') updateModeUI();
+        if (currentGameMode === GAME_MODES.BRUTAL) brutalGetOrCreateHud();
     }, 100);
 });
 
@@ -1024,6 +1022,15 @@ function handlePuzzleComplete() {
             // Show cleared indicator in the streak display itself, not the puzzle name
             const streakEl = document.getElementById('brutal-streak-display');
             if (streakEl) streakEl.innerHTML = '💀 <strong>CLEARED</strong>';
+
+            // Trigger the celebration toast
+            const toast = document.getElementById('brutal-cleared-toast');
+            if (toast) {
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
         }
         return;
     }
