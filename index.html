@@ -276,11 +276,23 @@
                                                                 onclick="startMistakeReview()">
                                                                 Review Mistakes
                                                         </button>
+                                                        <button id="btn_download_mistakes_pgn"
+                                                                class="w3-button w3-round"
+                                                                style="display:none; width: 100%; background: var(--lc-surface2); color: var(--lc-text); border: 1px solid var(--lc-border);"
+                                                                onclick="downloadMistakesPGN()">
+                                                                ⬇ Download mistakes.pgn
+                                                        </button>
                                                         <button id="btn_review_slowest"
                                                                 class="w3-button w3-deep-purple w3-round"
                                                                 style="display:none; width: 100%;"
                                                                 onclick="startSlowestReview()">
                                                                 Review Slowest 5 Puzzles
+                                                        </button>
+                                                        <button id="btn_download_slowest_pgn"
+                                                                class="w3-button w3-round"
+                                                                style="display:none; width: 100%; background: var(--lc-surface2); color: var(--lc-text); border: 1px solid var(--lc-border);"
+                                                                onclick="downloadSlowestPGN()">
+                                                                ⬇ Download slowest.pgn
                                                         </button>
                                                 </div>
                                                 <a class="w3-bar-item w3-button" onclick="outputStats2Clipboard();">Copy

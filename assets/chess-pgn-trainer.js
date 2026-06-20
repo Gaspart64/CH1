@@ -1610,12 +1610,14 @@ function showStats() {
                 }
         }
 
+        // If we are currently in a review, use the persistent list from the original set
+        const displayList = isMistakeReviewActive ? persistentMistakeList : mistakeList;
+        // Prioritize persistent list if it exists (from the original full set)
+        const slowestToReview = persistentSlowestPuzzles.length > 0 ? persistentSlowestPuzzles : (stats.slowestPuzzles || []);
+
         // Display mistake review button
         const btn = document.getElementById('btn_review_mistakes');
         if (btn) {
-                // If we are currently in a review, use the persistent list from the original set
-                const displayList = isMistakeReviewActive ? persistentMistakeList : mistakeList;
-
                 if (displayList.length > 0) {
                         btn.textContent = `Review ${displayList.length} Mistake${displayList.length > 1 ? 's' : ''}`;
                         btn.style.display = 'block';
@@ -1627,14 +1629,24 @@ function showStats() {
         // Display slowest review button
         const btnSlow = document.getElementById('btn_review_slowest');
         if (btnSlow) {
-                // Prioritize persistent list if it exists (from the original full set)
-                const slowestToReview = persistentSlowestPuzzles.length > 0 ? persistentSlowestPuzzles : (stats.slowestPuzzles || []);
                 if (slowestToReview.length > 0) {
                         btnSlow.textContent = `Review ${slowestToReview.length} Slowest Puzzle${slowestToReview.length > 1 ? 's' : ''}`;
                         btnSlow.style.display = 'block';
                 } else {
                         btnSlow.style.display = 'none';
                 }
+        }
+
+        // Display "Download mistakes.pgn" button — same condition as Review Mistakes
+        const btnDownloadMistakes = document.getElementById('btn_download_mistakes_pgn');
+        if (btnDownloadMistakes) {
+                btnDownloadMistakes.style.display = displayList.length > 0 ? 'block' : 'none';
+        }
+
+        // Display "Download slowest.pgn" button — same condition as Review Slowest
+        const btnDownloadSlowest = document.getElementById('btn_download_slowest_pgn');
+        if (btnDownloadSlowest) {
+                btnDownloadSlowest.style.display = slowestToReview.length > 0 ? 'block' : 'none';
         }
 
         // Handle Woodpecker mode results
@@ -1849,6 +1861,74 @@ function startSlowestReview() {
         startDateTime = new Date();
         pauseDateTimeTotal = 0;
         loadPuzzle(puzzleset[PuzzleOrder[0]]);
+}
+
+/**
+ * Build a PGN string from a list of puzzle indices, in the order given.
+ * Reuses each puzzle's original FEN and movetext so the file can be
+ * re-loaded straight back into the trainer for targeted follow-up.
+ *
+ * @param {number[]} indices - indices into the global puzzleset array
+ * @returns {string}
+ */
+function buildPGNFromIndices(indices) {
+        let output = '';
+
+        indices.forEach((idx) => {
+                const puzzle = puzzleset[idx];
+                if (!puzzle) return;
+
+                // puzzle.Event may have "<br><br>White: ... Black: ..." appended
+                // for on-screen display — strip HTML before writing it as a tag.
+                let eventName = puzzle.Event || `Puzzle ${idx + 1}`;
+                eventName = eventName.replace(/<br\s*\/?>/gi, ' — ').replace(/<\/?[^>]+(>|$)/g, '').trim();
+                eventName = eventName.replace(/"/g, "'"); // PGN tag values can't contain quotes
+
+                const white = (puzzle.White || '').replace(/"/g, "'");
+                const black = (puzzle.Black || '').replace(/"/g, "'");
+
+                output += `[Event "${eventName}"]\n`;
+                output += `[Site ""]\n`;
+                output += `[Date "????.??.??"]\n`;
+                output += `[Round "?"]\n`;
+                output += `[White "${white}"]\n`;
+                output += `[Black "${black}"]\n`;
+                output += `[Result "*"]\n`;
+                output += `[SetUp "1"]\n`;
+                output += `[FEN "${puzzle.FEN}"]\n`;
+                output += `\n`;
+                output += `${(puzzle.PGN || '').trim()}\n\n`;
+        });
+
+        return output;
+}
+
+/**
+ * Trigger a browser download of a text blob — same data-URI approach
+ * already used by outputStats2CSV().
+ */
+function downloadTextFile(content, filename) {
+        const hiddenElement = document.createElement('a');
+        hiddenElement.href = 'data:application/x-chess-pgn;charset=utf-8,' + encodeURIComponent(content);
+        hiddenElement.target = '_blank';
+        hiddenElement.download = filename;
+        hiddenElement.click();
+}
+
+/** Download mistakes.pgn — only the puzzles that had an error this session. */
+function downloadMistakesPGN() { // eslint-disable-line no-unused-vars
+        const list = isMistakeReviewActive ? persistentMistakeList : mistakeList;
+        if (!list || list.length === 0) return;
+        downloadTextFile(buildPGNFromIndices(list), 'mistakes.pgn');
+}
+
+/** Download slowest.pgn — the top 5 slowest-solved puzzles this session. */
+function downloadSlowestPGN() { // eslint-disable-line no-unused-vars
+        const entries = (persistentSlowestPuzzles && persistentSlowestPuzzles.length > 0)
+                ? persistentSlowestPuzzles
+                : (stats && stats.slowestPuzzles ? stats.slowestPuzzles : []);
+        if (!entries || entries.length === 0) return;
+        downloadTextFile(buildPGNFromIndices(entries.map(p => p.puzzleIndex)), 'slowest.pgn');
 }
 
 /**
