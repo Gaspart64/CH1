@@ -642,7 +642,10 @@ function checkAndPlayNext() {
                         getCurrentGameMode() === 'infinity';
                 const isBrutalMode = typeof getCurrentGameMode === 'function' &&
                         getCurrentGameMode() === 'brutal';
-                if (!isInfinityMode && !isBrutalMode && increment + 1 === PuzzleOrder.length) {
+                // Repetition decides for itself: an unclean last set is replayed, not finished
+                const isRepetitionMode = typeof getCurrentGameMode === 'function' &&
+                        getCurrentGameMode() === 'repetition';
+                if (!isInfinityMode && !isBrutalMode && !isRepetitionMode && increment + 1 === PuzzleOrder.length) {
                         setcomplete = true;
                 }
 
@@ -657,8 +660,8 @@ function checkAndPlayNext() {
                 if (shouldContinue) {
                         increment += 1;
                         setTimeout(() => loadPuzzle(puzzleset[PuzzleOrder[increment]]), 0);
-                } else if (isInfinityMode) {
-                        // SR session complete — trigger end-of-session UI
+                } else if (isInfinityMode || isRepetitionMode) {
+                        // SR session complete / Repetition: final set solved clean — end-of-session UI
                         setcomplete = true;
                 }
         }

@@ -1117,17 +1117,26 @@ function shouldContinueToNextPuzzle() {
     if (currentGameMode === GAME_MODES.REPETITION) {
         const config = MODE_CONFIGS[GAME_MODES.REPETITION];
         const puzzlesCompletedInSet = (increment - repetitionSetStartIndex) + 1;
+        // The last set in the file may hold fewer than puzzlesPerLevel puzzles:
+        // the end of the file closes it.
+        const totalInRun = (typeof PuzzleOrder !== 'undefined' && Array.isArray(PuzzleOrder) && PuzzleOrder.length)
+            ? PuzzleOrder.length : puzzleset.length;
+        const isLastInFile = increment + 1 >= totalInRun;
 
-        if (puzzlesCompletedInSet < config.puzzlesPerLevel) {
+        if (puzzlesCompletedInSet < config.puzzlesPerLevel && !isLastInFile) {
             repetitionSetHadError = false;
             return true;
         }
 
+        // A set is clean when every puzzle in it was solved without a mistake
         const setWasClean = !repetitionSetHadError &&
-                            modeState.levelProgress >= config.puzzlesPerLevel;
+                            modeState.levelProgress >= puzzlesCompletedInSet;
         repetitionSetHadError = false;
 
         if (setWasClean) {
+            if (isLastInFile) {
+                return false;   // clean final set: the whole file is done, the session ends
+            }
             modeState.currentLevel++;
             modeState.levelProgress  = 0;
             repetitionSetStartIndex  = increment + 1;
@@ -1135,6 +1144,7 @@ function shouldContinueToNextPuzzle() {
             alert(`Level ${modeState.currentLevel - 1} complete! Starting Level ${modeState.currentLevel}.`);
             return true;
         } else {
+            // Not clean (this includes the final set): replay the same set from its first puzzle
             modeState.levelProgress = 0;
             increment = repetitionSetStartIndex - 1;
             updateLevelDisplay();
