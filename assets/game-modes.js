@@ -70,7 +70,7 @@ const MODE_CONFIGS = {
     },
     [GAME_MODES.BRUTAL]: {
         name: 'Brutal Mode',
-        description: 'Solve every puzzle in a row without a single mistake or 7-second timeout. Any failure resets your streak to zero.',
+        description: 'Clear each 20-puzzle set with no mistake or 7-second timeout. Any failure resets your streak to zero; clear a set to unlock the next.',
         hasTimer: false,
         hasLives: false,
         hasHints: false,
@@ -107,7 +107,10 @@ const WP_STORAGE_PREFIX = 'wp_data_';
 
 // ── Brutal Mode state ─────────────────────────────────────────────────────
 let brutalStreakCount   = 0;    // consecutive correct puzzle solves since last reset
-let brutalNumPuzzles   = 0;    // total puzzles in loaded PGN (set on onStartTest)
+let brutalNumPuzzles   = 0;    // size of the current set (chunk) — the streak needed to clear it
+let brutalChunkStart   = 0;    // position in PuzzleOrder where the current set begins
+let brutalLevel        = 1;    // which set of the file the player is on
+let brutalAdvancePending = false; // the current set was just cleared; move on after this puzzle
 let brutalCleared      = false; // one-way latch: true once streak reaches brutalNumPuzzles
 let brutalLapStartTime = 0;    // Date.now() when current lap started
 let brutalLapTimes     = [];   // array of lap elapsed-ms values, oldest first
@@ -216,7 +219,18 @@ function brutalDoHint() {
  */
 function brutalUpdateStreakDisplay() {
     const el = document.getElementById('brutal-streak-display');
-    if (el) el.textContent = brutalStreakCount + ' / ' + brutalNumPuzzles;
+    if (!el) return;
+    const multi = typeof PuzzleOrder !== 'undefined' && PuzzleOrder.length > brutalSetSize();
+    el.textContent = (multi ? 'Level ' + brutalLevel + ' · ' : '') + brutalStreakCount + ' / ' + brutalNumPuzzles;
+}
+
+/** Puzzles per Brutal set — the same size Repetition uses for a level. */
+function brutalSetSize() { return MODE_CONFIGS[GAME_MODES.REPETITION].puzzlesPerLevel; }
+
+/** Size of the set that starts at `start` (the last set of a file may be shorter). */
+function brutalSizeAt(start) {
+    const total = (typeof PuzzleOrder !== 'undefined' && PuzzleOrder.length) ? PuzzleOrder.length : puzzleset.length;
+    return Math.max(1, Math.min(brutalSetSize(), total - start));
 }
 
 /**
@@ -342,15 +356,18 @@ function brutalCompleteLap() {
     brutalLapStartTime = Date.now();
     brutalUpdateLapsList();
 
-    if ($('#randomizeSet').is(':checked') && typeof puzzleset !== 'undefined' && puzzleset.length > 1) {
-        const lastFen = puzzleset[PuzzleOrder[PuzzleOrder.length - 1]]?.FEN;
-        let newOrder;
+    // Reshuffle only the current set, so later sets of the file stay untouched
+    const end = brutalChunkStart + brutalNumPuzzles;
+    if ($('#randomizeSet').is(':checked') && typeof puzzleset !== 'undefined' && brutalNumPuzzles > 1) {
+        const lastFen = puzzleset[PuzzleOrder[end - 1]]?.FEN;
+        const slice = PuzzleOrder.slice(brutalChunkStart, end);
+        let shuffled;
         let attempts = 0;
         do {
-            newOrder = shuffle([...Array(puzzleset.length).keys()]);
+            shuffled = shuffle(slice.slice());
             attempts++;
-        } while (attempts < 10 && lastFen && puzzleset[newOrder[0]]?.FEN === lastFen);
-        PuzzleOrder = newOrder;
+        } while (attempts < 10 && lastFen && puzzleset[shuffled[0]]?.FEN === lastFen);
+        PuzzleOrder = [...PuzzleOrder.slice(0, brutalChunkStart), ...shuffled, ...PuzzleOrder.slice(end)];
     }
 }
 
@@ -363,6 +380,9 @@ function brutalReset() {
     brutalStopLapClock();
     brutalStreakCount   = 0;
     brutalNumPuzzles   = 0;
+    brutalChunkStart   = 0;
+    brutalLevel        = 1;
+    brutalAdvancePending = false;
     brutalCleared      = false;
     brutalLapTimes     = [];
     brutalLapStartTime = 0;
@@ -1018,6 +1038,7 @@ function handlePuzzleComplete() {
         // First-time clear: latch the flag and freeze the bar green
         if (!brutalCleared && brutalNumPuzzles > 0 && brutalStreakCount >= brutalNumPuzzles) {
             brutalCleared = true;
+            brutalAdvancePending = true;
             brutalUpdateProgressBar();
             // Show cleared indicator in the streak display itself, not the puzzle name
             const streakEl = document.getElementById('brutal-streak-display');
@@ -1090,14 +1111,38 @@ function handlePuzzleStart() {
 
 function shouldContinueToNextPuzzle() {
     if (currentGameMode === GAME_MODES.BRUTAL) {
-        const nextIncrement = increment + 1;
-        if (nextIncrement >= puzzleset.length) {
-            // The puzzle index is about to wrap — record the lap,
-            // then reset increment to -1 so chess-pgn-trainer.js sets it to 0.
-            brutalCompleteLap();
-            increment = -1;
+        const total = (typeof PuzzleOrder !== 'undefined' && PuzzleOrder.length) ? PuzzleOrder.length : puzzleset.length;
+
+        // Keep the set bookkeeping in step with the position (e.g. after a resumed game)
+        if (increment < brutalChunkStart || increment >= brutalChunkStart + brutalNumPuzzles) {
+            brutalChunkStart = Math.floor(increment / brutalSetSize()) * brutalSetSize();
+            brutalNumPuzzles = brutalSizeAt(brutalChunkStart);
         }
-        return true; // loop never ends
+
+        if (brutalAdvancePending) {
+            // The set was cleared: on to the next set, or finish if that was the last one
+            brutalAdvancePending = false;
+            const nextStart = brutalChunkStart + brutalNumPuzzles;
+            if (nextStart >= total) return false;
+            brutalChunkStart  = nextStart;
+            brutalNumPuzzles  = brutalSizeAt(nextStart);
+            brutalLevel++;
+            brutalStreakCount = 0;
+            brutalCleared     = false;
+            brutalLapTimes    = [];
+            brutalLapStartTime = Date.now();
+            brutalUpdateLapsList();
+            brutalUpdateStreakDisplay();
+            brutalUpdateProgressBar();
+            return true;                      // trainer moves on to nextStart
+        }
+
+        if (increment + 1 >= brutalChunkStart + brutalNumPuzzles) {
+            // End of the set without clearing it: record the lap, replay the set from its first puzzle
+            brutalCompleteLap();
+            increment = brutalChunkStart - 1;
+        }
+        return true;
     }
 
     if (currentGameMode === GAME_MODES.WOODPECKER) {
@@ -1173,7 +1218,10 @@ function onStartTest() {
     }
     if (currentGameMode === GAME_MODES.BRUTAL) {
         brutalStreakCount   = 0;
-        brutalNumPuzzles   = puzzleset.length;
+        brutalChunkStart   = 0;
+        brutalLevel        = 1;
+        brutalAdvancePending = false;
+        brutalNumPuzzles   = brutalSizeAt(0);
         brutalCleared      = false;
         brutalLapTimes     = [];
         brutalLapStartTime = Date.now();

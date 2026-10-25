@@ -660,8 +660,8 @@ function checkAndPlayNext() {
                 if (shouldContinue) {
                         increment += 1;
                         setTimeout(() => loadPuzzle(puzzleset[PuzzleOrder[increment]]), 0);
-                } else if (isInfinityMode || isRepetitionMode) {
-                        // SR session complete / Repetition: final set solved clean — end-of-session UI
+                } else if (isInfinityMode || isRepetitionMode || isBrutalMode) {
+                        // SR session complete / Repetition or Brutal: final set cleared — end-of-session UI
                         setcomplete = true;
                 }
         }
